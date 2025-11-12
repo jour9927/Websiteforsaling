@@ -14,11 +14,15 @@ type Event = {
   status: 'draft' | 'published' | 'closed';
   description: string | null;
   image_url: string | null;
+  organizer_category: 'admin' | 'vip';
+  eligibility_requirements: string | null;
+  location: string | null;
   created_at: string;
 };
 
 export default function AdminEventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
+  const [registrationCounts, setRegistrationCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -30,6 +34,9 @@ export default function AdminEventsPage() {
     end_date: "",
     max_participants: 100,
     description: "",
+    location: "",
+    organizer_category: "admin" as 'admin' | 'vip',
+    eligibility_requirements: "",
     status: "draft" as 'draft' | 'published' | 'closed'
   });
 
@@ -38,7 +45,7 @@ export default function AdminEventsPage() {
     loadEvents();
   }, []);
 
-  const loadEvents = async () => {
+    const loadEvents = async () => {
     try {
       const { data, error } = await supabase
         .from('events')
@@ -46,9 +53,22 @@ export default function AdminEventsPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      
       setEvents(data || []);
+      
+      // Load registration counts for each event
+      if (data && data.length > 0) {
+        const counts: Record<string, number> = {};
+        for (const event of data) {
+          const { count } = await supabase
+            .from('registrations')
+            .select('*', { count: 'exact', head: true })
+            .eq('event_id', event.id);
+          counts[event.id] = count || 0;
+        }
+        setRegistrationCounts(counts);
+      }
     } catch (err) {
-      console.error('載入活動失敗:', err);
       setError(err instanceof Error ? err.message : '載入失敗');
     } finally {
       setLoading(false);
@@ -70,6 +90,9 @@ export default function AdminEventsPage() {
           end_date: formData.end_date,
           max_participants: formData.max_participants,
           description: formData.description,
+          location: formData.location,
+          organizer_category: formData.organizer_category,
+          eligibility_requirements: formData.eligibility_requirements,
           status: formData.status
         }]);
 
@@ -82,6 +105,9 @@ export default function AdminEventsPage() {
         end_date: "",
         max_participants: 100,
         description: "",
+        location: "",
+        organizer_category: "admin",
+        eligibility_requirements: "",
         status: "draft"
       });
       
@@ -192,6 +218,38 @@ export default function AdminEventsPage() {
               className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none" 
             />
           </label>
+          <label className="flex flex-col gap-2 text-xs text-white/70">
+            主辦類別 *
+            <select
+              value={formData.organizer_category}
+              onChange={(e) => setFormData({...formData, organizer_category: e.target.value as 'admin' | 'vip'})}
+              required
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
+            >
+              <option value="admin">管理員</option>
+              <option value="vip">大佬</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-2 text-xs text-white/70 md:col-span-2">
+            活動地點
+            <input 
+              type="text" 
+              value={formData.location}
+              onChange={(e) => setFormData({...formData, location: e.target.value})}
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none" 
+              placeholder="例如：台北市信義區..." 
+            />
+          </label>
+          <label className="flex flex-col gap-2 text-xs text-white/70 md:col-span-2">
+            參與資格
+            <textarea 
+              value={formData.eligibility_requirements || ""}
+              onChange={(e) => setFormData({...formData, eligibility_requirements: e.target.value})}
+              rows={3} 
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none" 
+              placeholder="例如：需年滿18歲、具備基本程式能力..." 
+            />
+          </label>
           <label className="flex flex-col gap-2 text-xs text-white/70 md:col-span-2">
             活動說明
             <textarea 
@@ -239,8 +297,10 @@ export default function AdminEventsPage() {
               <thead className="text-left text-xs uppercase tracking-[0.2em] text-white/60">
                 <tr>
                   <th className="px-4 py-3">活動</th>
+                  <th className="px-4 py-3">主辦</th>
+                  <th className="px-4 py-3">地點</th>
                   <th className="px-4 py-3">日期</th>
-                  <th className="px-4 py-3">名額</th>
+                  <th className="px-4 py-3">報名/名額</th>
                   <th className="px-4 py-3">狀態</th>
                   <th className="px-4 py-3">操作</th>
                 </tr>
@@ -250,9 +310,19 @@ export default function AdminEventsPage() {
                   <tr key={event.id}>
                     <td className="px-4 py-4 font-medium text-white/90">{event.title}</td>
                     <td className="px-4 py-4 text-white/70">
+                      <span className={`inline-block px-2 py-1 rounded-full text-xs ${event.organizer_category === 'vip' ? 'bg-yellow-500/20 text-yellow-200' : 'bg-blue-500/20 text-blue-200'}`}>
+                        {event.organizer_category === 'vip' ? '大佬' : '管理員'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4 text-white/70">{event.location || '-'}</td>
+                    <td className="px-4 py-4 text-white/70">
                       {new Date(event.start_date).toLocaleDateString('zh-TW')}
                     </td>
-                    <td className="px-4 py-4 text-white/70">{event.max_participants || '無限制'}</td>
+                    <td className="px-4 py-4 text-white/70">
+                      <span className={(event.max_participants && registrationCounts[event.id] >= event.max_participants) ? 'text-red-300' : ''}>
+                        {registrationCounts[event.id] || 0} / {event.max_participants || '∞'}
+                      </span>
+                    </td>
                     <td className="px-4 py-4">
                       <select
                         value={event.status}
