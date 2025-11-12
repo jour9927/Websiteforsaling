@@ -1,26 +1,18 @@
 import Link from "next/link";
 import { EventCard } from "@/components/EventCard";
+import { createServerSupabaseClient } from "@/lib/auth";
 
-const demoEvents = [
-  {
-    id: "spring-carnival",
-    title: "春日嘉年華",
-    description: "限時線上抽獎與市集活動",
-    date: "2025-03-21",
-    location: "松菸文創園區",
-    cover: "/images/spring.jpg"
-  },
-  {
-    id: "summer-beats",
-    title: "夏夜電音祭",
-    description: "DJ lineup 與即時抽盲盒",
-    date: "2025-07-05",
-    location: "高雄流行音樂中心",
-    cover: "/images/summer.jpg"
-  }
-];
+export default async function HomePage() {
+  const supabase = createServerSupabaseClient();
+  
+  // 從 Supabase 載入已發布的活動
+  const { data: events } = await supabase
+    .from('events')
+    .select('*')
+    .eq('status', 'published')
+    .order('start_date', { ascending: true })
+    .limit(6);
 
-export default function HomePage() {
   return (
     <div className="flex flex-col gap-12">
       <section className="glass-card p-8 text-center">
@@ -39,11 +31,28 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="grid gap-6 md:grid-cols-2">
-        {demoEvents.map((event) => (
-          <EventCard key={event.id} event={event} />
-        ))}
-      </section>
+      {events && events.length > 0 ? (
+        <section className="grid gap-6 md:grid-cols-2">
+          {events.map((event) => (
+            <EventCard 
+              key={event.id} 
+              event={{
+                id: event.id,
+                title: event.title,
+                description: event.description || "精彩活動即將開始",
+                date: event.start_date,
+                location: "線上活動",
+                cover: event.image_url || "/images/default.jpg"
+              }} 
+            />
+          ))}
+        </section>
+      ) : (
+        <section className="glass-card p-12 text-center">
+          <p className="text-white/60">目前沒有已發布的活動</p>
+          <p className="mt-2 text-sm text-white/40">管理員可以在後台建立並發布活動</p>
+        </section>
+      )}
     </div>
   );
 }
