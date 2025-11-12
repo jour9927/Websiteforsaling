@@ -1,14 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
-  const searchParams = useSearchParams();
-  const redirect = searchParams.get("redirect") || "/";
-  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -27,7 +23,9 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      // 使用 window.location 避免 typed routes 問題
+      // 登入成功後導向，從 URL 取得 redirect 參數
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect") || "/";
       window.location.href = redirect;
     } catch (err) {
       setError(err instanceof Error ? err.message : "登入失敗，請檢查帳號密碼");

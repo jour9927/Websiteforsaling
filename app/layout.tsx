@@ -4,6 +4,9 @@ import { ReactNode } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { createServerSupabaseClient } from "@/lib/auth";
 
+// Force dynamic rendering for all pages (required for Supabase auth with cookies)
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "Event Glass",
   description: "Glassmorphism event hub with Supabase backend"
