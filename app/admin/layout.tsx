@@ -13,9 +13,17 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     redirect("/login?redirect=/admin");
   }
 
-  // TODO: 檢查使用者是否為管理員
-  // 目前暫時允許所有登入使用者訪問，未來需加上 role 檢查
-  // 例如: if (user.user_metadata?.role !== 'admin') redirect('/');
+  // 檢查使用者是否為管理員
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (!profile || profile.role !== 'admin') {
+    // 非管理員導向首頁
+    redirect("/?error=unauthorized");
+  }
 
   return (
     <div className="flex min-h-screen bg-midnight-900 text-white">
