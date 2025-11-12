@@ -1,4 +1,20 @@
+"use client";
+
+import { useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+
 export default function LogoutPage() {
+  useEffect(() => {
+    const handleLogout = async () => {
+      await supabase.auth.signOut();
+      // 延遲一下讓使用者看到登出訊息
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1500);
+    };
+    handleLogout();
+  }, []);
+
   return (
     <div className="mx-auto flex max-w-md flex-col gap-8">
       <section className="glass-card p-8 text-center">

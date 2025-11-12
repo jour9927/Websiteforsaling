@@ -1,8 +1,22 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { createServerSupabaseClient } from "@/lib/auth";
 
-export default function AdminLayout({ children }: { children: ReactNode }) {
+export default async function AdminLayout({ children }: { children: ReactNode }) {
+  const supabase = createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // 未登入者導向登入頁
+  if (!user) {
+    redirect("/login?redirect=/admin");
+  }
+
+  // TODO: 檢查使用者是否為管理員
+  // 目前暫時允許所有登入使用者訪問，未來需加上 role 檢查
+  // 例如: if (user.user_metadata?.role !== 'admin') redirect('/');
+
   return (
     <div className="flex min-h-screen bg-midnight-900 text-white">
       <AdminSidebar />
@@ -13,6 +27,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <h1 className="text-lg font-semibold text-white">Event Glass 後台</h1>
           </div>
           <div className="flex items-center gap-3 text-xs text-white/70">
+            <span className="text-white/90">{user.email}</span>
             <Link href="/" className="rounded-full border border-white/20 px-4 py-2 transition hover:bg-white/10">
               返回前台
             </Link>
