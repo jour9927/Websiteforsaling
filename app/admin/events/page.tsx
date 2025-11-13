@@ -25,6 +25,7 @@ export default function AdminEventsPage() {
   const [registrationCounts, setRegistrationCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   
@@ -37,6 +38,7 @@ export default function AdminEventsPage() {
     location: "",
     organizer_category: "admin" as 'admin' | 'vip',
     eligibility_requirements: "",
+    image_url: "",
     status: "draft" as 'draft' | 'published' | 'closed'
   });
 
@@ -45,7 +47,53 @@ export default function AdminEventsPage() {
     loadEvents();
   }, []);
 
-    const loadEvents = async () => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // 檢查檔案大小 (限制 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("圖片大小不能超過 5MB");
+      return;
+    }
+
+    // 檢查檔案類型
+    if (!file.type.startsWith('image/')) {
+      setError("請上傳圖片檔案");
+      return;
+    }
+
+    setUploading(true);
+    setError("");
+
+    try {
+      // 生成唯一檔名
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `event-images/${fileName}`;
+
+      // 上傳到 Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('events')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // 取得公開 URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('events')
+        .getPublicUrl(filePath);
+
+      setFormData({ ...formData, image_url: publicUrl });
+      setSuccess("圖片上傳成功！");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '圖片上傳失敗');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const loadEvents = async () => {
     try {
       const { data, error } = await supabase
         .from('events')
@@ -93,6 +141,7 @@ export default function AdminEventsPage() {
           location: formData.location,
           organizer_category: formData.organizer_category,
           eligibility_requirements: formData.eligibility_requirements,
+          image_url: formData.image_url || null,
           status: formData.status
         }]);
 
@@ -108,6 +157,7 @@ export default function AdminEventsPage() {
         location: "",
         organizer_category: "admin",
         eligibility_requirements: "",
+        image_url: "",
         status: "draft"
       });
       
@@ -260,6 +310,29 @@ export default function AdminEventsPage() {
               placeholder="輸入活動介紹、流程、抽選規則等" 
             />
           </label>
+          <label className="flex flex-col gap-2 text-xs text-white/70 md:col-span-2">
+            活動封面圖片
+            <input 
+              type="file" 
+              accept="image/*"
+              onChange={handleImageUpload}
+              disabled={uploading}
+              className="rounded-xl border border-dashed border-white/20 bg-white/5 px-4 py-6 text-sm text-white file:mr-4 file:rounded-full file:border-0 file:bg-white/20 file:px-4 file:py-2 file:text-sm file:text-white hover:file:bg-white/30 focus:border-white/30 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed" 
+            />
+            {uploading && <p className="text-xs text-white/60">上傳中...</p>}
+            {formData.image_url && (
+              <div className="mt-2 flex items-center gap-3">
+                <img src={formData.image_url} alt="預覽" className="h-20 w-20 rounded-lg object-cover" />
+                <button 
+                  type="button"
+                  onClick={() => setFormData({...formData, image_url: ""})}
+                  className="text-xs text-red-300 hover:text-red-200"
+                >
+                  移除圖片
+                </button>
+              </div>
+            )}
+          </label>
           <label className="flex flex-col gap-2 text-xs text-white/70">
             狀態
             <select
@@ -296,6 +369,7 @@ export default function AdminEventsPage() {
             <table className="min-w-full divide-y divide-white/10 text-sm text-white/80">
               <thead className="text-left text-xs uppercase tracking-[0.2em] text-white/60">
                 <tr>
+                  <th className="px-4 py-3">封面</th>
                   <th className="px-4 py-3">活動</th>
                   <th className="px-4 py-3">主辦</th>
                   <th className="px-4 py-3">地點</th>
@@ -308,6 +382,15 @@ export default function AdminEventsPage() {
               <tbody className="divide-y divide-white/10">
                 {events.map((event) => (
                   <tr key={event.id}>
+                    <td className="px-4 py-4">
+                      {event.image_url ? (
+                        <img src={event.image_url} alt={event.title} className="h-12 w-12 rounded-lg object-cover" />
+                      ) : (
+                        <div className="h-12 w-12 rounded-lg bg-white/10 flex items-center justify-center text-xs text-white/40">
+                          無圖
+                        </div>
+                      )}
+                    </td>
                     <td className="px-4 py-4 font-medium text-white/90">{event.title}</td>
                     <td className="px-4 py-4 text-white/70">
                       <span className={`inline-block px-2 py-1 rounded-full text-xs ${event.organizer_category === 'vip' ? 'bg-yellow-500/20 text-yellow-200' : 'bg-blue-500/20 text-blue-200'}`}>
