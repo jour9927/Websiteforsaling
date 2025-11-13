@@ -3,6 +3,7 @@ import type { Route } from "next";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/auth";
 import RegisterButton from "./RegisterButton";
+import { ShareLinkButton } from "./ShareLinkButton";
 
 type EventPageProps = {
   params: { id: string };
@@ -195,15 +196,7 @@ export default async function EventPage({ params }: EventPageProps) {
           )}
 
           {/* 分享按鈕 */}
-          <button 
-            onClick={() => {
-              navigator.clipboard.writeText(window.location.href);
-              alert('連結已複製！');
-            }}
-            className="rounded-xl border border-white/20 px-4 py-3 text-center text-xs text-white/70 transition hover:bg-white/5"
-          >
-            📋 複製活動連結
-          </button>
+          <ShareLinkButton />
         </aside>
       </section>
     </div>
