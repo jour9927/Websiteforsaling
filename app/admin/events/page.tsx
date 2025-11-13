@@ -51,6 +51,13 @@ export default function AdminEventsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    console.log("上傳檔案資訊:", {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      sizeInMB: (file.size / (1024 * 1024)).toFixed(2)
+    });
+
     // 檢查檔案大小 (限制 5MB)
     if (file.size > 5 * 1024 * 1024) {
       setError("圖片大小不能超過 5MB");
@@ -72,21 +79,34 @@ export default function AdminEventsPage() {
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
       const filePath = `event-images/${fileName}`;
 
-      // 上傳到 Supabase Storage
-      const { error: uploadError } = await supabase.storage
-        .from('events')
-        .upload(filePath, file);
+      console.log("開始上傳到:", filePath);
 
-      if (uploadError) throw uploadError;
+      // 上傳到 Supabase Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('events')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      console.log("上傳結果:", { uploadData, uploadError });
+
+      if (uploadError) {
+        console.error("上傳錯誤詳情:", uploadError);
+        throw new Error(`上傳失敗: ${uploadError.message}`);
+      }
 
       // 取得公開 URL
       const { data: { publicUrl } } = supabase.storage
         .from('events')
         .getPublicUrl(filePath);
 
+      console.log("取得公開網址:", publicUrl);
+
       setFormData({ ...formData, image_url: publicUrl });
       setSuccess("圖片上傳成功！");
     } catch (err) {
+      console.error("上傳錯誤:", err);
       setError(err instanceof Error ? err.message : '圖片上傳失敗');
     } finally {
       setUploading(false);

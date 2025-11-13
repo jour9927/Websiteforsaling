@@ -55,6 +55,13 @@ export default function EventEditForm({ event }: EventEditFormProps) {
   const [error, setError] = useState("");
 
   const handleImageUpload = async (file: File) => {
+    console.log("上傳檔案資訊:", {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      sizeInMB: (file.size / (1024 * 1024)).toFixed(2)
+    });
+
     if (file.size > 5 * 1024 * 1024) {
       setError("圖片大小不能超過 5MB");
       return;
@@ -74,17 +81,30 @@ export default function EventEditForm({ event }: EventEditFormProps) {
       const fileName = `${event.id}-${Date.now()}.${fileExt}`;
       const filePath = `event-images/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("events")
-        .upload(filePath, file, { upsert: true });
+      console.log("開始上傳到:", filePath);
 
-      if (uploadError) throw uploadError;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("events")
+        .upload(filePath, file, { 
+          cacheControl: '3600',
+          upsert: true 
+        });
+
+      console.log("上傳結果:", { uploadData, uploadError });
+
+      if (uploadError) {
+        console.error("上傳錯誤詳情:", uploadError);
+        throw new Error(`上傳失敗: ${uploadError.message}`);
+      }
 
       const { data } = supabase.storage.from("events").getPublicUrl(filePath);
+
+      console.log("取得公開網址:", data.publicUrl);
 
       setFormData((prev) => ({ ...prev, image_url: data.publicUrl }));
       setSuccess("圖片上傳成功！");
     } catch (err) {
+      console.error("上傳錯誤:", err);
       setError(err instanceof Error ? err.message : "圖片上傳失敗");
     } finally {
       setUploading(false);
