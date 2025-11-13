@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import Link from "next/link";
-import type { Route } from "next";
 
 type User = {
   id: string;
@@ -75,7 +73,7 @@ export default function AdminMessagesPage() {
       .order('created_at', { ascending: false });
 
     if (!error && data) {
-      setSentMessages(data as any);
+      setSentMessages(data as Message[]);
     }
     
     setLoading(false);

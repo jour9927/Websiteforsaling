@@ -4,9 +4,21 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
+type User = {
+  id: string;
+  email?: string;
+};
+
+type Profile = {
+  id: string;
+  full_name: string | null;
+  email: string;
+  role: string;
+};
+
 type ProfileFormProps = {
-  user: any;
-  profile: any;
+  user: User;
+  profile: Profile | null;
 };
 
 export default function ProfileForm({ user, profile }: ProfileFormProps) {

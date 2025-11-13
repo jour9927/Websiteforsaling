@@ -1,19 +1,20 @@
 import { createServerSupabaseClient } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import type { Route } from "next";
 
 export const dynamic = 'force-dynamic';
 
-type Registration = {
+type Event = {
+  id: string;
+  title: string;
+  start_date: string;
+};
+
+type RegistrationData = {
   id: string;
   status: string;
   created_at: string;
-  event: {
-    id: string;
-    title: string;
-    start_date: string;
-  };
+  event: Event | Event[] | null;
 };
 
 export default async function HistoryPage() {
@@ -26,7 +27,7 @@ export default async function HistoryPage() {
   }
 
   // 載入用戶的報名記錄
-  const { data: registrations, error } = await supabase
+  const { data: registrations } = await supabase
     .from('registrations')
     .select(`
       id,
@@ -39,7 +40,7 @@ export default async function HistoryPage() {
       )
     `)
     .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
+    .order('created_at', { ascending: false }) as { data: RegistrationData[] | null };
 
   const statusText = (status: string) => {
     switch (status) {
@@ -57,11 +58,7 @@ export default async function HistoryPage() {
         <p className="mt-2 text-sm text-slate-200/70">查看已報名活動與抽選結果。</p>
       </section>
 
-      {error ? (
-        <section className="glass-card p-8 text-center text-red-300">
-          載入失敗，請稍後再試
-        </section>
-      ) : !registrations || registrations.length === 0 ? (
+      {!registrations || registrations.length === 0 ? (
         <section className="glass-card p-12 text-center">
           <p className="text-lg text-white/60">尚未報名任何活動</p>
           <Link
@@ -85,7 +82,8 @@ export default async function HistoryPage() {
             </thead>
             <tbody className="divide-y divide-white/5">
               {registrations.map((reg) => {
-                const event = reg.event as any;
+                // Supabase 返回的 event 可能是数组，取第一个元素
+                const event = Array.isArray(reg.event) ? reg.event[0] : reg.event;
                 return (
                   <tr key={reg.id}>
                     <td className="px-6 py-4">{event?.title || '未知活動'}</td>
@@ -107,7 +105,7 @@ export default async function HistoryPage() {
                     <td className="px-6 py-4">
                       {event?.id && (
                         <Link
-                          href={`/events/${event.id}` as Route}
+                          href={`/events/${event.id}`}
                           className="text-blue-300 hover:text-blue-200"
                         >
                           查看活動 →
