@@ -34,6 +34,7 @@ export default function AdminEventsPage() {
     start_date: "",
     end_date: "",
     max_participants: 100,
+    offline_registrations: 0,
     description: "",
     location: "",
     organizer_category: "admin" as 'admin' | 'vip',
@@ -183,6 +184,7 @@ export default function AdminEventsPage() {
         start_date: "",
         end_date: "",
         max_participants: 100,
+        offline_registrations: 0,
         description: "",
         location: "",
         organizer_category: "admin",
@@ -297,6 +299,21 @@ export default function AdminEventsPage() {
               onChange={(e) => setFormData({...formData, max_participants: parseInt(e.target.value)})}
               className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none" 
             />
+          </label>
+          <label className="flex flex-col gap-2 text-xs text-white/70">
+            <div className="flex items-center gap-2">
+              <span>線下報名人數</span>
+              <span className="text-[10px] text-white/50">（手動調整）</span>
+            </div>
+            <input 
+              type="number" 
+              min="0"
+              placeholder="0"
+              value={formData.offline_registrations}
+              onChange={(e) => setFormData({...formData, offline_registrations: parseInt(e.target.value) || 0})}
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none" 
+            />
+            <span className="text-[10px] text-white/50">用於記錄線下報名人數，會計入總報名人數</span>
           </label>
           <label className="flex flex-col gap-2 text-xs text-white/70">
             主辦類別 *

@@ -10,6 +10,7 @@ type EditableEvent = {
   start_date: string;
   end_date: string;
   max_participants: number | null;
+  offline_registrations: number;
   status: "draft" | "published" | "closed";
   description: string | null;
   image_url: string | null;
@@ -23,6 +24,7 @@ type EventFormState = {
   start_date: string;
   end_date: string;
   max_participants: string;
+  offline_registrations: string;
   description: string;
   location: string;
   organizer_category: "admin" | "vip";
@@ -42,6 +44,7 @@ export default function EventEditForm({ event }: EventEditFormProps) {
     start_date: event.start_date ? event.start_date.slice(0, 16) : "",
     end_date: event.end_date ? event.end_date.slice(0, 16) : "",
     max_participants: event.max_participants !== null ? String(event.max_participants) : "",
+    offline_registrations: String(event.offline_registrations || 0),
     description: event.description || "",
     location: event.location || "",
     organizer_category: event.organizer_category,
@@ -146,6 +149,9 @@ export default function EventEditForm({ event }: EventEditFormProps) {
           max_participants: formData.max_participants.trim()
             ? Number(formData.max_participants)
             : null,
+          offline_registrations: formData.offline_registrations.trim()
+            ? Number(formData.offline_registrations)
+            : 0,
           description: formData.description,
           location: formData.location.trim() || null,
           organizer_category: formData.organizer_category,
@@ -234,6 +240,27 @@ export default function EventEditForm({ event }: EventEditFormProps) {
           }
           className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
         />
+      </label>
+
+      <label className="flex flex-col gap-2 text-xs text-white/70">
+        <div className="flex items-center gap-2">
+          <span>線下報名人數</span>
+          <span className="text-[10px] text-white/50">（手動調整）</span>
+        </div>
+        <input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          placeholder="0"
+          value={formData.offline_registrations}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, offline_registrations: e.target.value }))
+          }
+          className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
+        />
+        <span className="text-[10px] text-white/50">
+          用於記錄線下報名人數，會計入總報名人數
+        </span>
       </label>
 
       <label className="flex flex-col gap-2 text-xs text-white/70">
