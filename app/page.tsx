@@ -5,13 +5,24 @@ import { createServerSupabaseClient } from "@/lib/auth";
 export default async function HomePage() {
   const supabase = createServerSupabaseClient();
   
-  // 從 Supabase 載入已發布的活動
-  const { data: events } = await supabase
+  const now = new Date().toISOString();
+  
+  // 載入進行中的活動（已發布且未結束）
+  const { data: upcomingEvents } = await supabase
     .from('events')
     .select('*')
     .eq('status', 'published')
+    .gte('end_date', now)
     .order('start_date', { ascending: true })
-    .limit(6);
+    .limit(4);
+
+  // 載入近期舉辦的活動（已結束）
+  const { data: recentEvents } = await supabase
+    .from('events')
+    .select('*')
+    .lt('end_date', now)
+    .order('end_date', { ascending: false })
+    .limit(3);
 
   return (
     <div className="flex flex-col gap-12">
@@ -31,25 +42,65 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {events && events.length > 0 ? (
-        <section className="grid gap-6 md:grid-cols-2">
-          {events.map((event) => (
-            <EventCard 
-              key={event.id} 
-              event={{
-                id: event.id,
-                title: event.title,
-                description: event.description || "精彩活動即將開始",
-                date: event.start_date,
-                location: "線上活動",
-                cover: event.image_url || "/images/default.jpg"
-              }} 
-            />
-          ))}
+      {/* 進行中的活動 */}
+      {upcomingEvents && upcomingEvents.length > 0 && (
+        <section>
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-semibold text-white/90">🎯 進行中的活動</h2>
+              <p className="mt-1 text-sm text-white/60">立即報名參加</p>
+            </div>
+            <Link href="/events" className="text-sm text-sky-200 hover:text-sky-100">
+              查看全部 →
+            </Link>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            {upcomingEvents.map((event) => (
+              <EventCard 
+                key={event.id} 
+                event={{
+                  id: event.id,
+                  title: event.title,
+                  description: event.description || "精彩活動進行中",
+                  date: event.start_date,
+                  location: event.location || "線上活動",
+                  cover: event.image_url || "/images/default.jpg"
+                }} 
+              />
+            ))}
+          </div>
         </section>
-      ) : (
+      )}
+
+      {/* 近期舉辦 */}
+      {recentEvents && recentEvents.length > 0 && (
+        <section>
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold text-white/90">📅 近期舉辦</h2>
+            <p className="mt-1 text-sm text-white/60">回顧過往精彩活動</p>
+          </div>
+          <div className="grid gap-6 md:grid-cols-3 opacity-80">
+            {recentEvents.map((event) => (
+              <EventCard 
+                key={event.id} 
+                event={{
+                  id: event.id,
+                  title: event.title,
+                  description: event.description || "活動已結束",
+                  date: event.start_date,
+                  location: event.location || "線上活動",
+                  cover: event.image_url || "/images/default.jpg"
+                }} 
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 沒有任何活動時 */}
+      {(!upcomingEvents || upcomingEvents.length === 0) && (!recentEvents || recentEvents.length === 0) && (
         <section className="glass-card p-12 text-center">
-          <p className="text-white/60">目前沒有已發布的活動</p>
+          <p className="text-white/60">目前沒有活動</p>
           <p className="mt-2 text-sm text-white/40">管理員可以在後台建立並發布活動</p>
         </section>
       )}
