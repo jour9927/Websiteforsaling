@@ -43,9 +43,13 @@ export default async function HistoryPage() {
     .order('registered_at', { ascending: false }) as { data: RegistrationData[] | null; error: any };
 
   // 添加调试日志
-  console.log('History page - User ID:', user.id);
-  console.log('History page - Registrations:', registrations);
-  console.log('History page - Error:', error);
+  console.log('=== History Page Debug ===');
+  console.log('User ID:', user.id);
+  console.log('User Email:', user.email);
+  console.log('Registrations:', registrations);
+  console.log('Registrations count:', registrations?.length || 0);
+  console.log('Error:', error);
+  console.log('========================');
 
   const statusText = (status: string) => {
     switch (status) {
@@ -61,6 +65,18 @@ export default async function HistoryPage() {
       <section className="glass-card p-8">
         <h1 className="text-3xl font-semibold">參與紀錄</h1>
         <p className="mt-2 text-sm text-slate-200/70">查看已報名活動與抽選結果。</p>
+        {error && (
+          <div className="mt-4 rounded-lg bg-red-500/20 border border-red-500/50 p-4">
+            <p className="text-sm text-red-200 font-semibold">⚠️ 查詢錯誤</p>
+            <p className="mt-1 text-xs text-red-300">{error.message}</p>
+            <p className="mt-1 text-xs text-red-300/70">錯誤代碼: {error.code}</p>
+            {error.code === '42501' && (
+              <p className="mt-2 text-xs text-yellow-200">
+                💡 這是權限問題，請執行 supabase/migrations/010_fix_registrations_rls.sql
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       {!registrations || registrations.length === 0 ? (
