@@ -13,7 +13,7 @@ type Event = {
 type RegistrationData = {
   id: string;
   status: string;
-  created_at: string;
+  registered_at: string;
   event: Event | Event[] | null;
 };
 
@@ -27,12 +27,12 @@ export default async function HistoryPage() {
   }
 
   // 載入用戶的報名記錄
-  const { data: registrations } = await supabase
+  const { data: registrations, error } = await supabase
     .from('registrations')
     .select(`
       id,
       status,
-      created_at,
+      registered_at,
       event:events (
         id,
         title,
@@ -40,7 +40,12 @@ export default async function HistoryPage() {
       )
     `)
     .eq('user_id', user.id)
-    .order('created_at', { ascending: false }) as { data: RegistrationData[] | null };
+    .order('registered_at', { ascending: false }) as { data: RegistrationData[] | null; error: any };
+
+  // 添加调试日志
+  console.log('History page - User ID:', user.id);
+  console.log('History page - Registrations:', registrations);
+  console.log('History page - Error:', error);
 
   const statusText = (status: string) => {
     switch (status) {
@@ -100,7 +105,7 @@ export default async function HistoryPage() {
                       {event?.start_date ? new Date(event.start_date).toLocaleDateString('zh-TW') : '-'}
                     </td>
                     <td className="px-6 py-4">
-                      {new Date(reg.created_at).toLocaleDateString('zh-TW')}
+                      {new Date(reg.registered_at).toLocaleDateString('zh-TW')}
                     </td>
                     <td className="px-6 py-4">
                       {event?.id && (
