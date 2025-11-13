@@ -1,11 +1,16 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { createServerSupabaseClient } from "@/lib/auth";
+import { MemberOnlyBlock } from "@/components/MemberOnlyBlock";
 
 export const dynamic = 'force-dynamic';
 
 export default async function AnnouncementsPage() {
   const supabase = createServerSupabaseClient();
+  
+  // 檢查用戶登入狀態
+  const { data: { user } } = await supabase.auth.getUser();
+  const isLoggedIn = !!user;
   
   // 從 Supabase 載入已發布的公告
   const { data: announcements } = await supabase
@@ -31,7 +36,13 @@ export default async function AnnouncementsPage() {
         <p className="mt-3 text-sm text-white/70">掌握活動最新消息、緊急通知與系統公告。</p>
       </header>
       
-      {announcements && announcements.length > 0 ? (
+      {!isLoggedIn ? (
+        <MemberOnlyBlock 
+          title="公告內容僅限會員查看" 
+          description="登入以查看最新活動公告、重要通知與獨家訊息"
+          itemCount={5}
+        />
+      ) : announcements && announcements.length > 0 ? (
         <section className="space-y-4">
           {announcements.map((notice) => (
             <article key={notice.id} className="glass-card p-6">

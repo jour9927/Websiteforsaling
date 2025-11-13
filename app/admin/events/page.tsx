@@ -40,7 +40,9 @@ export default function AdminEventsPage() {
     organizer_category: "admin" as 'admin' | 'vip',
     eligibility_requirements: "",
     image_url: "",
-    status: "draft" as 'draft' | 'published' | 'closed'
+    status: "draft" as 'draft' | 'published' | 'closed',
+    price: 0,
+    is_free: true
   });
 
   // 載入活動列表
@@ -168,12 +170,15 @@ export default function AdminEventsPage() {
           start_date: formData.start_date,
           end_date: formData.end_date,
           max_participants: formData.max_participants,
+          offline_registrations: formData.offline_registrations,
           description: formData.description,
           location: formData.location,
           organizer_category: formData.organizer_category,
           eligibility_requirements: formData.eligibility_requirements,
           image_url: formData.image_url || null,
-          status: formData.status
+          status: formData.status,
+          price: formData.price,
+          is_free: formData.is_free
         }]);
 
       if (error) throw error;
@@ -190,7 +195,9 @@ export default function AdminEventsPage() {
         organizer_category: "admin",
         eligibility_requirements: "",
         image_url: "",
-        status: "draft"
+        status: "draft",
+        price: 0,
+        is_free: true
       });
       
       // 重新載入列表
@@ -392,6 +399,30 @@ export default function AdminEventsPage() {
               <option value="closed">已關閉</option>
             </select>
           </label>
+          
+          <label className="flex flex-col gap-2 text-xs text-white/70">
+            活動價格 (NT$)
+            <input 
+              type="number"
+              min={0}
+              value={formData.price}
+              onChange={(e) => setFormData({...formData, price: Number(e.target.value)})}
+              disabled={formData.is_free}
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white disabled:opacity-50 focus:border-white/40 focus:outline-none" 
+              placeholder="0"
+            />
+          </label>
+          
+          <label className="flex items-center gap-2 text-xs text-white/70">
+            <input
+              type="checkbox"
+              checked={formData.is_free}
+              onChange={(e) => setFormData({...formData, is_free: e.target.checked, price: e.target.checked ? 0 : formData.price})}
+              className="h-4 w-4 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500"
+            />
+            免費活動
+          </label>
+          
           <div className="md:col-span-2 flex gap-3">
             <button 
               type="submit" 

@@ -1,9 +1,14 @@
 import Link from "next/link";
 import { EventCard } from "@/components/EventCard";
+import { MemberOnlyBlock } from "@/components/MemberOnlyBlock";
 import { createServerSupabaseClient } from "@/lib/auth";
 
 export default async function HomePage() {
   const supabase = createServerSupabaseClient();
+  
+  // 檢查用戶登入狀態
+  const { data: { user } } = await supabase.auth.getUser();
+  const isLoggedIn = !!user;
   
   const now = new Date().toISOString();
   
@@ -43,59 +48,91 @@ export default async function HomePage() {
       </section>
 
       {/* 進行中的活動 */}
-      {upcomingEvents && upcomingEvents.length > 0 && (
-        <section>
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-2xl font-semibold text-white/90">🎯 進行中的活動</h2>
-              <p className="mt-1 text-sm text-white/60">立即報名參加</p>
-            </div>
+      <section>
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold text-white/90">🎯 進行中的活動</h2>
+            <p className="mt-1 text-sm text-white/60">立即報名參加</p>
+          </div>
+          {isLoggedIn && (
             <Link href="/events" className="text-sm text-sky-200 hover:text-sky-100">
               查看全部 →
             </Link>
-          </div>
-          <div className="grid gap-6 md:grid-cols-2">
-            {upcomingEvents.map((event) => (
-              <EventCard 
-                key={event.id} 
-                event={{
-                  id: event.id,
-                  title: event.title,
-                  description: event.description || "精彩活動進行中",
-                  date: event.start_date,
-                  location: event.location || "線上活動",
-                  cover: event.image_url || "/images/default.jpg"
-                }} 
-              />
-            ))}
-          </div>
-        </section>
-      )}
+          )}
+        </div>
+
+        {isLoggedIn ? (
+          upcomingEvents && upcomingEvents.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-2">
+              {upcomingEvents.map((event) => (
+                <EventCard 
+                  key={event.id} 
+                  event={{
+                    id: event.id,
+                    title: event.title,
+                    description: event.description || "精彩活動進行中",
+                    date: event.start_date,
+                    location: event.location || "線上活動",
+                    cover: event.image_url || undefined,
+                    price: event.price || 0,
+                    is_free: event.is_free ?? true
+                  }} 
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="glass-card p-12 text-center text-white/60">
+              <p>目前沒有進行中的活動</p>
+            </div>
+          )
+        ) : (
+          <MemberOnlyBlock 
+            title="僅限會員查看" 
+            description="成為會員，探索精彩活動與獨家內容"
+            itemCount={4}
+          />
+        )}
+      </section>
 
       {/* 近期舉辦 */}
-      {recentEvents && recentEvents.length > 0 && (
-        <section>
-          <div className="mb-6">
-            <h2 className="text-2xl font-semibold text-white/90">📅 近期舉辦</h2>
-            <p className="mt-1 text-sm text-white/60">回顧過往精彩活動</p>
-          </div>
-          <div className="grid gap-6 md:grid-cols-3 opacity-80">
-            {recentEvents.map((event) => (
-              <EventCard 
-                key={event.id} 
-                event={{
-                  id: event.id,
-                  title: event.title,
-                  description: event.description || "活動已結束",
-                  date: event.start_date,
-                  location: event.location || "線上活動",
-                  cover: event.image_url || "/images/default.jpg"
-                }} 
-              />
-            ))}
-          </div>
-        </section>
-      )}
+      <section>
+        <div className="mb-6">
+          <h2 className="text-2xl font-semibold text-white/90">📅 近期舉辦</h2>
+          <p className="mt-1 text-sm text-white/60">回顧過往精彩活動</p>
+        </div>
+        
+        {isLoggedIn ? (
+          recentEvents && recentEvents.length > 0 ? (
+            <div className="grid gap-6 md:grid-cols-3 opacity-80">
+              {recentEvents.map((event) => (
+                <EventCard 
+                  key={event.id} 
+                  event={{
+                    id: event.id,
+                    title: event.title,
+                    description: event.description || "活動已結束",
+                    date: event.start_date,
+                    location: event.location || "線上活動",
+                    cover: event.image_url || undefined,
+                    price: event.price || 0,
+                    is_free: event.is_free ?? true
+                  }} 
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="glass-card p-12 text-center text-white/60">
+              <p>目前沒有近期活動記錄</p>
+            </div>
+          )
+        ) : (
+          <MemberOnlyBlock 
+            title="會員專屬內容" 
+            description="加入我們，回顧更多精彩瞬間"
+            itemCount={3}
+          />
+        )}
+      </section>
 
       {/* 沒有任何活動時 */}
       {(!upcomingEvents || upcomingEvents.length === 0) && (!recentEvents || recentEvents.length === 0) && (

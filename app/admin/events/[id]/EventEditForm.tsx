@@ -17,6 +17,8 @@ type EditableEvent = {
   organizer_category: "admin" | "vip";
   eligibility_requirements: string | null;
   location: string | null;
+  price: number | null;
+  is_free: boolean;
 };
 
 type EventFormState = {
@@ -31,6 +33,8 @@ type EventFormState = {
   eligibility_requirements: string;
   image_url: string;
   status: "draft" | "published" | "closed";
+  price: string;
+  is_free: boolean;
 };
 
 interface EventEditFormProps {
@@ -51,6 +55,8 @@ export default function EventEditForm({ event }: EventEditFormProps) {
     eligibility_requirements: event.eligibility_requirements || "",
     image_url: event.image_url || "",
     status: event.status,
+    price: event.price !== null ? String(event.price) : "",
+    is_free: event.is_free,
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -144,8 +150,8 @@ export default function EventEditForm({ event }: EventEditFormProps) {
         .from("events")
         .update({
           title: formData.title,
-          start_date: start,
-          end_date: end,
+          start_date: formData.start_date || null,
+          end_date: formData.end_date || null,
           max_participants: formData.max_participants.trim()
             ? Number(formData.max_participants)
             : null,
@@ -158,6 +164,8 @@ export default function EventEditForm({ event }: EventEditFormProps) {
           eligibility_requirements: formData.eligibility_requirements.trim() || null,
           image_url: formData.image_url.trim() || null,
           status: formData.status,
+          price: formData.price.trim() ? Number(formData.price) : null,
+          is_free: formData.is_free,
         })
         .eq("id", event.id);
 
@@ -261,6 +269,34 @@ export default function EventEditForm({ event }: EventEditFormProps) {
         <span className="text-[10px] text-white/50">
           用於記錄線下報名人數，會計入總報名人數
         </span>
+      </label>
+
+      <label className="flex flex-col gap-2 text-xs text-white/70">
+        活動價格 (NT$)
+        <input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          placeholder="0"
+          value={formData.price}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, price: e.target.value }))
+          }
+          disabled={formData.is_free}
+          className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white disabled:opacity-50 focus:border-white/40 focus:outline-none"
+        />
+      </label>
+
+      <label className="flex items-center gap-2 text-xs text-white/70">
+        <input
+          type="checkbox"
+          checked={formData.is_free}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, is_free: e.target.checked, price: e.target.checked ? "0" : prev.price }))
+          }
+          className="h-4 w-4 rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500"
+        />
+        免費活動
       </label>
 
       <label className="flex flex-col gap-2 text-xs text-white/70">
