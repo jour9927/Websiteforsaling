@@ -88,20 +88,31 @@ export default async function EventPage({ params }: EventPageProps) {
 
         <h1 className="mt-4 text-3xl font-semibold">{event.title}</h1>
         
+        {/* 價格顯示 - 醒目位置 */}
+        <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 px-4 py-2 border border-white/20">
+          <span className="text-2xl">💰</span>
+          <div>
+            <p className="text-xs text-white/60">活動費用</p>
+            <p className="text-xl font-bold text-white">
+              {event.is_free || event.price === 0 ? '免費參加' : `NT$ ${event.price?.toLocaleString()}`}
+            </p>
+          </div>
+        </div>
+        
         {/* 活動資訊 */}
         <div className="mt-4 grid gap-3 text-sm text-slate-200/80 md:grid-cols-2">
           <div className="flex items-center gap-2">
             <span className="text-white/60">📅 開始時間:</span>
-            <span>{new Date(event.start_date).toLocaleString('zh-TW')}</span>
+            <span className="break-all">{new Date(event.start_date).toLocaleString('zh-TW')}</span>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-white/60">⏰ 結束時間:</span>
-            <span>{new Date(event.end_date).toLocaleString('zh-TW')}</span>
+            <span className="break-all">{new Date(event.end_date).toLocaleString('zh-TW')}</span>
           </div>
           {event.location && (
             <div className="flex items-center gap-2">
               <span className="text-white/60">📍 地點:</span>
-              <span>{event.location}</span>
+              <span className="break-all">{event.location}</span>
             </div>
           )}
           <div className="flex items-center gap-2">

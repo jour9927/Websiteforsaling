@@ -40,10 +40,10 @@ export const EventCard: FC<EventCardProps> = ({ event }: EventCardProps) => {
             </svg>
           </div>
         )}
-        {/* 價格標籤 */}
+        {/* 價格標籤 - 加大手機版顯示 */}
         {is_free !== undefined && (
-          <div className="absolute right-3 top-3 rounded-full bg-black/60 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm">
-            {is_free || price === 0 ? '免費' : `NT$ ${price}`}
+          <div className="absolute right-2 top-2 sm:right-3 sm:top-3 rounded-full bg-black/70 px-3 py-1.5 sm:px-4 sm:py-2 text-sm sm:text-xs font-bold text-white backdrop-blur-sm shadow-lg border border-white/20">
+            {is_free || price === 0 ? '免費' : `NT$ ${price?.toLocaleString()}`}
           </div>
         )}
       </div>
@@ -51,6 +51,17 @@ export const EventCard: FC<EventCardProps> = ({ event }: EventCardProps) => {
         <p className="text-xs uppercase tracking-[0.3em] text-slate-200/80">活動</p>
         <h2 className="mt-2 text-2xl font-semibold">{title}</h2>
         <p className="mt-2 line-clamp-2 text-sm text-slate-200/90">{description}</p>
+        
+        {/* 價格資訊 - 手機版額外顯示 */}
+        {is_free !== undefined && (
+          <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-white/10 px-3 py-1.5 text-sm sm:hidden">
+            <span className="text-lg">💰</span>
+            <span className="font-semibold text-white">
+              {is_free || price === 0 ? '免費參加' : `NT$ ${price?.toLocaleString()}`}
+            </span>
+          </div>
+        )}
+        
         <div className="mt-4 flex flex-col gap-1 text-xs text-slate-200/70">
           <span>⏰ {new Date(date).toLocaleDateString('zh-TW', { month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
           <span>📍 {location}</span>

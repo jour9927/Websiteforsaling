@@ -52,7 +52,9 @@ export default async function EventsListPage() {
                   description: event.description || "精彩活動進行中",
                   date: event.start_date,
                   location: event.location || "線上活動",
-                  cover: event.image_url || "/images/default.jpg"
+                  cover: event.image_url && event.image_url.trim() !== '' ? event.image_url : undefined,
+                  price: event.price || 0,
+                  is_free: event.is_free ?? true
                 }} 
               />
             ))}
@@ -79,7 +81,9 @@ export default async function EventsListPage() {
                   description: event.description || "活動已結束",
                   date: event.start_date,
                   location: event.location || "線上活動",
-                  cover: event.image_url || "/images/default.jpg"
+                  cover: event.image_url && event.image_url.trim() !== '' ? event.image_url : undefined,
+                  price: event.price || 0,
+                  is_free: event.is_free ?? true
                 }} 
               />
             ))}
