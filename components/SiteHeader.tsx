@@ -18,6 +18,7 @@ const primaryLinks = [
 const accountLinks = [
   { label: "我的帳號", href: "/profile" as Route },
   { label: "參與紀錄", href: "/history" as Route },
+  { label: "我的訊息", href: "/messages" as Route },
   { label: "登入", href: "/login" as Route },
   { label: "註冊", href: "/signup" as Route }
 ] as const;

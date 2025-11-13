@@ -28,11 +28,14 @@ export default async function EventPage({ params }: EventPageProps) {
   // 取得當前用戶
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 計算已報名人數
-  const { count: registrationCount } = await supabase
+  // 計算已報名人數（線上 + 線下）
+  const { count: onlineRegistrationCount } = await supabase
     .from('registrations')
     .select('*', { count: 'exact', head: true })
     .eq('event_id', params.id);
+
+  // 總報名人數 = 線上報名 + 線下報名
+  const totalRegistrationCount = (onlineRegistrationCount || 0) + (event.offline_registrations || 0);
 
   // 檢查用戶是否已報名
   let userRegistration = null;
@@ -46,8 +49,8 @@ export default async function EventPage({ params }: EventPageProps) {
     userRegistration = data;
   }
 
-  const remainingSlots = event.max_participants ? event.max_participants - (registrationCount || 0) : null;
-  const isFull = event.max_participants && (registrationCount || 0) >= event.max_participants;
+  const remainingSlots = event.max_participants ? event.max_participants - totalRegistrationCount : null;
+  const isFull = event.max_participants && totalRegistrationCount >= event.max_participants;
   const isEnded = new Date(event.end_date) < new Date();
   const drawHref = `/events/${params.id}/draw` as Route;
 
@@ -140,8 +143,11 @@ export default async function EventPage({ params }: EventPageProps) {
           <div>
             <p className="text-xs uppercase text-slate-200/70">報名狀態</p>
             <p className="mt-2 text-sm text-white/80">
-              已報名: <span className="text-2xl font-semibold text-white">{registrationCount || 0}</span>
+              已報名: <span className="text-2xl font-semibold text-white">{totalRegistrationCount}</span>
               {event.max_participants && ` / ${event.max_participants}`}
+            </p>
+            <p className="mt-1 text-xs text-slate-200/60">
+              線上: {onlineRegistrationCount || 0} | 線下: {event.offline_registrations || 0}
             </p>
             {remainingSlots !== null && (
               <p className="mt-1 text-xs text-slate-200/60">

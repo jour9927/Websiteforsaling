@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation";
 import type { Route } from "next";
 
 const navItems = [
-  { href: "/admin" as Route, label: "儀表板" },
-  { href: "/admin/events" as Route, label: "活動管理" },
-  { href: "/admin/registrations" as Route, label: "報名/抽選" },
-  { href: "/admin/announcements" as Route, label: "公告管理" }
+  { href: "/admin" as Route, label: "儀表板", icon: "📊" },
+  { href: "/admin/events" as Route, label: "活動管理", icon: "📅" },
+  { href: "/admin/registrations" as Route, label: "報名/抽選", icon: "🎫" },
+  { href: "/admin/announcements" as Route, label: "公告管理", icon: "📢" },
+  { href: "/admin/notifications" as Route, label: "通知中心", icon: "🔔" },
+  { href: "/admin/messages" as Route, label: "會員訊息", icon: "✉️" }
 ] as const;
 
 const baseLinkClasses = "flex items-center justify-between rounded-xl px-4 py-2 text-sm transition";
@@ -32,7 +34,10 @@ export function AdminSidebar() {
                 href={item.href}
               className={`${baseLinkClasses} ${active ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/10"}`}
             >
-              <span>{item.label}</span>
+              <span className="flex items-center gap-2">
+                <span>{item.icon}</span>
+                <span>{item.label}</span>
+              </span>
               {active ? <span className="text-xs uppercase text-white/80">Now</span> : null}
             </Link>
           );
