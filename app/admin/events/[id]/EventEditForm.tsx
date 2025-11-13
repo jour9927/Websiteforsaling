@@ -94,6 +94,16 @@ export default function EventEditForm({ event }: EventEditFormProps) {
 
       if (uploadError) {
         console.error("上傳錯誤詳情:", uploadError);
+        
+        // 提供更友善的錯誤訊息
+        if (uploadError.message?.includes('Bucket not found')) {
+          throw new Error(
+            '❌ Storage bucket 未建立！\n' +
+            '請前往 Supabase Dashboard → Storage → 建立名為 "events" 的 bucket\n' +
+            '詳細步驟請參考 URGENT_STORAGE_SETUP.md'
+          );
+        }
+        
         throw new Error(`上傳失敗: ${uploadError.message}`);
       }
 
