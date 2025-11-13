@@ -58,22 +58,40 @@ export default function AdminMessagesPage() {
       return;
     }
 
-    const { data, error } = await supabase
+    console.log('載入已發送訊息，當前用戶:', user.id);
+
+    // 先查询消息
+    const { data: messages, error: messagesError } = await supabase
       .from('messages')
-      .select(`
-        *,
-        recipient:recipient_id (
-          id,
-          email,
-          full_name,
-          role
-        )
-      `)
+      .select('*')
       .eq('sender_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setSentMessages(data as Message[]);
+    console.log('查詢訊息結果:', { messages, messagesError });
+
+    if (messagesError) {
+      console.error('載入已發送訊息錯誤:', messagesError);
+      setLoading(false);
+      return;
+    }
+
+    if (messages && messages.length > 0) {
+      // 获取所有收件人的信息
+      const recipientIds = messages.map(m => m.recipient_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, role')
+        .in('id', recipientIds);
+
+      // 将收件人信息合并到消息中
+      const messagesWithRecipients = messages.map(msg => ({
+        ...msg,
+        recipient: profiles?.find(p => p.id === msg.recipient_id)
+      }));
+
+      setSentMessages(messagesWithRecipients as Message[]);
+    } else {
+      setSentMessages([]);
     }
     
     setLoading(false);
@@ -126,8 +144,10 @@ export default function AdminMessagesPage() {
       setSubject("");
       setBody("");
       
-      // 重新載入已發送訊息
-      loadSentMessages();
+      // 延迟一下再重新载入，确保数据已写入
+      setTimeout(() => {
+        loadSentMessages();
+      }, 500);
     } catch (err) {
       console.error('發送訊息異常:', err);
       setError(err instanceof Error ? err.message : "發送失敗，請稍後再試");
