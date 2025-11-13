@@ -1,80 +1,209 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { notFound } from "next/navigation";
+import { createServerSupabaseClient } from "@/lib/auth";
+import RegisterButton from "./RegisterButton";
 
 type EventPageProps = {
   params: { id: string };
 };
 
-const demoEventDetail: Record<string, {
-  title: string;
-  description: string;
-  tags: string[];
-  slots: number;
-}> = {
-  "spring-carnival": {
-    title: "春日嘉年華",
-    description: "城市中最溫暖的春季活動，含工作坊與線上抽獎。",
-    tags: ["市集", "抽獎", "音樂"],
-    slots: 120
-  },
-  "summer-beats": {
-    title: "夏夜電音祭",
-    description: "以電子音樂與互動燈光打造的夜間活動。",
-    tags: ["電音", "盲盒", "戶外"],
-    slots: 200
-  }
-};
+export const dynamic = 'force-dynamic';
 
-export default function EventPage({ params }: EventPageProps) {
-  const event = demoEventDetail[params.id];
+export default async function EventPage({ params }: EventPageProps) {
+  const supabase = createServerSupabaseClient();
+  
+  // 載入活動資料
+  const { data: event, error } = await supabase
+    .from('events')
+    .select('*')
+    .eq('id', params.id)
+    .single();
 
-  if (!event) {
+  if (error || !event) {
     notFound();
   }
 
+  // 取得當前用戶
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // 計算已報名人數
+  const { count: registrationCount } = await supabase
+    .from('registrations')
+    .select('*', { count: 'exact', head: true })
+    .eq('event_id', params.id);
+
+  // 檢查用戶是否已報名
+  let userRegistration = null;
+  if (user) {
+    const { data } = await supabase
+      .from('registrations')
+      .select('*')
+      .eq('event_id', params.id)
+      .eq('user_id', user.id)
+      .single();
+    userRegistration = data;
+  }
+
+  const remainingSlots = event.max_participants ? event.max_participants - (registrationCount || 0) : null;
+  const isFull = event.max_participants && (registrationCount || 0) >= event.max_participants;
+  const isEnded = new Date(event.end_date) < new Date();
   const drawHref = `/events/${params.id}/draw` as Route;
 
   return (
     <div className="flex flex-col gap-8">
       <header className="glass-card p-8">
-        <Link href="/" className="text-sm text-slate-200/80 hover:text-white">
+        <Link href="/events" className="text-sm text-slate-200/80 hover:text-white">
           ← 返回活動列表
         </Link>
-        <h1 className="mt-4 text-3xl font-semibold">{event.title}</h1>
-        <p className="mt-4 text-slate-200/90">{event.description}</p>
-        <div className="mt-6 flex flex-wrap gap-2">
-          {event.tags.map((tag) => (
-            <span key={tag} className="rounded-full bg-white/15 px-3 py-1 text-xs uppercase tracking-wider text-slate-100">
-              {tag}
+        
+        {/* 活動狀態標籤 */}
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          <span className={`rounded-full px-3 py-1 text-xs font-medium ${
+            event.status === 'published' && !isEnded
+              ? 'bg-green-500/20 text-green-200'
+              : event.status === 'draft'
+              ? 'bg-gray-500/20 text-gray-200'
+              : 'bg-red-500/20 text-red-200'
+          }`}>
+            {event.status === 'published' && !isEnded ? '進行中' : isEnded ? '已結束' : '草稿'}
+          </span>
+          
+          {event.organizer_category === 'vip' && (
+            <span className="rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-medium text-yellow-200">
+              ⭐ 大佬主辦
             </span>
-          ))}
+          )}
+          
+          {isFull && (
+            <span className="rounded-full bg-red-500/20 px-3 py-1 text-xs font-medium text-red-200">
+              已額滿
+            </span>
+          )}
         </div>
+
+        <h1 className="mt-4 text-3xl font-semibold">{event.title}</h1>
+        
+        {/* 活動資訊 */}
+        <div className="mt-4 grid gap-3 text-sm text-slate-200/80 md:grid-cols-2">
+          <div className="flex items-center gap-2">
+            <span className="text-white/60">📅 開始時間:</span>
+            <span>{new Date(event.start_date).toLocaleString('zh-TW')}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-white/60">⏰ 結束時間:</span>
+            <span>{new Date(event.end_date).toLocaleString('zh-TW')}</span>
+          </div>
+          {event.location && (
+            <div className="flex items-center gap-2">
+              <span className="text-white/60">📍 地點:</span>
+              <span>{event.location}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-2">
+            <span className="text-white/60">👥 名額:</span>
+            <span>{event.max_participants || '不限'}</span>
+          </div>
+        </div>
+
+        {event.description && (
+          <p className="mt-6 whitespace-pre-wrap text-slate-200/90">{event.description}</p>
+        )}
       </header>
 
       <section className="grid gap-6 md:grid-cols-[2fr_1fr]">
-        <article className="glass-card p-6">
-          <h2 className="text-lg font-semibold text-white/90">活動流程</h2>
-          <ul className="mt-4 space-y-3 text-sm text-slate-200/80">
-            <li>14:00 入場報到與互動裝置探索</li>
-            <li>15:00 主舞台與品牌展示</li>
-            <li>17:00 線上盲盒抽選開放</li>
-            <li>18:30 限時閃電活動與兌換</li>
-          </ul>
-        </article>
+        {/* 左側：活動詳細資訊 */}
+        <div className="space-y-6">
+          {event.eligibility_requirements && (
+            <article className="glass-card p-6">
+              <h2 className="text-lg font-semibold text-white/90">📋 參與資格</h2>
+              <p className="mt-4 whitespace-pre-wrap text-sm text-slate-200/80">
+                {event.eligibility_requirements}
+              </p>
+            </article>
+          )}
+
+          {event.image_url && (
+            <article className="glass-card overflow-hidden p-0">
+              <img 
+                src={event.image_url} 
+                alt={event.title}
+                className="h-64 w-full object-cover"
+              />
+            </article>
+          )}
+        </div>
+
+        {/* 右側：報名區塊 */}
         <aside className="glass-card flex flex-col gap-4 p-6">
           <div>
-            <p className="text-xs uppercase text-slate-200/70">剩餘名額</p>
-            <p className="text-3xl font-semibold text-white">{event.slots}</p>
+            <p className="text-xs uppercase text-slate-200/70">報名狀態</p>
+            <p className="mt-2 text-sm text-white/80">
+              已報名: <span className="text-2xl font-semibold text-white">{registrationCount || 0}</span>
+              {event.max_participants && ` / ${event.max_participants}`}
+            </p>
+            {remainingSlots !== null && (
+              <p className="mt-1 text-xs text-slate-200/60">
+                剩餘名額: {remainingSlots > 0 ? remainingSlots : 0}
+              </p>
+            )}
           </div>
-          <Link href={drawHref} className="rounded-xl bg-white/20 px-4 py-3 text-center text-sm font-semibold text-white/90 transition hover:bg-white/30">
-            前往抽選
-          </Link>
-          <form className="flex flex-col gap-2">
-            <button type="submit" className="rounded-xl border border-white/30 px-4 py-3 text-sm font-semibold text-white/90 transition hover:bg-white/5">
-              立即報名
-            </button>
-          </form>
+
+          {/* 報名按鈕 */}
+          {!user ? (
+            <Link 
+              href={`/login?redirect=/events/${params.id}`}
+              className="rounded-xl bg-white/20 px-4 py-3 text-center text-sm font-semibold text-white/90 transition hover:bg-white/30"
+            >
+              登入以報名
+            </Link>
+          ) : userRegistration ? (
+            <div className="space-y-2">
+              <div className="rounded-xl border-2 border-green-500/50 bg-green-500/10 px-4 py-3 text-center">
+                <p className="text-sm font-semibold text-green-200">✓ 已報名成功</p>
+                <p className="mt-1 text-xs text-green-300/80">
+                  狀態: {userRegistration.status === 'confirmed' ? '已確認' : '待確認'}
+                </p>
+              </div>
+              <Link 
+                href="/history"
+                className="block rounded-xl border border-white/30 px-4 py-3 text-center text-sm font-semibold text-white/90 transition hover:bg-white/5"
+              >
+                查看我的報名記錄
+              </Link>
+            </div>
+          ) : isEnded ? (
+            <div className="rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-center text-sm text-white/60">
+              活動已結束
+            </div>
+          ) : isFull ? (
+            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm text-red-200">
+              名額已滿
+            </div>
+          ) : (
+            <RegisterButton eventId={params.id} />
+          )}
+
+          {/* 抽選按鈕 */}
+          {user && userRegistration && (
+            <Link 
+              href={drawHref} 
+              className="rounded-xl border border-white/30 px-4 py-3 text-center text-sm font-semibold text-white/90 transition hover:bg-white/10"
+            >
+              🎲 前往抽選
+            </Link>
+          )}
+
+          {/* 分享按鈕 */}
+          <button 
+            onClick={() => {
+              navigator.clipboard.writeText(window.location.href);
+              alert('連結已複製！');
+            }}
+            className="rounded-xl border border-white/20 px-4 py-3 text-center text-xs text-white/70 transition hover:bg-white/5"
+          >
+            📋 複製活動連結
+          </button>
         </aside>
       </section>
     </div>
