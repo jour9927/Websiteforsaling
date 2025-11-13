@@ -1,121 +1,170 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { createServerSupabaseClient } from "@/lib/auth";
+import Link from "next/link";
 
-const drawDetails: Record<string, {
-  event: string;
-  bucket: string;
-  requested: number;
-  fulfilled: number;
-  deadline: string;
-  participants: Array<{ email: string; status: "pending" | "won" | "waitlist" }>;
-}> = {
-  "draw-302": {
-    event: "春日嘉年華",
-    bucket: "VIP 盲盒",
-    requested: 80,
-    fulfilled: 60,
-    deadline: "2025/02/19 12:00",
-    participants: [
-      { email: "mika@example.com", status: "pending" },
-      { email: "andy@example.com", status: "won" },
-      { email: "vera@example.com", status: "waitlist" }
-    ]
-  },
-  "draw-417": {
-    event: "夏夜電音祭",
-    bucket: "一般盲盒",
-    requested: 120,
-    fulfilled: 0,
-    deadline: "2025/02/20 18:00",
-    participants: [
-      { email: "zoe@example.com", status: "pending" },
-      { email: "leo@example.com", status: "pending" }
-    ]
-  }
-};
+export const dynamic = 'force-dynamic';
 
 type AdminRegistrationDetailPageProps = {
   params: { id: string };
 };
 
-export default function AdminRegistrationDetailPage({ params }: AdminRegistrationDetailPageProps) {
-  const detail = drawDetails[params.id];
+export default async function AdminRegistrationDetailPage({ params }: AdminRegistrationDetailPageProps) {
+  const supabase = createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!detail) {
+  if (!user) {
+    redirect("/login");
+  }
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+
+  if (profile?.role !== 'admin') {
+    redirect("/");
+  }
+
+  const { data: registration, error } = await supabase
+    .from('registrations')
+    .select('*')
+    .eq('id', params.id)
+    .single();
+
+  if (error || !registration) {
     notFound();
   }
 
+  const { data: userProfile } = await supabase
+    .from('profiles')
+    .select('id, email, full_name, role')
+    .eq('id', registration.user_id)
+    .single();
+
+  const { data: event } = await supabase
+    .from('events')
+    .select('*')
+    .eq('id', registration.event_id)
+    .single();
+
+  const statusText = (status: string) => {
+    switch (status) {
+      case 'confirmed': return '已確認';
+      case 'pending': return '待確認';
+      case 'cancelled': return '已取消';
+      default: return status;
+    }
+  };
+
   return (
     <section className="space-y-6">
-      <header className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-white/60">盲盒抽選</p>
-          <h1 className="text-2xl font-semibold text-white/90">{detail.event} ・ {detail.bucket}</h1>
-          <p className="text-xs text-white/60">申請 {detail.requested} 名額，已抽出 {detail.fulfilled}，截止 {detail.deadline}</p>
-        </div>
-        <div className="flex gap-3 text-xs">
-          <button className="rounded-xl bg-white/20 px-4 py-2 font-semibold text-white/90 transition hover:bg-white/30">
-            立即抽選
-          </button>
-          <button className="rounded-xl border border-white/30 px-4 py-2 text-white/80 transition hover:bg-white/10">
-            寄送通知
-          </button>
-        </div>
+      <header>
+        <Link href="/admin/registrations" className="text-sm text-white/60 hover:text-white">
+          ← 返回報名列表
+        </Link>
+        <h1 className="mt-4 text-2xl font-semibold text-white/90">報名詳情</h1>
+        <p className="mt-1 text-sm text-white/60">查看和管理報名記錄</p>
       </header>
 
-      <article className="glass-card grid gap-6 p-6 md:grid-cols-[1.5fr_1fr]">
-        <div>
-          <h2 className="text-lg font-semibold text-white/90">參與者清單</h2>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-white/10 text-sm text-white/80">
-              <thead className="text-left text-xs uppercase tracking-[0.2em] text-white/60">
-                <tr>
-                  <th className="px-4 py-3">Email</th>
-                  <th className="px-4 py-3">狀態</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/10">
-                {detail.participants.map((participant) => (
-                  <tr key={participant.email}>
-                    <td className="px-4 py-4">{participant.email}</td>
-                    <td className="px-4 py-4">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs ${
-                          participant.status === "won"
-                            ? "bg-emerald-400/20 text-emerald-200"
-                            : participant.status === "waitlist"
-                            ? "bg-yellow-400/20 text-yellow-200"
-                            : "bg-white/10 text-white/80"
-                        }`}
-                      >
-                        {participant.status === "won" ? "中選" : participant.status === "waitlist" ? "候補" : "待抽選"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div className="grid gap-6 md:grid-cols-2">
+        <article className="glass-card p-6">
+          <h2 className="text-lg font-semibold text-white/90">報名資訊</h2>
+          <div className="mt-4 space-y-3 text-sm">
+            <div>
+              <p className="text-white/60">報名 ID</p>
+              <p className="text-white/90 font-mono text-xs">{registration.id}</p>
+            </div>
+            <div>
+              <p className="text-white/60">報名時間</p>
+              <p className="text-white/90">{new Date(registration.registered_at).toLocaleString('zh-TW')}</p>
+            </div>
+            <div>
+              <p className="text-white/60">狀態</p>
+              <span className={`inline-block rounded-full px-3 py-1 text-xs mt-1 ${
+                registration.status === 'confirmed' ? 'bg-green-500/20 text-green-200' :
+                registration.status === 'pending' ? 'bg-yellow-500/20 text-yellow-200' :
+                'bg-gray-500/20 text-gray-200'
+              }`}>
+                {statusText(registration.status)}
+              </span>
+            </div>
+            {registration.updated_at && (
+              <div>
+                <p className="text-white/60">最後更新</p>
+                <p className="text-white/90">{new Date(registration.updated_at).toLocaleString('zh-TW')}</p>
+              </div>
+            )}
           </div>
-        </div>
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-xs text-white/70">
-            <p className="font-semibold text-white/80">抽選設定</p>
-            <ul className="mt-2 space-y-1">
-              <li>・使用伺服器端加密亂數。</li>
-              <li>・避免重複中選與作弊紀錄。</li>
-              <li>・抽選後自動記錄審計 log。</li>
-            </ul>
-          </div>
-          <form className="space-y-3 text-xs text-white/70">
-            <h3 className="text-sm font-semibold text-white/80">預設通知訊息</h3>
-            <textarea rows={6} className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none" defaultValue={`親愛的參與者您好，
+        </article>
 
-恭喜您中選 ${detail.event} 的 ${detail.bucket}。請於 48 小時內完成兌換流程。`} />
-            <button type="submit" className="w-full rounded-xl bg-white/20 px-4 py-2 font-semibold text-white/90 transition hover:bg-white/30">
-              儲存通知模板
-            </button>
-          </form>
-        </div>
-      </article>
+        <article className="glass-card p-6">
+          <h2 className="text-lg font-semibold text-white/90">會員資訊</h2>
+          <div className="mt-4 space-y-3 text-sm">
+            <div>
+              <p className="text-white/60">姓名</p>
+              <p className="text-white/90">{userProfile?.full_name || '未設定'}</p>
+            </div>
+            <div>
+              <p className="text-white/60">Email</p>
+              <p className="text-white/90">{userProfile?.email}</p>
+            </div>
+            <div>
+              <p className="text-white/60">會員類型</p>
+              <p className="text-white/90">
+                {userProfile?.role === 'admin' ? '管理員' : 
+                 userProfile?.role === 'vip' ? 'VIP' : '一般會員'}
+              </p>
+            </div>
+          </div>
+        </article>
+
+        <article className="glass-card p-6 md:col-span-2">
+          <h2 className="text-lg font-semibold text-white/90">活動資訊</h2>
+          <div className="mt-4 space-y-3 text-sm">
+            <div>
+              <p className="text-white/60">活動名稱</p>
+              <p className="text-white/90 text-lg">{event?.title}</p>
+            </div>
+            {event?.description && (
+              <div>
+                <p className="text-white/60">活動描述</p>
+                <p className="text-white/80">{event.description}</p>
+              </div>
+            )}
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <p className="text-white/60">開始時間</p>
+                <p className="text-white/90">{event?.start_date ? new Date(event.start_date).toLocaleString('zh-TW') : '-'}</p>
+              </div>
+              <div>
+                <p className="text-white/60">結束時間</p>
+                <p className="text-white/90">{event?.end_date ? new Date(event.end_date).toLocaleString('zh-TW') : '-'}</p>
+              </div>
+              {event?.location && (
+                <div>
+                  <p className="text-white/60">地點</p>
+                  <p className="text-white/90">{event.location}</p>
+                </div>
+              )}
+              {event?.max_participants && (
+                <div>
+                  <p className="text-white/60">名額限制</p>
+                  <p className="text-white/90">{event.max_participants} 人</p>
+                </div>
+              )}
+            </div>
+            <div className="pt-2">
+              <Link 
+                href={`/admin/events/${event?.id}`}
+                className="text-sm text-blue-300 hover:text-blue-200"
+              >
+                查看活動詳情 →
+              </Link>
+            </div>
+          </div>
+        </article>
+      </div>
     </section>
   );
 }
