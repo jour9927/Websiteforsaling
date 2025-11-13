@@ -98,17 +98,29 @@ export default function AdminMessagesPage() {
         throw new Error("請先登入");
       }
 
-      const { error: insertError } = await supabase
+      console.log('發送訊息:', {
+        sender_id: user.id,
+        recipient_id: selectedUser,
+        subject: subject.trim(),
+        body: body.trim()
+      });
+
+      const { data, error: insertError } = await supabase
         .from('messages')
         .insert({
           sender_id: user.id,
           recipient_id: selectedUser,
           subject: subject.trim(),
           body: body.trim()
-        });
+        })
+        .select();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        console.error('發送訊息錯誤:', insertError);
+        throw new Error(`發送失敗: ${insertError.message} (代碼: ${insertError.code})`);
+      }
 
+      console.log('訊息發送成功:', data);
       setSuccess("訊息已發送！");
       setSelectedUser("");
       setSubject("");
@@ -117,7 +129,8 @@ export default function AdminMessagesPage() {
       // 重新載入已發送訊息
       loadSentMessages();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "發送失敗");
+      console.error('發送訊息異常:', err);
+      setError(err instanceof Error ? err.message : "發送失敗，請稍後再試");
     } finally {
       setSending(false);
     }
