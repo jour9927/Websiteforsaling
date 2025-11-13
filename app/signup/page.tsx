@@ -8,6 +8,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [invitationCode, setInvitationCode] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -18,7 +19,7 @@ export default function SignupPage() {
     setLoading(true);
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data: authData, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -29,6 +30,19 @@ export default function SignupPage() {
       });
 
       if (error) throw error;
+
+      // 如果有填写邀请码，更新 profile
+      if (invitationCode.trim() && authData.user) {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ invitation_code: invitationCode.trim() })
+          .eq('id', authData.user.id);
+
+        if (updateError) {
+          console.error('更新邀请码失败:', updateError);
+          // 不阻止注册流程，只记录错误
+        }
+      }
 
       setSuccess(true);
       
@@ -107,6 +121,20 @@ export default function SignupPage() {
               className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none" 
               placeholder="顯示名稱（可選）"
             />
+          </label>
+          <label className="flex flex-col gap-2 text-sm">
+            <span className="text-slate-200/80">邀請碼</span>
+            <input 
+              type="text" 
+              value={invitationCode}
+              onChange={(e) => setInvitationCode(e.target.value)}
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none" 
+              placeholder="如有邀請碼請填寫（可選）"
+              maxLength={50}
+            />
+            <span className="text-xs text-slate-200/50">
+              如果您有邀請碼，填寫後可享有特定優惠或權限
+            </span>
           </label>
           <button 
             type="submit" 
