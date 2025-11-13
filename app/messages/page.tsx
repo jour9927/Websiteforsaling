@@ -58,22 +58,42 @@ export default function MessagesPage() {
       return;
     }
 
-    const { data, error } = await supabase
+    console.log('載入收到的訊息，當前用戶:', user.id);
+
+    // 先查询消息
+    const { data: receivedMessages, error: messagesError } = await supabase
       .from('messages')
-      .select(`
-        *,
-        sender:sender_id (
-          id,
-          email,
-          full_name,
-          role
-        )
-      `)
+      .select('*')
       .eq('recipient_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (!error && data) {
-      setMessages(data as Message[]);
+    console.log('查詢訊息結果:', { receivedMessages, messagesError });
+
+    if (messagesError) {
+      console.error('載入訊息錯誤:', messagesError);
+      setLoading(false);
+      return;
+    }
+
+    if (receivedMessages && receivedMessages.length > 0) {
+      // 获取所有发件人的信息
+      const senderIds = receivedMessages.map(m => m.sender_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, role')
+        .in('id', senderIds);
+
+      console.log('查詢發件人結果:', profiles);
+
+      // 将发件人信息合并到消息中
+      const messagesWithSenders = receivedMessages.map(msg => ({
+        ...msg,
+        sender: profiles?.find(p => p.id === msg.sender_id)
+      }));
+
+      setMessages(messagesWithSenders as Message[]);
+    } else {
+      setMessages([]);
     }
     
     setLoading(false);
