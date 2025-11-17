@@ -11,7 +11,8 @@ export const adminNavItems = [
   { href: "/admin/registrations" as Route, label: "報名/抽選", icon: "🎫" },
   { href: "/admin/announcements" as Route, label: "公告管理", icon: "📢" },
   { href: "/admin/notifications" as Route, label: "通知中心", icon: "🔔" },
-  { href: "/admin/messages" as Route, label: "會員訊息", icon: "✉️" }
+  { href: "/admin/messages" as Route, label: "會員訊息", icon: "✉️" },
+  { href: "/admin/migrations" as Route, label: "資料庫版本", icon: "🗄️" }
 ] as const;
 
 const baseLinkClasses = "flex items-center justify-between rounded-xl px-4 py-2 text-sm transition";
