@@ -82,8 +82,41 @@ export default function UserPaymentRow({ payment, events }: UserPaymentRowProps)
       }
 
       setFeedback("更新成功");
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "更新失敗");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm("確定要刪除這筆付款紀錄嗎？此操作無法復原。")) {
+      return;
+    }
+
+    setLoading(true);
+    setFeedback(null);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/admin/payments/${payment.id}`, {
+        method: "DELETE"
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result?.error || "無法刪除付款紀錄");
+      }
+
+      setFeedback("已刪除");
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "刪除失敗");
     } finally {
       setLoading(false);
     }
@@ -177,6 +210,14 @@ export default function UserPaymentRow({ payment, events }: UserPaymentRowProps)
           className="rounded-2xl bg-sky-500/80 px-4 py-2 text-xs font-semibold text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? "更新中..." : "儲存變更"}
+        </button>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={loading}
+          className="rounded-2xl bg-rose-500/80 px-4 py-2 text-xs font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {loading ? "刪除中..." : "刪除"}
         </button>
         {feedback && <span className="text-xs text-emerald-300">{feedback}</span>}
         {error && <span className="text-xs text-rose-300">{error}</span>}
