@@ -4,6 +4,61 @@ import { createServerSupabaseClient } from "@/lib/auth";
 export const dynamic = "force-dynamic";
 
 const ALLOWED_STATUSES = ["pending", "paid", "overdue", "cancelled"] as const;
+
+// GET /api/admin/payments?user_id=xxx - Get payments for a specific user
+export async function GET(request: Request) {
+  const supabase = createServerSupabaseClient();
+  const {
+    data: { session }
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", session.user.id)
+    .single();
+
+  if (!profile || profile.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const userId = searchParams.get("user_id");
+
+  if (!userId) {
+    return NextResponse.json({ error: "user_id is required" }, { status: 400 });
+  }
+
+  const { data: payments, error } = await supabase
+    .from("user_payments")
+    .select(`
+      id,
+      amount,
+      status,
+      payment_date,
+      notes,
+      created_at,
+      updated_at,
+      event:events(id, title)
+    `)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const paymentsData = (payments || []).map((p: any) => ({
+    ...p,
+    event: Array.isArray(p.event) ? p.event[0] : p.event
+  }));
+
+  return NextResponse.json({ payments: paymentsData });
+}
 type AllowedStatus = (typeof ALLOWED_STATUSES)[number];
 
 // POST /api/admin/payments - Create new payment
