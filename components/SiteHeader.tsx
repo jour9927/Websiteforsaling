@@ -7,6 +7,7 @@ import type { Route } from "next";
 
 type SiteHeaderProps = {
   displayName: string;
+  isAuthenticated: boolean;
 };
 
 const primaryLinks = [
@@ -15,15 +16,19 @@ const primaryLinks = [
   { label: "管理員", href: "/admin" as Route }
 ] as const;
 
-const accountLinks = [
+const signedInLinks = [
   { label: "我的帳號", href: "/profile" as Route },
   { label: "參與紀錄", href: "/history" as Route },
   { label: "我的訊息", href: "/messages" as Route },
+  { label: "登出", href: "/logout" as Route }
+] as const;
+
+const signedOutLinks = [
   { label: "登入", href: "/login" as Route },
   { label: "註冊", href: "/signup" as Route }
 ] as const;
 
-export function SiteHeader({ displayName }: SiteHeaderProps) {
+export function SiteHeader({ displayName, isAuthenticated }: SiteHeaderProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -60,17 +65,17 @@ export function SiteHeader({ displayName }: SiteHeaderProps) {
             </Link>
           ))}
           <div className="h-4 w-px bg-white/20" aria-hidden />
-          <div className="flex items-center gap-4">
-            {accountLinks.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`text-xs transition ${isActive(item.href) ? "text-white" : "text-white/70 hover:text-white"}`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
+            <div className="flex items-center gap-4">
+              {(isAuthenticated ? signedInLinks : signedOutLinks).map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`text-xs transition ${isActive(item.href) ? "text-white" : "text-white/70 hover:text-white"}`}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
         </nav>
         <button
           type="button"
@@ -107,7 +112,7 @@ export function SiteHeader({ displayName }: SiteHeaderProps) {
           <div className="space-y-3 text-sm text-white/80">
             <p className="text-xs uppercase tracking-[0.25em] text-white/50">帳號</p>
             <div className="flex flex-col gap-2">
-              {accountLinks.map((item) => (
+              {(isAuthenticated ? signedInLinks : signedOutLinks).map((item) => (
                 <Link key={item.href} href={item.href} onClick={closeMenu} className="rounded-xl bg-white/10 px-3 py-2">
                   {item.label}
                 </Link>
