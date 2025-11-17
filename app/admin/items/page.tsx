@@ -22,7 +22,7 @@ export default async function AdminUserItemsPage() {
     redirect("/?error=unauthorized");
   }
 
-  const { data: userItems } = await supabase
+  const { data: userItemsRaw } = await supabase
     .from("user_items")
     .select(`
       id,
@@ -30,17 +30,30 @@ export default async function AdminUserItemsPage() {
       quantity,
       notes,
       updated_at,
-      user:profiles (
+      user_id,
+      event_id,
+      profiles!user_items_user_id_fkey (
         id,
         full_name,
         email
       ),
-      event:events (
+      events (
         id,
         title
       )
     `)
     .order("updated_at", { ascending: false });
+
+  // Transform the data to match UserItem type
+  const userItems = userItemsRaw?.map((item: any) => ({
+    id: item.id,
+    name: item.name,
+    quantity: item.quantity,
+    notes: item.notes,
+    updated_at: item.updated_at,
+    user: Array.isArray(item.profiles) ? item.profiles[0] : item.profiles,
+    event: Array.isArray(item.events) ? item.events[0] : item.events,
+  }));
 
   const { data: events } = await supabase
     .from("events")
