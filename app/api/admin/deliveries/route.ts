@@ -6,6 +6,62 @@ export const dynamic = "force-dynamic";
 const ALLOWED_STATUSES = ["pending", "delivered", "in_transit", "cancelled"] as const;
 type AllowedStatus = (typeof ALLOWED_STATUSES)[number];
 
+// GET /api/admin/deliveries?user_id=xxx - Get deliveries for a specific user
+export async function GET(request: Request) {
+  const supabase = createServerSupabaseClient();
+  const {
+    data: { session }
+  } = await supabase.auth.getSession();
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", session.user.id)
+    .single();
+
+  if (!profile || profile.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const userId = searchParams.get("user_id");
+
+  if (!userId) {
+    return NextResponse.json({ error: "user_id is required" }, { status: 400 });
+  }
+
+  const { data: deliveries, error } = await supabase
+    .from("user_deliveries")
+    .select(`
+      id,
+      item_name,
+      quantity,
+      status,
+      delivery_date,
+      notes,
+      created_at,
+      updated_at,
+      event:events(id, title)
+    `)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const deliveriesData = (deliveries || []).map((d) => ({
+    ...d,
+    event: Array.isArray(d.event) ? d.event[0] : d.event
+  }));
+
+  return NextResponse.json({ deliveries: deliveriesData });
+}
+
 // POST /api/admin/deliveries - Create new delivery
 export async function POST(request: Request) {
   const supabase = createServerSupabaseClient();
