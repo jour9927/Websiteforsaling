@@ -15,6 +15,7 @@ const primaryLinks = [
   { label: "公告", href: "/announcements" as Route },
   { label: "我的物品", href: "/items" as Route },
   { label: "我的付款", href: "/payments" as Route },
+  { label: "交付紀錄", href: "/deliveries" as Route },
   { label: "管理員", href: "/admin" as Route }
 ] as const;
 
