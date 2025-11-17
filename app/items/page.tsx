@@ -24,7 +24,7 @@ export default async function ItemsPage() {
     );
   }
 
-  const { data: items } = await supabase
+  const { data: itemsRaw } = await supabase
     .from("user_items")
     .select(`
       id,
@@ -32,7 +32,7 @@ export default async function ItemsPage() {
       quantity,
       notes,
       updated_at,
-      event:events (
+      events (
         id,
         title,
         start_date
@@ -40,6 +40,12 @@ export default async function ItemsPage() {
     `)
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false });
+
+  // Transform the data to handle array responses
+  const items = itemsRaw?.map((item) => ({
+    ...item,
+    event: Array.isArray(item.events) ? item.events[0] : item.events,
+  }));
 
   return (
     <section className="space-y-6">
