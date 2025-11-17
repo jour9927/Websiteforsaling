@@ -12,6 +12,7 @@ export type EventSummary = {
   cover?: string;
   price?: number;
   is_free?: boolean;
+  badgeLabel?: string;
 };
 
 type EventCardProps = {
@@ -23,7 +24,12 @@ export const EventCard: FC<EventCardProps> = ({ event }: EventCardProps) => {
   const eventHref = `/events/${id}` as Route;
   
   return (
-    <Link href={eventHref} className="glass-card group flex flex-col overflow-hidden transition-all hover:scale-[1.02]">
+    <Link href={eventHref} className="glass-card group relative flex flex-col overflow-hidden transition-all hover:scale-[1.02]">
+      {event.badgeLabel && (
+        <div className="absolute left-3 top-3 z-10 rounded-full border border-white/30 bg-black/70 px-3 py-1 text-[0.6rem] font-semibold uppercase tracking-[0.35em] text-white shadow-lg">
+          {event.badgeLabel}
+        </div>
+      )}
       <div className="relative aspect-video overflow-hidden bg-gradient-to-br from-slate-800/50 to-slate-600/40">
         {cover ? (
           <Image

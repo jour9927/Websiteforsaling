@@ -123,7 +123,8 @@ export default async function HomePage() {
                     location: event.location || "線上活動",
                     cover: event.image_url && event.image_url.trim() !== '' ? event.image_url : undefined,
                     price: event.price || 0,
-                    is_free: event.is_free ?? true
+                    is_free: event.is_free ?? true,
+                    badgeLabel: "已結束"
                   }} 
                 />
               ))}
