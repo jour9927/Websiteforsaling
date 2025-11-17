@@ -58,7 +58,7 @@ export function AdminMobileNav() {
   const toggleNav = () => setIsOpen((value) => !value);
 
   return (
-    <nav className="lg:hidden bg-midnight-900/80 border-b border-white/10 text-xs">
+    <nav className="lg:hidden bg-midnight-900/80 border-b border-white/10 text-xs overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3">
         <span className="text-xs uppercase tracking-[0.3em] text-white/60">管理選單</span>
         <button
@@ -73,7 +73,7 @@ export function AdminMobileNav() {
       </div>
       {isOpen && (
         <div className="px-3 pb-3">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2 max-w-full">
             {adminNavItems.map((item) => {
               const href = item.href as string;
               const active = pathname === href || (href !== "/admin" && pathname.startsWith(href));
