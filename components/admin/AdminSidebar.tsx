@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 import type { Route } from "next";
 
 export const adminNavItems = [
@@ -50,30 +51,48 @@ export function AdminSidebar() {
     </aside>
   );
 }
-
 export function AdminMobileNav() {
   const pathname = usePathname();
+  const [isOpen, setIsOpen] = useState(false);
+
+  const toggleNav = () => setIsOpen((value) => !value);
 
   return (
-    <nav className="lg:hidden border-b border-white/10 bg-midnight-900/70 text-xs">
-      <div className="flex items-center gap-2 overflow-x-auto px-4 py-3">
-        {adminNavItems.map((item) => {
-          const href = item.href as string;
-          const active = pathname === href || (href !== "/admin" && pathname.startsWith(href));
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 transition ${
-                active ? "bg-white/10 text-white" : "bg-white/5 text-white/70 hover:bg-white/10"
-              }`}
-            >
-              <span className="text-sm">{item.icon}</span>
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
+    <nav className="lg:hidden bg-midnight-900/80 border-b border-white/10 text-xs">
+      <div className="flex items-center justify-between px-4 py-3">
+        <span className="text-xs uppercase tracking-[0.3em] text-white/60">管理選單</span>
+        <button
+          type="button"
+          onClick={toggleNav}
+          aria-expanded={isOpen}
+          className="flex items-center gap-2 rounded-full border border-white/20 px-3 py-1 text-xs font-semibold text-white/80 transition hover:bg-white/10"
+        >
+          {isOpen ? "收合" : "展開"}
+          <span className={`transition ${isOpen ? "rotate-180" : ""}`}>▾</span>
+        </button>
       </div>
+      {isOpen && (
+        <div className="px-3 pb-3">
+          <div className="flex flex-wrap gap-2">
+            {adminNavItems.map((item) => {
+              const href = item.href as string;
+              const active = pathname === href || (href !== "/admin" && pathname.startsWith(href));
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 text-xs transition ${
+                    active ? "bg-white/10 text-white" : "bg-white/5 text-white/70 hover:bg-white/10"
+                  }`}
+                >
+                  <span className="text-sm">{item.icon}</span>
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
