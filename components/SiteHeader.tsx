@@ -13,6 +13,7 @@ type SiteHeaderProps = {
 const primaryLinks = [
   { label: "主頁", href: "/" as Route },
   { label: "公告", href: "/announcements" as Route },
+  { label: "我的物品", href: "/items" as Route },
   { label: "管理員", href: "/admin" as Route }
 ] as const;
 
