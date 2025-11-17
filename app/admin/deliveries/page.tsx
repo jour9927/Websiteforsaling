@@ -113,9 +113,9 @@ export default function AdminDeliveriesPage() {
     }
   };
 
-  const handleUpdateDelivery = async (deliveryId: string, updates: any) => {
+  const handleUpdateDelivery = async (deliveryId: string, updates: Record<string, unknown>) => {
     try {
-      const response = await fetch(`/api/admin/deliveries/\${deliveryId}`, {
+      const response = await fetch(`/api/admin/deliveries/${deliveryId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates)
@@ -124,7 +124,7 @@ export default function AdminDeliveriesPage() {
       if (!response.ok) throw new Error("更新失敗");
 
       const { deliveries: updatedDeliveries } = await fetch(
-        `/api/admin/deliveries?user_id=\${selectedUserId}`
+        `/api/admin/deliveries?user_id=${selectedUserId}`
       ).then(r => r.json());
       setDeliveries(updatedDeliveries || []);
     } catch (err) {
@@ -132,18 +132,18 @@ export default function AdminDeliveriesPage() {
     }
   };
 
-  const handleDeleteDelivery = async (deliveryId: string) => {
+  const handleDeleteDelivery = async (id: string) => {
     if (!confirm("確定要刪除這筆交付記錄嗎？")) return;
 
     try {
-      const response = await fetch(`/api/admin/deliveries/\${deliveryId}`, {
+      const response = await fetch(`/api/admin/deliveries/${id}`, {
         method: "DELETE"
       });
 
       if (!response.ok) throw new Error("刪除失敗");
 
       const { deliveries: updatedDeliveries } = await fetch(
-        `/api/admin/deliveries?user_id=\${selectedUserId}`
+        `/api/admin/deliveries?user_id=${selectedUserId}`
       ).then(r => r.json());
       setDeliveries(updatedDeliveries || []);
     } catch (err) {
@@ -315,7 +315,7 @@ export default function AdminDeliveriesPage() {
 function DeliveryRow({ delivery, events, onUpdate, onDelete }: {
   delivery: Delivery;
   events: Event[];
-  onUpdate: (id: string, updates: any) => void;
+  onUpdate: (id: string, updates: Record<string, unknown>) => void;
   onDelete: (id: string) => void;
 }) {
   const [isEditing, setIsEditing] = useState(false);
