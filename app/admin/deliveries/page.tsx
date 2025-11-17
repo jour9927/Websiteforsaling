@@ -69,7 +69,7 @@ export default function AdminDeliveriesPage() {
     }
 
     setLoading(true);
-    fetch(\`/api/admin/deliveries?user_id=\${selectedUserId}\`)
+    fetch(`/api/admin/deliveries?user_id=\${selectedUserId}`)
       .then(res => res.json())
       .then(data => setDeliveries(data.deliveries || []))
       .finally(() => setLoading(false));
@@ -105,7 +105,7 @@ export default function AdminDeliveriesPage() {
       setShowAddForm(false);
       
       const { deliveries: updatedDeliveries } = await fetch(
-        \`/api/admin/deliveries?user_id=\${selectedUserId}\`
+        `/api/admin/deliveries?user_id=\${selectedUserId}`
       ).then(r => r.json());
       setDeliveries(updatedDeliveries || []);
     } catch (err) {
@@ -115,7 +115,7 @@ export default function AdminDeliveriesPage() {
 
   const handleUpdateDelivery = async (deliveryId: string, updates: any) => {
     try {
-      const response = await fetch(\`/api/admin/deliveries/\${deliveryId}\`, {
+      const response = await fetch(`/api/admin/deliveries/\${deliveryId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates)
@@ -124,7 +124,7 @@ export default function AdminDeliveriesPage() {
       if (!response.ok) throw new Error("更新失敗");
 
       const { deliveries: updatedDeliveries } = await fetch(
-        \`/api/admin/deliveries?user_id=\${selectedUserId}\`
+        `/api/admin/deliveries?user_id=\${selectedUserId}`
       ).then(r => r.json());
       setDeliveries(updatedDeliveries || []);
     } catch (err) {
@@ -136,14 +136,14 @@ export default function AdminDeliveriesPage() {
     if (!confirm("確定要刪除這筆交付記錄嗎？")) return;
 
     try {
-      const response = await fetch(\`/api/admin/deliveries/\${deliveryId}\`, {
+      const response = await fetch(`/api/admin/deliveries/\${deliveryId}`, {
         method: "DELETE"
       });
 
       if (!response.ok) throw new Error("刪除失敗");
 
       const { deliveries: updatedDeliveries } = await fetch(
-        \`/api/admin/deliveries?user_id=\${selectedUserId}\`
+        `/api/admin/deliveries?user_id=\${selectedUserId}`
       ).then(r => r.json());
       setDeliveries(updatedDeliveries || []);
     } catch (err) {
@@ -174,7 +174,7 @@ export default function AdminDeliveriesPage() {
           {users.map((user) => (
             <option key={user.id} value={user.id}>
               {user.full_name || user.email || "未命名"}
-              {user.email && user.full_name && \` (\${user.email})\`}
+              {user.email && user.full_name && ` (\${user.email})`}
             </option>
           ))}
         </select>
@@ -342,7 +342,7 @@ function DeliveryRow({ delivery, events, onUpdate, onDelete }: {
           <div className="flex-1">
             <p className="text-lg font-semibold text-white">{delivery.item_name}</p>
             <p className="text-sm text-white/60">數量：{delivery.quantity}</p>
-            <p className={\`text-sm \${statusInfo?.color || "text-white/60"}\`}>
+            <p className={`text-sm \${statusInfo?.color || "text-white/60"}`}>
               {statusInfo?.label || delivery.status}
             </p>
             {delivery.event && (
