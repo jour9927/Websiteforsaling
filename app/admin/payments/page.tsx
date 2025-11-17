@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import UserPaymentRow, { type UserPayment } from "@/components/admin/UserPaymentRow";
+import AddPaymentForm from "@/components/admin/AddPaymentForm";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +75,12 @@ export default async function AdminPaymentsPage() {
     .select("id, title")
     .order("start_date", { ascending: false });
 
+  // Get all users for the add form
+  const { data: users } = await supabase
+    .from("profiles")
+    .select("id, full_name, email")
+    .order("full_name", { ascending: true });
+
   // Calculate statistics
   const totalPaid = payments.filter(p => p.status === 'paid').reduce((sum, p) => sum + Number(p.amount), 0);
   const totalPending = payments.filter(p => p.status === 'pending').reduce((sum, p) => sum + Number(p.amount), 0);
@@ -113,6 +120,10 @@ export default async function AdminPaymentsPage() {
         </div>
       </div>
 
+      {/* Add Payment Form */}
+      <AddPaymentForm events={events ?? []} users={users ?? []} />
+
+      {/* Payment List */}
       {!payments || payments.length === 0 ? (
         <div className="glass-card p-6 text-center text-white/60">
           目前尚未有任何會員付款紀錄。

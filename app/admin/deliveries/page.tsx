@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import UserDeliveryRow from "@/components/admin/UserDeliveryRow";
+import AddDeliveryForm from "@/components/admin/AddDeliveryForm";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +65,12 @@ export default async function AdminDeliveriesPage() {
     .select("id, title")
     .order("start_date", { ascending: false });
 
+  // Get all users for the add form
+  const { data: users } = await supabase
+    .from("profiles")
+    .select("id, full_name, email")
+    .order("full_name", { ascending: true });
+
   // Calculate statistics
   const totalDelivered = userDeliveries?.filter(d => d.status === 'delivered').length || 0;
   const totalPending = userDeliveries?.filter(d => d.status === 'pending').length || 0;
@@ -95,6 +102,10 @@ export default async function AdminDeliveriesPage() {
         </div>
       </div>
 
+      {/* Add Delivery Form */}
+      <AddDeliveryForm events={events ?? []} users={users ?? []} />
+
+      {/* Delivery List */}
       {!userDeliveries || userDeliveries.length === 0 ? (
         <div className="glass-card p-6 text-center text-white/60">
           暫時沒有任何交付紀錄。
