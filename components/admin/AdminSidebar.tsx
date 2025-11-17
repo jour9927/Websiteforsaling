@@ -10,6 +10,8 @@ export const adminNavItems = [
   { href: "/admin/events" as Route, label: "活動管理", icon: "📅" },
   { href: "/admin/registrations" as Route, label: "報名/抽選", icon: "🎫" },
   { href: "/admin/announcements" as Route, label: "公告管理", icon: "📢" },
+  { href: "/admin/items" as Route, label: "物品管理", icon: "🎁" },
+  { href: "/admin/payments" as Route, label: "付款管理", icon: "💳" },
   { href: "/admin/notifications" as Route, label: "通知中心", icon: "🔔" },
   { href: "/admin/messages" as Route, label: "會員訊息", icon: "✉️" }
 ] as const;
