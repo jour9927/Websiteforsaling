@@ -38,12 +38,20 @@ export default async function HomePage() {
           即時同步的活動資訊、抽選與盲盒，全部在行動裝置上完成。
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
-          <Link href="/login" className="rounded-full bg-white/20 px-6 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/30">
-            登入參加
-          </Link>
-          <Link href="/signup" className="rounded-full border border-white/40 px-6 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10">
-            立即註冊
-          </Link>
+          {!isLoggedIn ? (
+            <>
+              <Link href="/login" className="rounded-full bg-white/20 px-6 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/30">
+                登入參加
+              </Link>
+              <Link href="/signup" className="rounded-full border border-white/40 px-6 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10">
+                立即註冊
+              </Link>
+            </>
+          ) : (
+            <Link href="/events" className="rounded-full bg-white/20 px-6 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/30">
+              瀏覽活動
+            </Link>
+          )}
         </div>
       </section>
 
