@@ -52,7 +52,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const paymentsData = (payments || []).map((p: any) => ({
+  const paymentsData = (payments || []).map((p) => ({
     ...p,
     event: Array.isArray(p.event) ? p.event[0] : p.event
   }));
