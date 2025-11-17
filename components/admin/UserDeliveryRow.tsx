@@ -32,13 +32,6 @@ type UserDeliveryRowProps = {
   events: EventChoice[];
 };
 
-const statusLabels = {
-  pending: "待交付",
-  delivered: "已交付",
-  in_transit: "運送中",
-  cancelled: "已取消"
-};
-
 export default function UserDeliveryRow({ delivery, events }: UserDeliveryRowProps) {
   const [itemName, setItemName] = useState(delivery.item_name);
   const [quantity, setQuantity] = useState(delivery.quantity);
