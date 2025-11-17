@@ -45,7 +45,7 @@ export default async function AdminUserItemsPage() {
     .order("updated_at", { ascending: false });
 
   // Transform the data to match UserItem type
-  const userItems = userItemsRaw?.map((item: any) => ({
+  const userItems = userItemsRaw?.map((item) => ({
     id: item.id,
     name: item.name,
     quantity: item.quantity,
