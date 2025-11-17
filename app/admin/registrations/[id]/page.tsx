@@ -1,6 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/auth";
 import Link from "next/link";
+import { getStatusLabel } from "@/lib/statusLabels";
+import ApprovalControls from "./ApprovalControls";
 
 export const dynamic = 'force-dynamic';
 
@@ -48,15 +50,6 @@ export default async function AdminRegistrationDetailPage({ params }: AdminRegis
     .eq('id', registration.event_id)
     .single();
 
-  const statusText = (status: string) => {
-    switch (status) {
-      case 'confirmed': return '已確認';
-      case 'pending': return '待確認';
-      case 'cancelled': return '已取消';
-      default: return status;
-    }
-  };
-
   return (
     <section className="space-y-6">
       <header>
@@ -86,7 +79,7 @@ export default async function AdminRegistrationDetailPage({ params }: AdminRegis
                 registration.status === 'pending' ? 'bg-yellow-500/20 text-yellow-200' :
                 'bg-gray-500/20 text-gray-200'
               }`}>
-                {statusText(registration.status)}
+                {getStatusLabel(registration.status)}
               </span>
             </div>
             {registration.updated_at && (
@@ -162,6 +155,18 @@ export default async function AdminRegistrationDetailPage({ params }: AdminRegis
                 查看活動詳情 →
               </Link>
             </div>
+          </div>
+        </article>
+        <article className="glass-card p-6 md:col-span-2">
+          <h2 className="text-lg font-semibold text-white/90">報名審核</h2>
+          <p className="mt-1 text-xs text-white/60">
+            管理員可在此批准或拒絕報名，批准後才會列入會員的參與紀錄。
+          </p>
+          <div className="mt-4">
+            <ApprovalControls
+              registrationId={registration.id}
+              currentStatus={registration.status}
+            />
           </div>
         </article>
       </div>

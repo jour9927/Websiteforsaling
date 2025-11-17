@@ -28,14 +28,25 @@ export default async function EventPage({ params }: EventPageProps) {
   // 取得當前用戶
   const { data: { user } } = await supabase.auth.getUser();
 
-  // 計算已報名人數（線上 + 線下）
-  const { count: onlineRegistrationCount } = await supabase
+  // 計算已確認的線上報名與待確認人數（線下報名不受影響）
+  const { count: confirmedOnlineRegistrationCount } = await supabase
     .from('registrations')
     .select('*', { count: 'exact', head: true })
-    .eq('event_id', params.id);
+    .eq('event_id', params.id)
+    .eq('status', 'confirmed');
 
-  // 總報名人數 = 線上報名 + 線下報名
-  const totalRegistrationCount = (onlineRegistrationCount || 0) + (event.offline_registrations || 0);
+  const { count: pendingOnlineRegistrationCount } = await supabase
+    .from('registrations')
+    .select('*', { count: 'exact', head: true })
+    .eq('event_id', params.id)
+    .eq('status', 'pending');
+
+  const confirmedOnline = confirmedOnlineRegistrationCount || 0;
+  const pendingOnline = pendingOnlineRegistrationCount || 0;
+  const offlineRegistrations = event.offline_registrations || 0;
+
+  // 總報名人數只計入已確認的線上報名與線下報名
+  const totalRegistrationCount = confirmedOnline + offlineRegistrations;
 
   // 檢查用戶是否已報名
   let userRegistration = null;
@@ -158,8 +169,16 @@ export default async function EventPage({ params }: EventPageProps) {
               {event.max_participants && ` / ${event.max_participants}`}
             </p>
             <p className="mt-1 text-xs text-slate-200/60">
-              線上: {onlineRegistrationCount || 0} | 線下: {event.offline_registrations || 0}
+              線上（已批准）: {confirmedOnline} | 線下: {offlineRegistrations}
             </p>
+            <p className="text-xs text-slate-200/60">
+              報名會先進入待確認，只有獲得管理員批准後才會出現在參與紀錄與抽選頁。
+            </p>
+            {pendingOnline > 0 && (
+              <p className="text-xs text-slate-200/60">
+                目前 {pendingOnline} 筆報名仍待確認，通過核可後才會列入參與紀錄。
+              </p>
+            )}
             {remainingSlots !== null && (
               <p className="mt-1 text-xs text-slate-200/60">
                 剩餘名額: {remainingSlots > 0 ? remainingSlots : 0}

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Route } from "next";
 import { createServerSupabaseClient } from "@/lib/auth";
+import { getStatusLabel } from "@/lib/statusLabels";
+import RegistrationRowActions from "./RegistrationRowActions";
 import { redirect } from "next/navigation";
 
 export const dynamic = 'force-dynamic';
@@ -62,15 +64,6 @@ export default async function AdminRegistrationsPage() {
   const totalRegistrations = registrations?.length || 0;
   const pendingCount = registrations?.filter(r => r.status === 'pending').length || 0;
   const confirmedCount = registrations?.filter(r => r.status === 'confirmed').length || 0;
-
-  const statusText = (status: string) => {
-    switch (status) {
-      case 'confirmed': return '已確認';
-      case 'pending': return '待確認';
-      case 'cancelled': return '已取消';
-      default: return status;
-    }
-  };
 
   return (
     <section className="space-y-8">
@@ -139,11 +132,24 @@ export default async function AdminRegistrationsPage() {
                         reg.status === 'pending' ? 'bg-yellow-500/20 text-yellow-200' :
                         'bg-gray-500/20 text-gray-200'
                       }`}>
-                        {statusText(reg.status)}
+                        {getStatusLabel(reg.status)}
                       </span>
                     </td>
-                    <td className="px-4 py-4 text-xs text-sky-200 hover:text-sky-100">
-                      <Link href={`/admin/registrations/${reg.id}` as Route}>詳細</Link>
+                    <td className="px-4 py-4 text-xs">
+                      <div className="flex flex-col gap-3">
+                        <Link
+                          href={`/admin/registrations/${reg.id}` as Route}
+                          className="text-sky-200 hover:text-sky-100"
+                        >
+                          詳細
+                        </Link>
+                        {reg.status === 'pending' && (
+                          <RegistrationRowActions
+                            registrationId={reg.id}
+                            currentStatus={reg.status}
+                          />
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
