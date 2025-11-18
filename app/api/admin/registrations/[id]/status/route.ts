@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createServerSupabaseClient, createAdminSupabaseClient } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +11,7 @@ type RouteContext = {
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
+  // First check authentication with regular client
   const supabase = createServerSupabaseClient();
   const {
     data: { session }
@@ -43,7 +44,9 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
-  const { data, error } = await supabase
+  // Use admin client to bypass RLS for update
+  const adminClient = createAdminSupabaseClient();
+  const { data, error } = await adminClient
     .from("registrations")
     .update({ status: requestedStatus })
     .eq("id", context.params.id)
