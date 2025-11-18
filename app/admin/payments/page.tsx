@@ -187,7 +187,9 @@ export default function AdminPaymentsPage() {
             <option value="">-- 請選擇會員 ({users.length} 位會員) --</option>
             {users.map((user) => (
               <option key={user.id} value={user.id}>
-                {user.email || user.full_name || "未命名"}
+                {user.full_name && user.email 
+                  ? `${user.full_name} (${user.email})`
+                  : user.full_name || user.email || "未命名"}
               </option>
             ))}
           </select>
