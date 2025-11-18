@@ -168,13 +168,12 @@ export default function AdminDeliveriesPage() {
         <select
           value={selectedUserId}
           onChange={(e) => setSelectedUserId(e.target.value)}
-          className="w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-white focus:border-white focus:outline-none"
+          className="w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-white focus:border-white focus:outline-none [&>option]:bg-gray-900 [&>option]:text-white"
         >
           <option value="">-- 請選擇會員 --</option>
           {users.map((user) => (
             <option key={user.id} value={user.id}>
-              {user.full_name || user.email || "未命名"}
-              {user.email && user.full_name && ` (\${user.email})`}
+              {user.email || user.full_name || "未命名"}
             </option>
           ))}
         </select>
@@ -240,7 +239,7 @@ export default function AdminDeliveriesPage() {
                   <select
                     value={newDelivery.event_id}
                     onChange={(e) => setNewDelivery({...newDelivery, event_id: e.target.value})}
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white [&>option]:bg-gray-900 [&>option]:text-white"
                   >
                     <option value="">（選填）</option>
                     {events.map((event) => (
@@ -253,7 +252,7 @@ export default function AdminDeliveriesPage() {
                   <select
                     value={newDelivery.status}
                     onChange={(e) => setNewDelivery({...newDelivery, status: e.target.value})}
-                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+                    className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white [&>option]:bg-gray-900 [&>option]:text-white"
                   >
                     {STATUSES.map((s) => (
                       <option key={s.value} value={s.value}>{s.label}</option>
@@ -405,7 +404,7 @@ function DeliveryRow({ delivery, events, onUpdate, onDelete }: {
           <select
             value={form.status}
             onChange={(e) => setForm({...form, status: e.target.value})}
-            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white [&>option]:bg-gray-900 [&>option]:text-white"
           >
             {STATUSES.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>
@@ -426,7 +425,7 @@ function DeliveryRow({ delivery, events, onUpdate, onDelete }: {
           <select
             value={form.event_id}
             onChange={(e) => setForm({...form, event_id: e.target.value})}
-            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white"
+            className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white [&>option]:bg-gray-900 [&>option]:text-white"
           >
             <option value="">（無）</option>
             {events.map((event) => (
