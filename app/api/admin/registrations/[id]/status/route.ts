@@ -45,21 +45,33 @@ export async function PATCH(request: Request, context: RouteContext) {
   }
 
   // Use admin client to bypass RLS for update
-  const adminClient = createAdminSupabaseClient();
-  const { data, error } = await adminClient
-    .from("registrations")
-    .update({ status: requestedStatus })
-    .eq("id", context.params.id)
-    .select("id, status, updated_at")
-    .single();
+  try {
+    const adminClient = createAdminSupabaseClient();
+    const { data, error } = await adminClient
+      .from("registrations")
+      .update({ status: requestedStatus })
+      .eq("id", context.params.id)
+      .select("id, status, updated_at")
+      .single();
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) {
+      console.error("Registration update error:", error);
+      return NextResponse.json({ 
+        error: `更新失敗: ${error.message}`,
+        hint: "請確認 SUPABASE_SERVICE_ROLE_KEY 環境變數已在 Vercel 中設置"
+      }, { status: 500 });
+    }
+
+    if (!data) {
+      return NextResponse.json({ error: "找不到該報名記錄" }, { status: 404 });
+    }
+
+    return NextResponse.json({ registration: data });
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    return NextResponse.json({ 
+      error: err instanceof Error ? err.message : "未知錯誤",
+      hint: "請檢查伺服器日誌"
+    }, { status: 500 });
   }
-
-  if (!data) {
-    return NextResponse.json({ error: "Registration not found" }, { status: 404 });
-  }
-
-  return NextResponse.json({ registration: data });
 }

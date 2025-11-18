@@ -35,7 +35,15 @@ export function createServerSupabaseClient() {
 // Admin client with service role key - bypasses RLS
 export function createAdminSupabaseClient() {
   if (!supabaseServiceRoleKey) {
-    throw new Error("SUPABASE_SERVICE_ROLE_KEY is not set");
+    console.warn("⚠️ SUPABASE_SERVICE_ROLE_KEY is not set. Admin operations may fail due to RLS policies.");
+    console.warn("Please set SUPABASE_SERVICE_ROLE_KEY environment variable in Vercel.");
+    // Return regular client as fallback
+    return createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
   }
   return createClient(supabaseUrl, supabaseServiceRoleKey, {
     auth: {
