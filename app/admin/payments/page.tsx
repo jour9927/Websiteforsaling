@@ -40,6 +40,7 @@ export default function AdminPaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingUsers, setLoadingUsers] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
 
   const [newPayment, setNewPayment] = useState({
@@ -51,6 +52,7 @@ export default function AdminPaymentsPage() {
   });
 
   useEffect(() => {
+    setLoadingUsers(true);
     Promise.all([
       fetch("/api/admin/payments/users").then(res => res.json()),
       fetch("/api/events").then(res => res.json())
@@ -61,6 +63,9 @@ export default function AdminPaymentsPage() {
       setEvents(eventsData.events || []);
     }).catch(err => {
       console.error("Error fetching data:", err);
+      alert("載入會員列表失敗，請重新整理頁面");
+    }).finally(() => {
+      setLoadingUsers(false);
     });
   }, []);
 
@@ -169,19 +174,25 @@ export default function AdminPaymentsPage() {
 
       <div className="glass-card rounded-2xl border border-white/10 p-6">
         <h2 className="mb-4 text-lg font-semibold text-white/90">步驟 1：選擇會員</h2>
-        <select
-          value={selectedUserId}
-          onChange={(e) => setSelectedUserId(e.target.value)}
-          className="w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-white focus:border-white focus:outline-none"
-        >
-          <option value="">-- 請選擇會員 --</option>
-          {users.map((user) => (
-            <option key={user.id} value={user.id}>
-              {user.full_name || user.email || "未命名"}
-              {user.email && user.full_name && ` (${user.email})`}
-            </option>
-          ))}
-        </select>
+        {loadingUsers ? (
+          <p className="text-center text-white/50">載入會員列表中...</p>
+        ) : users.length === 0 ? (
+          <p className="text-center text-white/50">找不到會員資料</p>
+        ) : (
+          <select
+            value={selectedUserId}
+            onChange={(e) => setSelectedUserId(e.target.value)}
+            className="w-full rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-white focus:border-white focus:outline-none"
+          >
+            <option value="">-- 請選擇會員 ({users.length} 位會員) --</option>
+            {users.map((user) => (
+              <option key={user.id} value={user.id}>
+                {user.full_name || user.email || "未命名"}
+                {user.email && user.full_name && ` (${user.email})`}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {selectedUserId && (
