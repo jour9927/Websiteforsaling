@@ -55,8 +55,12 @@ export default function AdminPaymentsPage() {
       fetch("/api/admin/payments/users").then(res => res.json()),
       fetch("/api/events").then(res => res.json())
     ]).then(([usersData, eventsData]) => {
+      console.log("Users data:", usersData);
+      console.log("Events data:", eventsData);
       setUsers(usersData.users || []);
       setEvents(eventsData.events || []);
+    }).catch(err => {
+      console.error("Error fetching data:", err);
     });
   }, []);
 
