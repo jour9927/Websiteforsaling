@@ -69,7 +69,7 @@ export default function AdminDeliveriesPage() {
     }
 
     setLoading(true);
-    fetch(`/api/admin/deliveries?user_id=\${selectedUserId}`)
+    fetch(`/api/admin/deliveries?user_id=${selectedUserId}`)
       .then(res => res.json())
       .then(data => setDeliveries(data.deliveries || []))
       .finally(() => setLoading(false));
@@ -105,7 +105,7 @@ export default function AdminDeliveriesPage() {
       setShowAddForm(false);
       
       const { deliveries: updatedDeliveries } = await fetch(
-        `/api/admin/deliveries?user_id=\${selectedUserId}`
+        `/api/admin/deliveries?user_id=${selectedUserId}`
       ).then(r => r.json());
       setDeliveries(updatedDeliveries || []);
     } catch (err) {
