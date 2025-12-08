@@ -33,12 +33,20 @@ export async function POST(request: Request) {
     }
 
     // 檢查該會員是否已報名
-    const { data: existingRegistration } = await supabase
+    const { data: existingRegistration, error: checkError } = await supabase
       .from("registrations")
       .select("id")
       .eq("user_id", user_id)
       .eq("event_id", event_id)
-      .single();
+      .maybeSingle();
+
+    if (checkError) {
+      console.error("檢查報名記錄錯誤:", checkError);
+      return NextResponse.json(
+        { error: `檢查報名失敗: ${checkError.message}` },
+        { status: 500 }
+      );
+    }
 
     if (existingRegistration) {
       return NextResponse.json(
@@ -48,13 +56,14 @@ export async function POST(request: Request) {
     }
 
     // 檢查活動是否存在
-    const { data: event } = await supabase
+    const { data: event, error: eventError } = await supabase
       .from("events")
       .select("id, title, max_participants")
       .eq("id", event_id)
       .single();
 
-    if (!event) {
+    if (eventError || !event) {
+      console.error("查詢活動錯誤:", eventError);
       return NextResponse.json(
         { error: "活動不存在" },
         { status: 404 }
@@ -91,7 +100,7 @@ export async function POST(request: Request) {
     if (insertError) {
       console.error("建立報名記錄失敗:", insertError);
       return NextResponse.json(
-        { error: "建立報名失敗" },
+        { error: `建立報名失敗: ${insertError.message}` },
         { status: 500 }
       );
     }
