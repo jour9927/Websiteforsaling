@@ -168,9 +168,6 @@ export default async function EventPage({ params }: EventPageProps) {
               已報名: <span className="text-2xl font-semibold text-white">{totalRegistrationCount}</span>
               {event.max_participants && ` / ${event.max_participants}`}
             </p>
-            <p className="mt-1 text-xs text-slate-200/60">
-              線上（已批准）: {confirmedOnline} | 線下: {offlineRegistrations}
-            </p>
             <p className="text-xs text-slate-200/60">
               報名會先進入待確認，只有獲得管理員批准後才會出現在參與紀錄與抽選頁。
             </p>
