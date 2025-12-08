@@ -32,9 +32,16 @@ export async function GET() {
     timestamp: new Date().toISOString()
   };
 
+  // 載入所有會員列表供管理員使用
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, email, full_name")
+    .order("created_at", { ascending: false });
+
   return NextResponse.json({
     status: "ok",
     environment: envCheck,
+    profiles: profiles || [],
     message: envCheck.SUPABASE_SERVICE_ROLE_KEY 
       ? "✅ Service role key is configured"
       : "⚠️ Service role key is NOT set. Please add SUPABASE_SERVICE_ROLE_KEY to Vercel environment variables."
