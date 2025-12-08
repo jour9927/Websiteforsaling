@@ -4,6 +4,11 @@ import UserItemRow, { type UserItem } from "@/components/admin/UserItemRow";
 
 export const dynamic = "force-dynamic";
 
+type RawUserItem = Omit<UserItem, "event" | "user"> & {
+  event: { id: string | null; title: string | null }[] | null;
+  user: { id: string; full_name: string | null; email: string | null }[] | null;
+};
+
 export default async function AdminUserItemsPage() {
   const supabase = createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -43,7 +48,7 @@ export default async function AdminUserItemsPage() {
     .order("updated_at", { ascending: false });
 
   // Supabase 會回傳關聯為陣列，這裡攤平成單一物件以符合 UI 型別
-  const normalizedUserItems: UserItem[] = (userItems ?? []).map((item: any) => ({
+  const normalizedUserItems: UserItem[] = (userItems ?? []).map((item: RawUserItem) => ({
     ...item,
     event: Array.isArray(item.event) ? item.event[0] ?? null : item.event ?? null,
     user: Array.isArray(item.user) ? item.user[0] ?? null : item.user ?? null
