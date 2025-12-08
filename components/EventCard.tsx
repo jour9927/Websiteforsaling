@@ -10,6 +10,7 @@ export type EventSummary = {
   date: string;
   location: string;
   cover?: string;
+  imagePosition?: string;
   price?: number;
   is_free?: boolean;
   badgeLabel?: string;
@@ -20,7 +21,7 @@ type EventCardProps = {
 };
 
 export const EventCard: FC<EventCardProps> = ({ event }: EventCardProps) => {
-  const { id, title, description, date, location, cover, price, is_free } = event;
+  const { id, title, description, date, location, cover, imagePosition, price, is_free } = event;
   const eventHref = `/events/${id}` as Route;
   
   return (
@@ -37,6 +38,7 @@ export const EventCard: FC<EventCardProps> = ({ event }: EventCardProps) => {
             alt={title}
             fill
             className="object-cover transition-transform group-hover:scale-110"
+            style={{ objectPosition: imagePosition || "center" }}
             sizes="(max-width: 768px) 100vw, 50vw"
           />
         ) : (

@@ -53,6 +53,7 @@ export default async function EventsListPage() {
                   date: event.start_date,
                   location: event.location || "線上活動",
                   cover: event.image_url && event.image_url.trim() !== '' ? event.image_url : undefined,
+                  imagePosition: event.image_position || "center",
                   price: event.price || 0,
                   is_free: event.is_free ?? true
                 }} 
@@ -82,6 +83,7 @@ export default async function EventsListPage() {
                   date: event.start_date,
                   location: event.location || "線上活動",
                   cover: event.image_url && event.image_url.trim() !== '' ? event.image_url : undefined,
+                  imagePosition: event.image_position || "center",
                   price: event.price || 0,
                   is_free: event.is_free ?? true
                 }} 

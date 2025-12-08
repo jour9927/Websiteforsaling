@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import ImagePositionEditor from "@/components/admin/ImagePositionEditor";
 
 type EditableEvent = {
   id: string;
@@ -14,6 +15,7 @@ type EditableEvent = {
   status: "draft" | "published" | "closed";
   description: string | null;
   image_url: string | null;
+  image_position: string | null;
   organizer_category: "admin" | "vip";
   eligibility_requirements: string | null;
   location: string | null;
@@ -32,6 +34,7 @@ type EventFormState = {
   organizer_category: "admin" | "vip";
   eligibility_requirements: string;
   image_url: string;
+  image_position: string;
   status: "draft" | "published" | "closed";
   price: string;
   is_free: boolean;
@@ -54,6 +57,7 @@ export default function EventEditForm({ event }: EventEditFormProps) {
     organizer_category: event.organizer_category,
     eligibility_requirements: event.eligibility_requirements || "",
     image_url: event.image_url || "",
+    image_position: event.image_position || "center",
     status: event.status,
     price: event.price !== null ? String(event.price) : "",
     is_free: event.is_free,
@@ -62,6 +66,7 @@ export default function EventEditForm({ event }: EventEditFormProps) {
   const [uploading, setUploading] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
+  const [showPositionEditor, setShowPositionEditor] = useState(false);
 
   const handleImageUpload = async (file: File) => {
     console.log("上傳檔案資訊:", {
@@ -163,6 +168,7 @@ export default function EventEditForm({ event }: EventEditFormProps) {
           organizer_category: formData.organizer_category,
           eligibility_requirements: formData.eligibility_requirements.trim() || null,
           image_url: formData.image_url.trim() || null,
+          image_position: formData.image_position || "center",
           status: formData.status,
           price: formData.price.trim() ? Number(formData.price) : null,
           is_free: formData.is_free,
@@ -366,21 +372,33 @@ export default function EventEditForm({ event }: EventEditFormProps) {
       <div className="md:col-span-2 flex flex-col gap-3 text-xs text-white/70">
         <span>活動主視覺</span>
         {formData.image_url ? (
-          <div className="flex items-start gap-4">
-            <img
-              src={formData.image_url}
-              alt="活動主視覺"
-              className="h-32 w-48 rounded-xl object-cover"
-            />
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={() => setFormData((prev) => ({ ...prev, image_url: "" }))}
-                className="self-start rounded-full border border-white/30 px-4 py-2 text-xs text-white transition hover:border-white/60 hover:bg-white/10"
-              >
-                移除圖片
-              </button>
-              <span className="text-[10px] text-white/50">重新上傳會自動覆蓋原圖</span>
+          <div className="space-y-3">
+            <div className="flex items-start gap-4">
+              <img
+                src={formData.image_url}
+                alt="活動主視覺"
+                className="h-32 w-48 rounded-xl object-cover"
+                style={{ objectPosition: formData.image_position }}
+              />
+              <div className="flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPositionEditor(true)}
+                  className="self-start rounded-full border border-blue-500/50 bg-blue-500/20 px-4 py-2 text-xs text-blue-200 transition hover:border-blue-500 hover:bg-blue-500/30"
+                >
+                  🎯 調整圖片位置
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFormData((prev) => ({ ...prev, image_url: "", image_position: "center" }))}
+                  className="self-start rounded-full border border-white/30 px-4 py-2 text-xs text-white transition hover:border-white/60 hover:bg-white/10"
+                >
+                  移除圖片
+                </button>
+                <span className="text-[10px] text-white/50">
+                  當前位置: {formData.image_position}
+                </span>
+              </div>
             </div>
           </div>
         ) : null}
@@ -417,6 +435,19 @@ export default function EventEditForm({ event }: EventEditFormProps) {
           {saving ? "儲存中..." : "儲存變更"}
         </button>
       </div>
+
+      {/* 圖片位置調整器 */}
+      {showPositionEditor && formData.image_url && (
+        <ImagePositionEditor
+          imageUrl={formData.image_url}
+          currentPosition={formData.image_position}
+          onSave={(position) => {
+            setFormData((prev) => ({ ...prev, image_position: position }));
+            setShowPositionEditor(false);
+          }}
+          onCancel={() => setShowPositionEditor(false)}
+        />
+      )}
     </form>
   );
 }
