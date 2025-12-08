@@ -20,11 +20,13 @@ type Message = {
   created_at: string;
   read_at: string | null;
   recipient?: User;
+  sender?: User;
 };
 
 export default function AdminMessagesPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [sentMessages, setSentMessages] = useState<Message[]>([]);
+  const [receivedMessages, setReceivedMessages] = useState<Message[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -36,6 +38,7 @@ export default function AdminMessagesPage() {
   useEffect(() => {
     loadUsers();
     loadSentMessages();
+    loadReceivedMessages();
   }, []);
 
   const loadUsers = async () => {
@@ -95,6 +98,62 @@ export default function AdminMessagesPage() {
     }
     
     setLoading(false);
+  };
+
+  const loadReceivedMessages = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return;
+    }
+
+    console.log('載入收到的訊息，當前用戶:', user.id);
+
+    // 查詢收到的訊息
+    const { data: messages, error: messagesError } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('recipient_id', user.id)
+      .order('created_at', { ascending: false });
+
+    console.log('查詢收到訊息結果:', { messages, messagesError });
+
+    if (messagesError) {
+      console.error('載入收到訊息錯誤:', messagesError);
+      return;
+    }
+
+    if (messages && messages.length > 0) {
+      // 獲取所有發送者的信息
+      const senderIds = messages.map(m => m.sender_id);
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, full_name, role')
+        .in('id', senderIds);
+
+      // 將發送者信息合併到訊息中
+      const messagesWithSenders = messages.map(msg => ({
+        ...msg,
+        sender: profiles?.find(p => p.id === msg.sender_id)
+      }));
+
+      setReceivedMessages(messagesWithSenders as Message[]);
+    } else {
+      setReceivedMessages([]);
+    }
+  };
+
+  const markAsRead = async (messageId: string) => {
+    const { error } = await supabase
+      .from('messages')
+      .update({ is_read: true, read_at: new Date().toISOString() })
+      .eq('id', messageId);
+
+    if (!error) {
+      setReceivedMessages(prev =>
+        prev.map(m => m.id === messageId ? { ...m, is_read: true, read_at: new Date().toISOString() } : m)
+      );
+    }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -164,6 +223,7 @@ export default function AdminMessagesPage() {
 
     if (!error) {
       setSentMessages(prev => prev.filter(m => m.id !== id));
+      setReceivedMessages(prev => prev.filter(m => m.id !== id));
     }
   };
 
@@ -171,8 +231,75 @@ export default function AdminMessagesPage() {
     <div className="space-y-6">
       <header className="glass-card p-6">
         <h1 className="text-2xl font-semibold text-white">會員訊息系統</h1>
-        <p className="mt-1 text-sm text-white/60">發送訊息給個別會員</p>
+        <p className="mt-1 text-sm text-white/60">發送訊息給個別會員或查看收到的訊息</p>
       </header>
+
+      {/* 收到的訊息 */}
+      <article className="glass-card p-6">
+        <h2 className="text-lg font-semibold text-white/90">收到的訊息</h2>
+        <p className="text-xs text-white/60">來自會員的訊息</p>
+        
+        {receivedMessages.length === 0 ? (
+          <div className="mt-4 text-center text-white/60">沒有收到任何訊息</div>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {receivedMessages.map((message) => (
+              <div
+                key={message.id}
+                className={`rounded-xl border p-4 ${
+                  message.is_read
+                    ? 'border-white/10 bg-white/5'
+                    : 'border-blue-500/30 bg-blue-500/10'
+                }`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-white">{message.subject}</h3>
+                      {!message.is_read && (
+                        <span className="rounded-full bg-blue-500/30 px-2 py-0.5 text-xs text-blue-200">
+                          新訊息
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-sm text-white/60">
+                      來自: <span className="font-medium text-white/90">
+                        {message.sender?.full_name || message.sender?.email || "未知會員"}
+                      </span>
+                      {message.sender?.email && message.sender?.full_name && (
+                        <span className="text-white/50"> ({message.sender.email})</span>
+                      )}
+                    </p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm text-white/80">
+                      {message.body}
+                    </p>
+                    <p className="mt-2 text-xs text-white/50">
+                      {new Date(message.created_at).toLocaleString('zh-TW')}
+                    </p>
+                  </div>
+                  
+                  <div className="flex flex-col gap-2">
+                    {!message.is_read && (
+                      <button
+                        onClick={() => markAsRead(message.id)}
+                        className="text-xs text-blue-300 hover:text-blue-200"
+                      >
+                        標為已讀
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteMessage(message.id)}
+                      className="text-xs text-red-300 hover:text-red-200"
+                    >
+                      刪除
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </article>
 
       {/* 發送訊息表單 */}
       <article className="glass-card p-6">
