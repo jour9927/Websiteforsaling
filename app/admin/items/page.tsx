@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import UserItemRow from "@/components/admin/UserItemRow";
+import UserItemRow, { type UserItem } from "@/components/admin/UserItemRow";
 
 export const dynamic = "force-dynamic";
 
@@ -42,6 +42,13 @@ export default async function AdminUserItemsPage() {
     `)
     .order("updated_at", { ascending: false });
 
+  // Supabase 會回傳關聯為陣列，這裡攤平成單一物件以符合 UI 型別
+  const normalizedUserItems: UserItem[] = (userItems ?? []).map((item: any) => ({
+    ...item,
+    event: Array.isArray(item.event) ? item.event[0] ?? null : item.event ?? null,
+    user: Array.isArray(item.user) ? item.user[0] ?? null : item.user ?? null
+  }));
+
   const { data: events } = await supabase
     .from("events")
     .select("id, title")
@@ -54,13 +61,13 @@ export default async function AdminUserItemsPage() {
         <p className="mt-1 text-sm text-white/60">編輯會員在不同活動中獲得的物品。</p>
       </header>
 
-      {!userItems || userItems.length === 0 ? (
+      {normalizedUserItems.length === 0 ? (
         <div className="glass-card p-6 text-center text-white/60">
           暫時沒有任何會員物品記錄。
         </div>
       ) : (
         <div className="space-y-4">
-          {userItems.map((item) => (
+          {normalizedUserItems.map((item) => (
             <UserItemRow key={item.id} item={item} events={events ?? []} />
           ))}
         </div>
