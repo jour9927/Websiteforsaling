@@ -1,4 +1,4 @@
-supabase db pushsupabase db pushsupabase db pushsupabase db pushimport { createServerSupabaseClient } from "@/lib/auth";
+import { createServerSupabaseClient } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import UserItemRow from "@/components/admin/UserItemRow";
 
