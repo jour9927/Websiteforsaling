@@ -24,6 +24,12 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showComposeForm, setShowComposeForm] = useState(false);
+  const [composing, setComposing] = useState(false);
+  const [composeData, setComposeData] = useState({
+    subject: "",
+    body: ""
+  });
 
   useEffect(() => {
     loadMessages();
@@ -129,16 +135,134 @@ export default function MessagesPage() {
     }
   };
 
+  const sendMessageToAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setComposing(true);
+
+    try {
+      // 取得當前用戶
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert("請先登入");
+        return;
+      }
+
+      // 取得所有管理員
+      const { data: admins } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('role', 'admin');
+
+      if (!admins || admins.length === 0) {
+        alert("找不到管理員");
+        return;
+      }
+
+      // 發送訊息給所有管理員
+      const messagesToInsert = admins.map(admin => ({
+        sender_id: user.id,
+        recipient_id: admin.id,
+        subject: composeData.subject,
+        body: composeData.body
+      }));
+
+      const { error } = await supabase
+        .from('messages')
+        .insert(messagesToInsert);
+
+      if (error) {
+        console.error("發送訊息錯誤:", error);
+        alert("發送失敗，請稍後再試");
+        return;
+      }
+
+      // 成功後重置表單
+      setComposeData({ subject: "", body: "" });
+      setShowComposeForm(false);
+      alert("訊息已發送給管理員！");
+
+    } catch (error) {
+      console.error("發送訊息錯誤:", error);
+      alert("發送失敗");
+    } finally {
+      setComposing(false);
+    }
+  };
+
   const unreadCount = messages.filter(m => !m.is_read).length;
 
   return (
     <div className="space-y-6">
       <header className="glass-card p-6">
-        <h1 className="text-2xl font-semibold text-white">我的訊息</h1>
-        <p className="mt-1 text-sm text-white/60">
-          {unreadCount > 0 ? `您有 ${unreadCount} 則未讀訊息` : '沒有未讀訊息'}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-white">我的訊息</h1>
+            <p className="mt-1 text-sm text-white/60">
+              {unreadCount > 0 ? `您有 ${unreadCount} 則未讀訊息` : '沒有未讀訊息'}
+            </p>
+          </div>
+          <button
+            onClick={() => setShowComposeForm(!showComposeForm)}
+            className="rounded-xl bg-blue-500/80 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500"
+          >
+            {showComposeForm ? '取消' : '✉️ 寫信給管理員'}
+          </button>
+        </div>
       </header>
+
+      {/* 寫信表單 */}
+      {showComposeForm && (
+        <article className="glass-card p-6">
+          <h2 className="text-lg font-semibold text-white/90">寫信給管理員</h2>
+          <p className="mt-1 text-xs text-white/60">訊息將發送給所有管理員</p>
+          
+          <form onSubmit={sendMessageToAdmin} className="mt-4 space-y-4">
+            <div>
+              <label className="block text-sm text-white/70">主旨</label>
+              <input
+                type="text"
+                value={composeData.subject}
+                onChange={(e) => setComposeData(prev => ({ ...prev, subject: e.target.value }))}
+                required
+                placeholder="請輸入主旨..."
+                className="mt-1 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder-white/40 focus:border-white/40 focus:outline-none"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm text-white/70">內容</label>
+              <textarea
+                value={composeData.body}
+                onChange={(e) => setComposeData(prev => ({ ...prev, body: e.target.value }))}
+                required
+                rows={6}
+                placeholder="請輸入訊息內容..."
+                className="mt-1 w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder-white/40 focus:border-white/40 focus:outline-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowComposeForm(false);
+                  setComposeData({ subject: "", body: "" });
+                }}
+                className="rounded-xl border border-white/30 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10"
+              >
+                取消
+              </button>
+              <button
+                type="submit"
+                disabled={composing}
+                className="rounded-xl bg-blue-500/80 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {composing ? "發送中..." : "發送"}
+              </button>
+            </div>
+          </form>
+        </article>
+      )}
 
       <div className="grid gap-6 md:grid-cols-[1fr_2fr]">
         {/* 訊息列表 */}
