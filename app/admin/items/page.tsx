@@ -48,11 +48,16 @@ export default async function AdminUserItemsPage() {
     .order("updated_at", { ascending: false });
 
   // Supabase 會回傳關聯為陣列，這裡攤平成單一物件以符合 UI 型別
-  const normalizedUserItems: UserItem[] = (userItems ?? []).map((item: RawUserItem) => ({
-    ...item,
-    event: Array.isArray(item.event) ? item.event[0] ?? null : item.event ?? null,
-    user: Array.isArray(item.user) ? item.user[0] ?? null : item.user ?? null
-  }));
+  const normalizedUserItems: UserItem[] = (userItems ?? []).map((item: RawUserItem) => {
+    const userArray = Array.isArray(item.user) ? item.user : (item.user ? [item.user] : []);
+    const user = userArray[0] ?? { id: "", full_name: null, email: null };
+    
+    return {
+      ...item,
+      event: Array.isArray(item.event) ? item.event[0] ?? null : item.event ?? null,
+      user
+    };
+  });
 
   const { data: events } = await supabase
     .from("events")
