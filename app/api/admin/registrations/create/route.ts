@@ -58,7 +58,7 @@ export async function POST(request: Request) {
     // 檢查活動是否存在
     const { data: event, error: eventError } = await supabase
       .from("events")
-      .select("id, title, max_participants")
+      .select("id, title, max_participants, offline_registrations")
       .eq("id", event_id)
       .single();
 
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 檢查名額
+    // 檢查名額（需要加上線下報名人數）
     if (event.max_participants) {
       const { count: confirmedCount } = await supabase
         .from("registrations")
@@ -78,7 +78,10 @@ export async function POST(request: Request) {
         .eq("event_id", event_id)
         .eq("status", "confirmed");
 
-      if (confirmedCount && confirmedCount >= event.max_participants) {
+      const offlineRegistrations = event.offline_registrations || 0;
+      const totalRegistrations = (confirmedCount || 0) + offlineRegistrations;
+
+      if (totalRegistrations >= event.max_participants) {
         return NextResponse.json(
           { error: "活動名額已滿" },
           { status: 400 }

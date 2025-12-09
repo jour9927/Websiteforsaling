@@ -39,24 +39,33 @@ export default function RegisterButton({ eventId }: { eventId: string }) {
         return;
       }
 
-      // 檢查名額是否已滿
+      // 檢查名額是否已滿（需加上線下報名人數）
       const { data: event } = await supabase
         .from('events')
-        .select('max_participants')
+        .select('max_participants, offline_registrations')
         .eq('id', eventId)
         .single();
 
-      console.log('活動名額:', event);
+      console.log('活動資訊:', event);
 
       if (event?.max_participants) {
-        const { count } = await supabase
+        const { count: confirmedCount } = await supabase
           .from('registrations')
           .select('*', { count: 'exact', head: true })
-          .eq('event_id', eventId);
+          .eq('event_id', eventId)
+          .eq('status', 'confirmed');
 
-        console.log('當前報名人數:', count, '/', event.max_participants);
+        const offlineRegistrations = event.offline_registrations || 0;
+        const totalRegistrations = (confirmedCount || 0) + offlineRegistrations;
 
-        if (count && count >= event.max_participants) {
+        console.log('名額檢查:', {
+          已確認線上: confirmedCount,
+          線下報名: offlineRegistrations,
+          總計: totalRegistrations,
+          上限: event.max_participants
+        });
+
+        if (totalRegistrations >= event.max_participants) {
           setError("抱歉，名額已滿");
           return;
         }
