@@ -54,21 +54,55 @@ export default function AdminAnnouncementsPage() {
 
     try {
       // 取得當前使用者
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('取得使用者錯誤:', userError);
+        throw new Error(`取得使用者失敗: ${userError.message}`);
+      }
       if (!user) {
         throw new Error('未登入');
       }
 
-      const { error } = await supabase
-        .from('announcements')
-        .insert([{
-          title: formData.title,
-          content: formData.content,
-          published_at: formData.published_at || null,
-          created_by: user.id
-        }]);
+      console.log('當前使用者:', user.id);
+      
+      // 檢查使用者是否為管理員
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileError) {
+        console.error('取得身份錯誤:', profileError);
+        throw new Error(`取得身份失敗: ${profileError.message}`);
+      }
+      
+      console.log('使用者身份:', profile);
+      
+      if (profile?.role !== 'admin') {
+        throw new Error('只有管理員可以建立公告');
+      }
 
-      if (error) throw error;
+      const insertData = {
+        title: formData.title,
+        content: formData.content,
+        published_at: formData.published_at || null,
+        created_by: user.id
+      };
+      
+      console.log('準備插入資料:', insertData);
+
+      const { data, error } = await supabase
+        .from('announcements')
+        .insert([insertData])
+        .select();
+
+      if (error) {
+        console.error('插入錯誤:', error);
+        throw new Error(`插入失敗: ${error.message} (code: ${error.code})`);
+      }
+      
+      console.log('插入成功:', data);
 
       setSuccess("公告建立成功！");
       setFormData({
@@ -78,6 +112,7 @@ export default function AdminAnnouncementsPage() {
       });
       loadAnnouncements();
     } catch (err) {
+      console.error('建立公告錯誤:', err);
       setError(err instanceof Error ? err.message : '建立失敗');
     } finally {
       setSaving(false);
