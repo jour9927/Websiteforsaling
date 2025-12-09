@@ -48,6 +48,16 @@ export default async function EventPage({ params }: EventPageProps) {
   // 總報名人數只計入已確認的線上報名與線下報名
   const totalRegistrationCount = confirmedOnline + offlineRegistrations;
 
+  // Debug 輸出
+  console.log('活動頁面人數統計:', {
+    活動ID: params.id,
+    已確認線上: confirmedOnline,
+    待確認線上: pendingOnline,
+    線下報名: offlineRegistrations,
+    顯示總數: totalRegistrationCount,
+    上限: event.max_participants
+  });
+
   // 檢查用戶是否已報名
   let userRegistration = null;
   if (user) {
