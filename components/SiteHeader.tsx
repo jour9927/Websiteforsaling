@@ -8,6 +8,7 @@ import type { Route } from "next";
 type SiteHeaderProps = {
   displayName: string;
   isAuthenticated: boolean;
+  isAdmin: boolean;
 };
 
 const primaryLinks = [
@@ -16,7 +17,7 @@ const primaryLinks = [
   { label: "我的物品", href: "/items" as Route },
   { label: "我的付款", href: "/payments" as Route },
   { label: "交付紀錄", href: "/deliveries" as Route },
-  { label: "管理員", href: "/admin" as Route }
+  { label: "管理員平台", href: "/admin" as Route }
 ] as const;
 
 const signedInLinks = [
@@ -31,7 +32,7 @@ const signedOutLinks = [
   { label: "註冊", href: "/signup" as Route }
 ] as const;
 
-export function SiteHeader({ displayName, isAuthenticated }: SiteHeaderProps) {
+export function SiteHeader({ displayName, isAuthenticated, isAdmin }: SiteHeaderProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -41,6 +42,15 @@ export function SiteHeader({ displayName, isAuthenticated }: SiteHeaderProps) {
 
   const normalizedName = displayName && displayName.trim().length > 0 ? displayName.trim() : "訪客模式";
   const profileHref = (normalizedName === "訪客模式" ? "/login" : "/profile") as Route;
+
+  // 根據是否為管理員過濾導航連結
+  const visiblePrimaryLinks = primaryLinks.filter(link => {
+    // 如果是管理員連結，只有管理員才能看到
+    if (link.href === "/admin") {
+      return isAdmin;
+    }
+    return true;
+  });
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-midnight-900/80 backdrop-blur">
@@ -58,7 +68,7 @@ export function SiteHeader({ displayName, isAuthenticated }: SiteHeaderProps) {
           </span>
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-white/80 lg:flex">
-          {primaryLinks.map((item) => (
+          {visiblePrimaryLinks.map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -101,7 +111,7 @@ export function SiteHeader({ displayName, isAuthenticated }: SiteHeaderProps) {
       >
         <div className="space-y-6 px-6 py-8">
           <nav className="flex flex-col gap-4 text-lg text-white">
-            {primaryLinks.map((item) => (
+            {visiblePrimaryLinks.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}

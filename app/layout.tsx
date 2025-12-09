@@ -19,6 +19,7 @@ type RootLayoutProps = {
 type UserContext = {
   displayName: string;
   isAuthenticated: boolean;
+  isAdmin: boolean;
 };
 
 async function resolveUserContext(): Promise<UserContext> {
@@ -28,7 +29,7 @@ async function resolveUserContext(): Promise<UserContext> {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    return { displayName: fallbackName, isAuthenticated: false };
+    return { displayName: fallbackName, isAuthenticated: false, isAdmin: false };
   }
 
   try {
@@ -38,8 +39,17 @@ async function resolveUserContext(): Promise<UserContext> {
     } = await supabase.auth.getSession();
 
     if (!session) {
-      return { displayName: fallbackName, isAuthenticated: false };
+      return { displayName: fallbackName, isAuthenticated: false, isAdmin: false };
     }
+
+    // 查詢用戶角色
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+
+    const isAdmin = profile?.role === 'admin';
 
     const metadata = session.user.user_metadata ?? {};
     const name =
@@ -49,21 +59,21 @@ async function resolveUserContext(): Promise<UserContext> {
       session.user.email ||
       fallbackName;
 
-    return { displayName: name, isAuthenticated: true };
+    return { displayName: name, isAuthenticated: true, isAdmin };
   } catch (error) {
     console.warn("Failed to load Supabase session", error);
-    return { displayName: fallbackName, isAuthenticated: false };
+    return { displayName: fallbackName, isAuthenticated: false, isAdmin: false };
   }
 }
 
 export default async function RootLayout({ children }: RootLayoutProps) {
-  const { displayName, isAuthenticated } = await resolveUserContext();
+  const { displayName, isAuthenticated, isAdmin } = await resolveUserContext();
 
   return (
     <html lang="zh-Hant">
       <body className="min-h-screen antialiased">
         <div className="flex min-h-screen flex-col">
-          <SiteHeader displayName={displayName} isAuthenticated={isAuthenticated} />
+          <SiteHeader displayName={displayName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
           <main className="flex-1">
             <div className="mx-auto w-full max-w-5xl px-4 py-10 md:px-6 md:py-12">{children}</div>
           </main>

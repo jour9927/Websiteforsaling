@@ -32,7 +32,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
         <header className="flex items-center justify-between border-b border-white/10 bg-white/5 px-6 py-4 backdrop-blur">
           <div>
             <p className="text-xs uppercase tracking-[0.25em] text-slate-300">控制中心</p>
-            <h1 className="text-lg font-semibold text-white">Event Glass 後台</h1>
+            <h1 className="text-lg font-semibold text-white">Event Glass 管理員平台</h1>
           </div>
           <div className="flex items-center gap-3 text-xs text-white/70">
             <span className="text-white/90">{user.email}</span>

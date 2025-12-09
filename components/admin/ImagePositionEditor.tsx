@@ -107,7 +107,7 @@ export default function ImagePositionEditor({
               className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder-white/40 focus:border-white/40 focus:outline-none"
             />
             <p className="mt-1 text-xs text-white/50">
-              可使用 CSS object-position 值，例如: "center", "top", "50% 30%"
+              可使用 CSS object-position 值，例如: &quot;center&quot;, &quot;top&quot;, &quot;50% 30%&quot;
             </p>
           </div>
         </div>
