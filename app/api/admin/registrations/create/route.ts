@@ -99,7 +99,12 @@ export async function POST(request: Request) {
     }
 
     // 建立報名記錄，管理員代報名直接設為 confirmed
-    const insertData: any = {
+    const insertData: {
+      user_id: string;
+      event_id: string;
+      status: string;
+      registered_at?: string;
+    } = {
       user_id,
       event_id,
       status: "confirmed"
