@@ -81,9 +81,18 @@ export async function POST(request: Request) {
       const offlineRegistrations = event.offline_registrations || 0;
       const totalRegistrations = (confirmedCount || 0) + offlineRegistrations;
 
+      console.log('名額檢查詳情:', {
+        活動ID: event_id,
+        已確認線上報名: confirmedCount,
+        線下報名: offlineRegistrations,
+        總計: totalRegistrations,
+        上限: event.max_participants,
+        是否已滿: totalRegistrations >= event.max_participants
+      });
+
       if (totalRegistrations >= event.max_participants) {
         return NextResponse.json(
-          { error: "活動名額已滿" },
+          { error: `活動名額已滿 (已報名 ${totalRegistrations}/${event.max_participants})` },
           { status: 400 }
         );
       }
