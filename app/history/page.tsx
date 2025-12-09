@@ -40,13 +40,22 @@ export default async function HistoryPage() {
         start_date
       )
     `)
-    .eq('user_id', user.id)
-    .order('registered_at', { ascending: false }) as {
+    .eq('user_id', user.id) as {
       data: RegistrationData[] | null;
       error: { message?: string; code?: string } | null;
     };
 
   const allRegistrations = registrations ?? [];
+  
+  // 按活動開始時間排序（最近的活動在前）
+  allRegistrations.sort((a, b) => {
+    const eventA = Array.isArray(a.event) ? a.event[0] : a.event;
+    const eventB = Array.isArray(b.event) ? b.event[0] : b.event;
+    const dateA = eventA?.start_date ? new Date(eventA.start_date).getTime() : 0;
+    const dateB = eventB?.start_date ? new Date(eventB.start_date).getTime() : 0;
+    return dateB - dateA;
+  });
+  
   const confirmedRegistrations = allRegistrations.filter((reg) => reg.status === 'confirmed');
   const pendingRegistrations = allRegistrations.filter((reg) => reg.status === 'pending');
   const cancelledRegistrations = allRegistrations.filter((reg) => reg.status === 'cancelled');
