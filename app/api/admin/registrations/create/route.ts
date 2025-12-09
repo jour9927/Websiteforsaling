@@ -23,7 +23,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { user_id, event_id } = body;
+    const { user_id, event_id, registered_at } = body;
 
     if (!user_id || !event_id) {
       return NextResponse.json(
@@ -99,13 +99,20 @@ export async function POST(request: Request) {
     }
 
     // 建立報名記錄，管理員代報名直接設為 confirmed
+    const insertData: any = {
+      user_id,
+      event_id,
+      status: "confirmed"
+    };
+
+    // 如果有指定報名時間，使用指定的時間
+    if (registered_at) {
+      insertData.registered_at = new Date(registered_at).toISOString();
+    }
+
     const { data: registration, error: insertError } = await supabase
       .from("registrations")
-      .insert({
-        user_id,
-        event_id,
-        status: "confirmed"
-      })
+      .insert(insertData)
       .select()
       .single();
 

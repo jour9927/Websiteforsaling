@@ -17,6 +17,7 @@ type AddRegistrationFormProps = {
 export default function AddRegistrationForm({ eventId, eventTitle, onSuccess }: AddRegistrationFormProps) {
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedUserId, setSelectedUserId] = useState("");
+  const [registeredAt, setRegisteredAt] = useState("");
   const [loading, setLoading] = useState(false);
   const [loadingProfiles, setLoadingProfiles] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -62,7 +63,8 @@ export default function AddRegistrationForm({ eventId, eventTitle, onSuccess }: 
         },
         body: JSON.stringify({
           user_id: selectedUserId,
-          event_id: eventId
+          event_id: eventId,
+          registered_at: registeredAt || undefined
         })
       });
 
@@ -74,6 +76,7 @@ export default function AddRegistrationForm({ eventId, eventTitle, onSuccess }: 
 
       setMessage({ type: "success", text: "報名成功！" });
       setSelectedUserId("");
+      setRegisteredAt("");
       
       // 3 秒後清除訊息並刷新頁面
       setTimeout(() => {
@@ -149,6 +152,20 @@ export default function AddRegistrationForm({ eventId, eventTitle, onSuccess }: 
           {!loadingProfiles && filteredProfiles.length === 0 && searchTerm && (
             <p className="mt-1 text-xs text-white/40">找不到符合的會員</p>
           )}
+        </div>
+
+        {/* 報名時間 */}
+        <div>
+          <label className="block text-xs text-white/60">報名時間（選填）</label>
+          <input
+            type="datetime-local"
+            value={registeredAt}
+            onChange={(e) => setRegisteredAt(e.target.value)}
+            className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white focus:border-white/30 focus:outline-none"
+          />
+          <p className="mt-1 text-xs text-white/40">
+            留空則使用當前時間
+          </p>
         </div>
 
         {/* 活動資訊 */}
