@@ -10,7 +10,6 @@ interface Announcement {
   title: string;
   content: string;
   published_at: string | null;
-  status: 'draft' | 'scheduled' | 'published';
   created_at: string;
 }
 
@@ -23,8 +22,7 @@ export default function AdminAnnouncementsPage() {
   const [formData, setFormData] = useState({
     title: "",
     content: "",
-    published_at: "",
-    status: "draft" as 'draft' | 'scheduled' | 'published'
+    published_at: ""
   });
 
   useEffect(() => {
@@ -55,13 +53,19 @@ export default function AdminAnnouncementsPage() {
     setSaving(true);
 
     try {
+      // 取得當前使用者
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('未登入');
+      }
+
       const { error } = await supabase
         .from('announcements')
         .insert([{
           title: formData.title,
           content: formData.content,
           published_at: formData.published_at || null,
-          status: formData.status
+          created_by: user.id
         }]);
 
       if (error) throw error;
@@ -70,8 +74,7 @@ export default function AdminAnnouncementsPage() {
       setFormData({
         title: "",
         content: "",
-        published_at: "",
-        status: "draft"
+        published_at: ""
       });
       loadAnnouncements();
     } catch (err) {
@@ -96,31 +99,6 @@ export default function AdminAnnouncementsPage() {
       loadAnnouncements();
     } catch (err) {
       setError(err instanceof Error ? err.message : '刪除失敗');
-    }
-  };
-
-  const handleStatusChange = async (id: string, newStatus: 'draft' | 'scheduled' | 'published') => {
-    try {
-      const { error } = await supabase
-        .from('announcements')
-        .update({ status: newStatus })
-        .eq('id', id);
-
-      if (error) throw error;
-      
-      setSuccess("狀態已更新");
-      loadAnnouncements();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '更新失敗');
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'published': return 'bg-green-500/20 text-green-200';
-      case 'scheduled': return 'bg-blue-500/20 text-blue-200';
-      case 'draft': return 'bg-gray-500/20 text-gray-200';
-      default: return 'bg-white/10 text-white/80';
     }
   };
 
@@ -178,18 +156,6 @@ export default function AdminAnnouncementsPage() {
               placeholder="可使用 Markdown 撰寫公告內容" 
             />
           </label>
-          <label className="flex flex-col gap-2 text-xs text-white/70">
-            狀態
-            <select
-              value={formData.status}
-              onChange={(e) => setFormData({...formData, status: e.target.value as 'draft' | 'scheduled' | 'published'})}
-              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
-            >
-              <option value="draft">草稿</option>
-              <option value="scheduled">已排程</option>
-              <option value="published">立即發布</option>
-            </select>
-          </label>
           <div className="flex gap-3 md:col-span-2">
             <button 
               type="submit" 
@@ -216,7 +182,6 @@ export default function AdminAnnouncementsPage() {
                 <tr>
                   <th className="px-4 py-3">公告</th>
                   <th className="px-4 py-3">發布時間</th>
-                  <th className="px-4 py-3">狀態</th>
                   <th className="px-4 py-3">操作</th>
                 </tr>
               </thead>
@@ -226,17 +191,6 @@ export default function AdminAnnouncementsPage() {
                     <td className="px-4 py-4 font-medium text-white/90">{item.title}</td>
                     <td className="px-4 py-4 text-white/70">
                       {item.published_at ? new Date(item.published_at).toLocaleString('zh-TW') : '-'}
-                    </td>
-                    <td className="px-4 py-4">
-                      <select
-                        value={item.status}
-                        onChange={(e) => handleStatusChange(item.id, e.target.value as 'draft' | 'scheduled' | 'published')}
-                        className={`rounded-full px-3 py-1 text-xs border-none focus:outline-none focus:ring-2 focus:ring-white/30 ${getStatusColor(item.status)}`}
-                      >
-                        <option value="draft">草稿</option>
-                        <option value="scheduled">已排程</option>
-                        <option value="published">已發布</option>
-                      </select>
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex gap-2 text-xs">
