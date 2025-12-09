@@ -151,35 +151,77 @@ export default function EventEditForm({ event }: EventEditFormProps) {
     }
 
     try {
-      const { error: updateError } = await supabase
-        .from("events")
-        .update({
-          title: formData.title,
-          start_date: formData.start_date || null,
-          end_date: formData.end_date || null,
-          max_participants: formData.max_participants.trim()
-            ? Number(formData.max_participants)
-            : null,
-          offline_registrations: formData.offline_registrations.trim()
-            ? Number(formData.offline_registrations)
-            : 0,
-          description: formData.description,
-          location: formData.location.trim() || null,
-          organizer_category: formData.organizer_category,
-          eligibility_requirements: formData.eligibility_requirements.trim() || null,
-          image_url: formData.image_url.trim() || null,
-          image_position: formData.image_position || "center",
-          status: formData.status,
-          price: formData.price.trim() ? Number(formData.price) : null,
-          is_free: formData.is_free,
-        })
-        .eq("id", event.id);
+      // 取得當前使用者
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) {
+        console.error('取得使用者錯誤:', userError);
+        throw new Error(`取得使用者失敗: ${userError.message}`);
+      }
+      if (!user) {
+        throw new Error('未登入');
+      }
 
-      if (updateError) throw updateError;
+      console.log('當前使用者:', user.id);
+      
+      // 檢查使用者是否為管理員
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      if (profileError) {
+        console.error('取得身份錯誤:', profileError);
+        throw new Error(`取得身份失敗: ${profileError.message}`);
+      }
+      
+      console.log('使用者身份:', profile);
+      
+      if (profile?.role !== 'admin') {
+        throw new Error('只有管理員可以編輯活動');
+      }
+
+      const updateData = {
+        title: formData.title,
+        start_date: formData.start_date || null,
+        end_date: formData.end_date || null,
+        max_participants: formData.max_participants.trim()
+          ? Number(formData.max_participants)
+          : null,
+        offline_registrations: formData.offline_registrations.trim()
+          ? Number(formData.offline_registrations)
+          : 0,
+        description: formData.description,
+        location: formData.location.trim() || null,
+        organizer_category: formData.organizer_category,
+        eligibility_requirements: formData.eligibility_requirements.trim() || null,
+        image_url: formData.image_url.trim() || null,
+        image_position: formData.image_position || "center",
+        status: formData.status,
+        price: formData.price.trim() ? Number(formData.price) : null,
+        is_free: formData.is_free,
+      };
+
+      console.log('準備更新資料:', updateData);
+      console.log('活動 ID:', event.id);
+
+      const { data, error: updateError } = await supabase
+        .from("events")
+        .update(updateData)
+        .eq("id", event.id)
+        .select();
+
+      if (updateError) {
+        console.error('更新錯誤:', updateError);
+        throw new Error(`更新失敗: ${updateError.message} (code: ${updateError.code})`);
+      }
+
+      console.log('更新成功:', data);
 
       setSuccess("活動更新成功！");
       router.refresh();
     } catch (err) {
+      console.error('編輯活動錯誤:', err);
       setError(err instanceof Error ? err.message : "更新失敗，請稍後再試");
     } finally {
       setSaving(false);
