@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ReactNode } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
+import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { createServerSupabaseClient } from "@/lib/auth";
 
 // Force dynamic rendering for all pages (required for Supabase auth with cookies)
@@ -72,6 +73,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   return (
     <html lang="zh-Hant">
       <body className="min-h-screen antialiased">
+        <MaintenanceBanner />
         <div className="flex min-h-screen flex-col">
           <SiteHeader displayName={displayName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
           <main className="flex-1">
