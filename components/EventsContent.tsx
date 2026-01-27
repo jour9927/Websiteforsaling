@@ -57,10 +57,10 @@ export function EventsContent({ ongoingEvents, upcomingEvents, recentEvents }: E
                 )}
             </section>
 
-            {/* 即將開始的活動 */}
+            {/* 未來的活動 */}
             <section>
                 <div className="mb-4 flex items-center gap-3">
-                    <h2 className="text-xl font-semibold text-white/90">🚀 即將開始</h2>
+                    <h2 className="text-xl font-semibold text-white/90">🚀 未來的活動</h2>
                     <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs text-amber-200">
                         {upcomingEvents?.length || 0} 個活動
                     </span>
@@ -86,7 +86,7 @@ export function EventsContent({ ongoingEvents, upcomingEvents, recentEvents }: E
                     </div>
                 ) : (
                     <div className="glass-card p-8 text-center">
-                        <p className="text-white/60">目前沒有即將開始的活動</p>
+                        <p className="text-white/60">目前沒有未來的活動</p>
                         <p className="mt-2 text-sm text-white/40">請密切關注最新消息</p>
                     </div>
                 )}
