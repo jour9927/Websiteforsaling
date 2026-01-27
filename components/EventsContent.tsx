@@ -91,7 +91,7 @@ export function EventsContent({ ongoingEvents, upcomingEvents, recentEvents }: E
             {recentEvents && recentEvents.length > 0 && (
                 <section>
                     <div className="mb-4 flex items-center gap-3">
-                        <h2 className="text-xl font-semibold text-white/90">📅 近期舉辦</h2>
+                        <h2 className="text-xl font-semibold text-white/90">📅 已結束的活動</h2>
                         <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-white/60">
                             已結束
                         </span>
