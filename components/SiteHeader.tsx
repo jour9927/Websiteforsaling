@@ -16,7 +16,7 @@ const primaryLinks = [
   { label: "活動", href: "/events" as Route },
   { label: "圖鑑", href: "/collection" as Route },
   { label: "簽到", href: "/check-in" as Route },
-  { label: "公告", href: "/announcements" as Route },
+  // { label: "公告", href: "/announcements" as Route }, // 已併入活動頁
   { label: "管理員平台", href: "/admin" as Route }
 ] as const;
 
