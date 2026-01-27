@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { supabase } from "@/lib/supabase";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { useRouter } from "next/navigation";
 
 type User = {
@@ -22,56 +24,20 @@ type ProfileFormProps = {
 };
 
 export default function ProfileForm({ user, profile }: ProfileFormProps) {
+  // 保留這些狀態以供未來使用
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const router = useRouter();
-  const [formData, setFormData] = useState({
+  const [formData] = useState({
     full_name: profile?.full_name || "",
     email: user.email || ""
   });
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [saving, setSaving] = useState(false);
-  const [success, setSuccess] = useState("");
-  const [error, setError] = useState("");
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSaving(true);
-    setError("");
-    setSuccess("");
-
-    try {
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: formData.full_name.trim() || null
-        })
-        .eq('id', user.id);
-
-      if (updateError) throw updateError;
-
-      setSuccess("資料更新成功！");
-      router.refresh();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "更新失敗");
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
     <section className="glass-card p-8">
       <h2 className="mb-4 text-lg font-medium text-white/80">個人資料</h2>
       <div className="grid gap-6 md:grid-cols-2">
-        {error && (
-          <div className="md:col-span-2 rounded-lg border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-            {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="md:col-span-2 rounded-lg border border-green-500/40 bg-green-500/10 px-4 py-3 text-sm text-green-200">
-            {success}
-          </div>
-        )}
-
         <label className="flex flex-col gap-2 text-sm">
           <span className="text-slate-200/80">姓名</span>
           <input
@@ -107,6 +73,14 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
             </div>
           </div>
         )}
+
+        <button
+          type="button"
+          disabled
+          className="md:col-span-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white/40 cursor-not-allowed"
+        >
+          目前無可編輯的項目
+        </button>
       </div>
     </section>
   );
