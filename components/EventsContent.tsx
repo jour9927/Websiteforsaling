@@ -14,19 +14,55 @@ type Event = {
 };
 
 type EventsContentProps = {
+    ongoingEvents?: Event[] | null;
     upcomingEvents: Event[] | null;
     recentEvents: Event[] | null;
 };
 
-export function EventsContent({ upcomingEvents, recentEvents }: EventsContentProps) {
+export function EventsContent({ ongoingEvents, upcomingEvents, recentEvents }: EventsContentProps) {
+    const hasNoEvents =
+        (!ongoingEvents || ongoingEvents.length === 0) &&
+        (!upcomingEvents || upcomingEvents.length === 0) &&
+        (!recentEvents || recentEvents.length === 0);
+
     return (
         <div className="space-y-8">
             {/* 進行中的活動 */}
-            {upcomingEvents && upcomingEvents.length > 0 && (
+            {ongoingEvents && ongoingEvents.length > 0 && (
                 <section>
                     <div className="mb-4 flex items-center gap-3">
                         <h2 className="text-xl font-semibold text-white/90">🎯 進行中的活動</h2>
                         <span className="rounded-full bg-green-500/20 px-3 py-1 text-xs text-green-200">
+                            {ongoingEvents.length} 個活動
+                        </span>
+                    </div>
+                    <div className="grid gap-6 md:grid-cols-2">
+                        {ongoingEvents.map((event) => (
+                            <EventCard
+                                key={event.id}
+                                event={{
+                                    id: event.id,
+                                    title: event.title,
+                                    description: event.description || "精彩活動進行中",
+                                    date: event.start_date,
+                                    location: event.location || "線上活動",
+                                    cover: event.image_url && event.image_url.trim() !== '' ? event.image_url : undefined,
+                                    imagePosition: event.image_position || "center",
+                                    price: event.price || 0,
+                                    is_free: event.is_free ?? true
+                                }}
+                            />
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {/* 即將開始的活動 */}
+            {upcomingEvents && upcomingEvents.length > 0 && (
+                <section>
+                    <div className="mb-4 flex items-center gap-3">
+                        <h2 className="text-xl font-semibold text-white/90">🚀 即將開始</h2>
+                        <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs text-amber-200">
                             {upcomingEvents.length} 個活動
                         </span>
                     </div>
@@ -37,7 +73,7 @@ export function EventsContent({ upcomingEvents, recentEvents }: EventsContentPro
                                 event={{
                                     id: event.id,
                                     title: event.title,
-                                    description: event.description || "精彩活動進行中",
+                                    description: event.description || "敬請期待",
                                     date: event.start_date,
                                     location: event.location || "線上活動",
                                     cover: event.image_url && event.image_url.trim() !== '' ? event.image_url : undefined,
@@ -82,7 +118,7 @@ export function EventsContent({ upcomingEvents, recentEvents }: EventsContentPro
             )}
 
             {/* 沒有任何活動時 */}
-            {(!upcomingEvents || upcomingEvents.length === 0) && (!recentEvents || recentEvents.length === 0) && (
+            {hasNoEvents && (
                 <section className="glass-card p-12 text-center">
                     <p className="text-white/60">目前沒有活動</p>
                     <p className="mt-2 text-sm text-white/40">敬請期待即將推出的精彩活動</p>

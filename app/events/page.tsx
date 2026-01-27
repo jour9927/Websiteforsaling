@@ -15,15 +15,24 @@ export default async function EventsListPage() {
   // 取得目前時間
   const now = new Date().toISOString();
 
-  // 載入進行中和即將開始的活動
+  // 載入進行中的活動（已開始但未結束）
+  const { data: ongoingEvents } = await supabase
+    .from('events')
+    .select('*')
+    .eq('status', 'published')
+    .lte('start_date', now)
+    .gte('end_date', now)
+    .order('start_date', { ascending: true });
+
+  // 載入即將開始的活動（尚未開始）
   const { data: upcomingEvents } = await supabase
     .from('events')
     .select('*')
     .eq('status', 'published')
-    .gte('end_date', now)
+    .gt('start_date', now)
     .order('start_date', { ascending: true });
 
-  // 載入近期舉辦過的活動
+  // 載入近期舉辦過的活動（已結束）
   const { data: recentEvents } = await supabase
     .from('events')
     .select('*')
@@ -49,6 +58,7 @@ export default async function EventsListPage() {
       <TabSwitcher
         eventsContent={
           <EventsContent
+            ongoingEvents={ongoingEvents}
             upcomingEvents={upcomingEvents}
             recentEvents={recentEvents}
           />
