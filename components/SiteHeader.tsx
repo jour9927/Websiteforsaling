@@ -13,6 +13,8 @@ type SiteHeaderProps = {
 
 const primaryLinks = [
   { label: "主頁", href: "/" as Route },
+  { label: "圖鑑", href: "/collection" as Route },
+  { label: "簽到", href: "/check-in" as Route },
   { label: "公告", href: "/announcements" as Route },
   { label: "我的物品", href: "/items" as Route },
   { label: "我的付款", href: "/payments" as Route },
@@ -78,17 +80,17 @@ export function SiteHeader({ displayName, isAuthenticated, isAdmin }: SiteHeader
             </Link>
           ))}
           <div className="h-4 w-px bg-white/20" aria-hidden />
-            <div className="flex items-center gap-4">
-              {(isAuthenticated ? signedInLinks : signedOutLinks).map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`text-xs transition ${isActive(item.href) ? "text-white" : "text-white/70 hover:text-white"}`}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
+          <div className="flex items-center gap-4">
+            {(isAuthenticated ? signedInLinks : signedOutLinks).map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`text-xs transition ${isActive(item.href) ? "text-white" : "text-white/70 hover:text-white"}`}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
         </nav>
         <button
           type="button"

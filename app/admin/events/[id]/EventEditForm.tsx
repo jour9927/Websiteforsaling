@@ -19,6 +19,10 @@ type EditableEvent = {
   location: string | null;
   price: number | null;
   is_free: boolean;
+  // V2.0 圖鑑功能欄位
+  visual_card_url: string | null;
+  estimated_value: number | null;
+  series_tag: string | null;
 };
 
 type EventFormState = {
@@ -35,6 +39,10 @@ type EventFormState = {
   status: "draft" | "published" | "closed";
   price: string;
   is_free: boolean;
+  // V2.0 圖鑑功能欄位
+  visual_card_url: string;
+  estimated_value: string;
+  series_tag: string;
 };
 
 interface EventEditFormProps {
@@ -57,6 +65,10 @@ export default function EventEditForm({ event }: EventEditFormProps) {
     status: event.status,
     price: event.price !== null ? String(event.price) : "",
     is_free: event.is_free,
+    // V2.0 圖鑑功能欄位
+    visual_card_url: event.visual_card_url || "",
+    estimated_value: event.estimated_value !== null ? String(event.estimated_value) : "",
+    series_tag: event.series_tag || "",
   });
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -94,16 +106,16 @@ export default function EventEditForm({ event }: EventEditFormProps) {
 
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("events")
-        .upload(filePath, file, { 
+        .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: true 
+          upsert: true
         });
 
       console.log("上傳結果:", { uploadData, uploadError });
 
       if (uploadError) {
         console.error("上傳錯誤詳情:", uploadError);
-        
+
         // 提供更友善的錯誤訊息
         if (uploadError.message?.includes('Bucket not found')) {
           throw new Error(
@@ -112,7 +124,7 @@ export default function EventEditForm({ event }: EventEditFormProps) {
             '詳細步驟請參考 URGENT_STORAGE_SETUP.md'
           );
         }
-        
+
         throw new Error(`上傳失敗: ${uploadError.message}`);
       }
 
@@ -157,21 +169,21 @@ export default function EventEditForm({ event }: EventEditFormProps) {
       }
 
       console.log('當前使用者:', user.id);
-      
+
       // 檢查使用者是否為管理員
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
-      
+
       if (profileError) {
         console.error('取得身份錯誤:', profileError);
         throw new Error(`取得身份失敗: ${profileError.message}`);
       }
-      
+
       console.log('使用者身份:', profile);
-      
+
       if (profile?.role !== 'admin') {
         throw new Error('只有管理員可以編輯活動');
       }
@@ -194,6 +206,10 @@ export default function EventEditForm({ event }: EventEditFormProps) {
         status: formData.status,
         price: formData.price.trim() ? Number(formData.price) : null,
         is_free: formData.is_free,
+        // V2.0 圖鑑功能欄位
+        visual_card_url: formData.visual_card_url.trim() || null,
+        estimated_value: formData.estimated_value.trim() ? Number(formData.estimated_value) : 0,
+        series_tag: formData.series_tag.trim() || null,
       };
 
       console.log('準備更新資料:', updateData);
@@ -403,6 +419,46 @@ export default function EventEditForm({ event }: EventEditFormProps) {
           }
           className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
         />
+      </label>
+
+      {/* V2.0 圖鑑功能欄位 */}
+      <div className="md:col-span-2 mt-4 border-t border-white/10 pt-4">
+        <h3 className="text-sm font-semibold text-amber-400 mb-4">📚 圖鑑功能設定</h3>
+      </div>
+
+      <label className="flex flex-col gap-2 text-xs text-white/70">
+        圖鑑卡面 URL
+        <input
+          value={formData.visual_card_url}
+          onChange={(e) => setFormData((prev) => ({ ...prev, visual_card_url: e.target.value }))}
+          placeholder="直式精美卡面圖片網址"
+          className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
+        />
+        <span className="text-[10px] text-white/40">用於圖鑑牆展示，建議尺寸 3:4 直式</span>
+      </label>
+
+      <label className="flex flex-col gap-2 text-xs text-white/70">
+        市場估值 (NT$)
+        <input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          value={formData.estimated_value}
+          onChange={(e) => setFormData((prev) => ({ ...prev, estimated_value: e.target.value }))}
+          placeholder="0"
+          className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
+        />
+      </label>
+
+      <label className="md:col-span-2 flex flex-col gap-2 text-xs text-white/70">
+        系列標籤
+        <input
+          value={formData.series_tag}
+          onChange={(e) => setFormData((prev) => ({ ...prev, series_tag: e.target.value }))}
+          placeholder="例如：2006電影版、初代系列"
+          className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
+        />
+        <span className="text-[10px] text-white/40">用於圖鑑篩選分類</span>
       </label>
 
       <div className="md:col-span-2 flex flex-col gap-3 text-xs text-white/70">
