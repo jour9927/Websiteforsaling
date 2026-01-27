@@ -20,22 +20,17 @@ type EventsContentProps = {
 };
 
 export function EventsContent({ ongoingEvents, upcomingEvents, recentEvents }: EventsContentProps) {
-    const hasNoEvents =
-        (!ongoingEvents || ongoingEvents.length === 0) &&
-        (!upcomingEvents || upcomingEvents.length === 0) &&
-        (!recentEvents || recentEvents.length === 0);
-
     return (
         <div className="space-y-8">
             {/* 進行中的活動 */}
-            {ongoingEvents && ongoingEvents.length > 0 && (
-                <section>
-                    <div className="mb-4 flex items-center gap-3">
-                        <h2 className="text-xl font-semibold text-white/90">🎯 進行中的活動</h2>
-                        <span className="rounded-full bg-green-500/20 px-3 py-1 text-xs text-green-200">
-                            {ongoingEvents.length} 個活動
-                        </span>
-                    </div>
+            <section>
+                <div className="mb-4 flex items-center gap-3">
+                    <h2 className="text-xl font-semibold text-white/90">🎯 進行中的活動</h2>
+                    <span className="rounded-full bg-green-500/20 px-3 py-1 text-xs text-green-200">
+                        {ongoingEvents?.length || 0} 個活動
+                    </span>
+                </div>
+                {ongoingEvents && ongoingEvents.length > 0 ? (
                     <div className="grid gap-6 md:grid-cols-2">
                         {ongoingEvents.map((event) => (
                             <EventCard
@@ -54,18 +49,23 @@ export function EventsContent({ ongoingEvents, upcomingEvents, recentEvents }: E
                             />
                         ))}
                     </div>
-                </section>
-            )}
+                ) : (
+                    <div className="glass-card p-8 text-center">
+                        <p className="text-white/60">目前沒有進行中的活動</p>
+                        <p className="mt-2 text-sm text-white/40">敬請期待即將推出的精彩活動</p>
+                    </div>
+                )}
+            </section>
 
             {/* 即將開始的活動 */}
-            {upcomingEvents && upcomingEvents.length > 0 && (
-                <section>
-                    <div className="mb-4 flex items-center gap-3">
-                        <h2 className="text-xl font-semibold text-white/90">🚀 即將開始</h2>
-                        <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs text-amber-200">
-                            {upcomingEvents.length} 個活動
-                        </span>
-                    </div>
+            <section>
+                <div className="mb-4 flex items-center gap-3">
+                    <h2 className="text-xl font-semibold text-white/90">🚀 即將開始</h2>
+                    <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs text-amber-200">
+                        {upcomingEvents?.length || 0} 個活動
+                    </span>
+                </div>
+                {upcomingEvents && upcomingEvents.length > 0 ? (
                     <div className="grid gap-6 md:grid-cols-2">
                         {upcomingEvents.map((event) => (
                             <EventCard
@@ -84,8 +84,13 @@ export function EventsContent({ ongoingEvents, upcomingEvents, recentEvents }: E
                             />
                         ))}
                     </div>
-                </section>
-            )}
+                ) : (
+                    <div className="glass-card p-8 text-center">
+                        <p className="text-white/60">目前沒有即將開始的活動</p>
+                        <p className="mt-2 text-sm text-white/40">請密切關注最新消息</p>
+                    </div>
+                )}
+            </section>
 
             {/* 近期舉辦 */}
             {recentEvents && recentEvents.length > 0 && (
@@ -117,13 +122,6 @@ export function EventsContent({ ongoingEvents, upcomingEvents, recentEvents }: E
                 </section>
             )}
 
-            {/* 沒有任何活動時 */}
-            {hasNoEvents && (
-                <section className="glass-card p-12 text-center">
-                    <p className="text-white/60">目前沒有活動</p>
-                    <p className="mt-2 text-sm text-white/40">敬請期待即將推出的精彩活動</p>
-                </section>
-            )}
         </div>
     );
 }
