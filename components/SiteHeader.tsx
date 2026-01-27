@@ -16,14 +16,14 @@ const primaryLinks = [
   { label: "圖鑑", href: "/collection" as Route },
   { label: "簽到", href: "/check-in" as Route },
   { label: "公告", href: "/announcements" as Route },
-  { label: "我的物品", href: "/items" as Route },
-  { label: "我的付款", href: "/payments" as Route },
-  { label: "交付紀錄", href: "/deliveries" as Route },
   { label: "管理員平台", href: "/admin" as Route }
 ] as const;
 
 const signedInLinks = [
   { label: "我的帳號", href: "/profile" as Route },
+  { label: "我的物品", href: "/items" as Route },
+  { label: "我的付款", href: "/payments" as Route },
+  { label: "交付紀錄", href: "/deliveries" as Route },
   { label: "參與紀錄", href: "/history" as Route },
   { label: "我的訊息", href: "/messages" as Route },
   { label: "登出", href: "/logout" as Route }
