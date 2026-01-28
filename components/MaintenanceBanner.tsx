@@ -29,7 +29,7 @@ export function MaintenanceBanner() {
           {/* 公告內容 */}
           <p className="text-sm font-medium md:text-base">
             <span className="font-bold">⚠️ 系統維護通知：</span>
-            系統將進行 2.0 大型升級，將導入資產管理與博物館展示功能，預計維護 96 小時。
+            系統將進行 2.0 大型升級，將導入資產管理與博物館展示功能，預計維護 5 天。
           </p>
 
           {/* 關閉按鈕 */}
