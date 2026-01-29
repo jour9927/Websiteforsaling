@@ -92,6 +92,7 @@ export default async function HomePage() {
       userItems={userItems || []}
       allEvents={allEvents || []}
       isOwnProfile={true}
+      currentUserId={user.id}
     />
   );
 }

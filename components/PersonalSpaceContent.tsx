@@ -59,6 +59,7 @@ type PersonalSpaceContentProps = {
     userItems: UserItem[];
     allEvents: Event[];
     isOwnProfile: boolean;
+    currentUserId?: string;
 };
 
 export function PersonalSpaceContent({
@@ -69,6 +70,7 @@ export function PersonalSpaceContent({
     userItems,
     allEvents,
     isOwnProfile,
+    currentUserId,
 }: PersonalSpaceContentProps) {
     const router = useRouter();
     const [newComment, setNewComment] = useState("");
@@ -87,12 +89,13 @@ export function PersonalSpaceContent({
 
     // 提交留言
     const handleSubmitComment = async () => {
-        if (!newComment.trim()) return;
+        const commenterId = currentUserId || user.id;
+        if (!newComment.trim() || !commenterId) return;
         setIsSubmitting(true);
 
         const { error } = await supabase.from("profile_comments").insert({
             profile_user_id: profile?.id || user.id,
-            commenter_id: user.id,
+            commenter_id: commenterId,
             content: newComment.trim(),
         });
 
