@@ -393,50 +393,39 @@ export function PersonalSpaceContent({
                         )}
 
                         {/* 訪問統計 */}
-                        <div className="mt-4 pt-4 border-t border-white/10">
-                            {/* 統計卡片 */}
-                            <div className="grid grid-cols-2 gap-3 mb-4">
-                                <div className="rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 p-3 text-center">
-                                    <p className="text-2xl font-bold text-blue-400">{profile?.total_views || 0}</p>
-                                    <p className="text-xs text-white/50 mt-1">👁️ 歷史總瀏覽量</p>
+                        <div className="mt-4 pt-3 border-t border-white/10">
+                            <div className="flex items-center gap-4 flex-wrap">
+                                {/* 統計數字 */}
+                                <div className="flex items-center gap-3 text-sm">
+                                    <span className="text-white/50">👁️ 總瀏覽</span>
+                                    <span className="font-semibold text-blue-400">{profile?.total_views || 0}</span>
+                                    <span className="text-white/30">|</span>
+                                    <span className="text-white/50">✨ 今日</span>
+                                    <span className="font-semibold text-green-400">{profile?.today_views || 0}</span>
                                 </div>
-                                <div className="rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 p-3 text-center">
-                                    <p className="text-2xl font-bold text-green-400">{profile?.today_views || 0}</p>
-                                    <p className="text-xs text-white/50 mt-1">✨ 今日訪問</p>
-                                </div>
-                            </div>
 
-                            {/* 今天有誰看過你 */}
-                            {recentVisitors.length > 0 ? (
-                                <div className="rounded-xl bg-white/5 p-3">
-                                    <p className="text-sm font-medium text-white/80 mb-2">👀 今天有誰看過你</p>
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex -space-x-2 flex-1">
-                                            {recentVisitors.slice(0, 6).map((visitor) => (
+                                {/* 最近訪客 */}
+                                {recentVisitors.length > 0 && (
+                                    <div className="flex items-center gap-2 ml-auto">
+                                        <span className="text-xs text-white/40">👀</span>
+                                        <div className="flex -space-x-1.5">
+                                            {recentVisitors.slice(0, 4).map((visitor) => (
                                                 <Link
                                                     key={visitor.id}
                                                     href={`/user/${visitor.username || visitor.id}`}
-                                                    className="relative h-9 w-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white ring-2 ring-slate-800 transition hover:scale-110 hover:z-10"
+                                                    className="relative h-6 w-6 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-[10px] font-bold text-white ring-1 ring-slate-800 transition hover:scale-110 hover:z-10"
                                                     title={visitor.full_name || "訪客"}
                                                 >
                                                     {(visitor.full_name || "?").slice(0, 1).toUpperCase()}
                                                 </Link>
                                             ))}
-                                            {recentVisitors.length > 6 && (
-                                                <div className="relative h-9 w-9 rounded-full bg-white/20 flex items-center justify-center text-xs font-medium text-white ring-2 ring-slate-800">
-                                                    +{recentVisitors.length - 6}
-                                                </div>
-                                            )}
                                         </div>
-                                        <span className="text-xs text-white/40 whitespace-nowrap">共 {recentVisitors.length} 人</span>
+                                        {recentVisitors.length > 4 && (
+                                            <span className="text-xs text-white/40">+{recentVisitors.length - 4}</span>
+                                        )}
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="rounded-xl bg-white/5 p-4 text-center">
-                                    <p className="text-white/40 text-sm">👀 還沒有人來過...</p>
-                                    <p className="text-white/30 text-xs mt-1">分享你的公開 ID 邀請好友來訪吧！</p>
-                                </div>
-                            )}
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
