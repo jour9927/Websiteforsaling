@@ -17,6 +17,7 @@ type Profile = {
   bio: string | null;
   pokemon_first_year: number | null;
   pokemon_first_game: string | null;
+  username: string | null;
 };
 
 type ProfileFormProps = {
@@ -31,6 +32,7 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
     email: user.email || "",
     bio: profile?.bio || "",
     pokemon_first_game: profile?.pokemon_first_game || "",
+    username: profile?.username || "",
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -39,16 +41,28 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
     setSaving(true);
     setMessage("");
 
+    // 驗證 username 格式
+    if (formData.username && !/^[a-zA-Z0-9_]{3,20}$/.test(formData.username)) {
+      setMessage("公開 ID 格式錯誤：只能使用英文、數字、底線，3-20 字元");
+      setSaving(false);
+      return;
+    }
+
     const { error } = await supabase
       .from("profiles")
       .update({
         bio: formData.bio || null,
         pokemon_first_game: formData.pokemon_first_game || null,
+        username: formData.username || null,
       })
       .eq("id", user.id);
 
     if (error) {
-      setMessage("儲存失敗：" + error.message);
+      if (error.message.includes("duplicate") || error.message.includes("unique")) {
+        setMessage("此公開 ID 已被使用，請換一個");
+      } else {
+        setMessage("儲存失敗：" + error.message);
+      }
     } else {
       setMessage("儲存成功！");
       router.refresh();
@@ -129,6 +143,23 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
             className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white/60 placeholder:text-white/40 focus:border-white/40 focus:outline-none disabled:opacity-50"
           />
           <span className="text-xs text-white/50">Email 無法修改</span>
+        </label>
+
+        <label className="flex flex-col gap-2 text-sm">
+          <span className="text-slate-200/80">公開 ID 🔗</span>
+          <div className="flex items-center gap-2">
+            <span className="text-white/50 text-sm">/user/</span>
+            <input
+              value={formData.username}
+              onChange={(e) =>
+                setFormData({ ...formData, username: e.target.value.toLowerCase() })
+              }
+              placeholder="your_username"
+              maxLength={20}
+              className="flex-1 rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+            />
+          </div>
+          <span className="text-xs text-white/50">3-20 字元，只能使用英文、數字、底線</span>
         </label>
 
         <label className="flex flex-col gap-2 text-sm">
