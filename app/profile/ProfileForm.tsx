@@ -57,12 +57,30 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
     setSaving(false);
   };
 
-  // 生成年份選項 (1996 - 現在)
-  const currentYear = new Date().getFullYear();
-  const yearOptions = [];
-  for (let y = currentYear; y >= 1996; y--) {
-    yearOptions.push(y);
-  }
+  // 寶可夢本傳遊戲列表
+  const pokemonGames = [
+    { year: 2022, name: "朱/紫 (Switch)" },
+    { year: 2022, name: "阿爾宙斯 (Switch)" },
+    { year: 2021, name: "晶燦鑽石/明亮珍珠 (Switch)" },
+    { year: 2019, name: "劍/盾 (Switch)" },
+    { year: 2018, name: "Let's Go 皮卡丘/伊布 (Switch)" },
+    { year: 2017, name: "究極之日/究極之月 (3DS)" },
+    { year: 2016, name: "太陽/月亮 (3DS)" },
+    { year: 2014, name: "終極紅寶石/始源藍寶石 (3DS)" },
+    { year: 2013, name: "X/Y (3DS)" },
+    { year: 2012, name: "黑2/白2 (NDS)" },
+    { year: 2010, name: "黑/白 (NDS)" },
+    { year: 2009, name: "心金/魂銀 (NDS)" },
+    { year: 2008, name: "白金 (NDS)" },
+    { year: 2006, name: "鑽石/珍珠 (NDS)" },
+    { year: 2004, name: "火紅/葉綠 (GBA)" },
+    { year: 2004, name: "綠寶石 (GBA)" },
+    { year: 2002, name: "紅寶石/藍寶石 (GBA)" },
+    { year: 2000, name: "水晶 (GBC)" },
+    { year: 1999, name: "金/銀 (GBC)" },
+    { year: 1998, name: "皮卡丘 (GB)" },
+    { year: 1996, name: "紅/綠/藍 (GB)" },
+  ];
 
   return (
     <section className="glass-card p-8">
@@ -91,7 +109,7 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
         </label>
 
         <label className="flex flex-col gap-2 text-sm">
-          <span className="text-slate-200/80">寶可夢首玩年份 🎮</span>
+          <span className="text-slate-200/80">首次接觸的寶可夢遊戲 🎮</span>
           <select
             value={formData.pokemon_first_year}
             onChange={(e) =>
@@ -100,16 +118,16 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
             className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
           >
             <option value="" className="bg-slate-800">
-              選擇年份
+              選擇你的第一款寶可夢遊戲
             </option>
-            {yearOptions.map((year) => (
-              <option key={year} value={year} className="bg-slate-800">
-                {year}
+            {pokemonGames.map((game, index) => (
+              <option key={index} value={game.year} className="bg-slate-800">
+                {game.year} - {game.name}
               </option>
             ))}
           </select>
           <span className="text-xs text-white/50">
-            你第一次玩寶可夢是哪一年？
+            你第一次玩的是哪款寶可夢遊戲？
           </span>
         </label>
 
@@ -119,10 +137,10 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
             <div className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm">
               <span
                 className={`rounded-full px-3 py-1 text-xs ${profile.role === "admin"
-                    ? "bg-purple-500/20 text-purple-200"
-                    : profile.role === "vip"
-                      ? "bg-yellow-500/20 text-yellow-200"
-                      : "bg-blue-500/20 text-blue-200"
+                  ? "bg-purple-500/20 text-purple-200"
+                  : profile.role === "vip"
+                    ? "bg-yellow-500/20 text-yellow-200"
+                    : "bg-blue-500/20 text-blue-200"
                   }`}
               >
                 {profile.role === "admin"
@@ -153,8 +171,8 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
         {message && (
           <div
             className={`md:col-span-2 rounded-xl px-4 py-3 text-sm ${message.includes("成功")
-                ? "bg-green-500/20 text-green-200"
-                : "bg-red-500/20 text-red-200"
+              ? "bg-green-500/20 text-green-200"
+              : "bg-red-500/20 text-red-200"
               }`}
           >
             {message}
