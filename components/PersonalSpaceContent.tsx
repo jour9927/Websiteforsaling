@@ -5,6 +5,23 @@ import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from "@dnd-kit/core";
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 type Event = {
     id: string;
@@ -52,6 +69,82 @@ type User = {
     email?: string;
 };
 
+// 可拖拉的願望清單項目元件
+function SortableWishlistItem({
+    wishlist,
+    isOwnProfile,
+    onRemove,
+}: {
+    wishlist: Wishlist;
+    isOwnProfile: boolean;
+    onRemove: (id: string) => void;
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({ id: wishlist.id });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    const event = wishlist.events as Event | null;
+
+    return (
+        <div
+            ref={setNodeRef}
+            style={style}
+            className="flex items-center gap-3 rounded-lg bg-white/10 p-3"
+        >
+            {isOwnProfile && (
+                <button
+                    {...attributes}
+                    {...listeners}
+                    className="cursor-grab text-white/40 hover:text-white/60 active:cursor-grabbing"
+                    title="拖曳排序"
+                >
+                    ⋮⋮
+                </button>
+            )}
+            <div className="relative h-12 w-12 overflow-hidden rounded bg-white/10">
+                {event?.visual_card_url || event?.image_url ? (
+                    <Image
+                        src={event.visual_card_url || event.image_url || ""}
+                        alt={event.title || ""}
+                        fill
+                        className="object-cover"
+                    />
+                ) : (
+                    <div className="flex h-full items-center justify-center">🎴</div>
+                )}
+            </div>
+            <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">
+                    {event?.title || "未知活動"}
+                </p>
+                {wishlist.note && (
+                    <p className="text-xs text-white/50 truncate">{wishlist.note}</p>
+                )}
+            </div>
+            {isOwnProfile && (
+                <button
+                    onClick={() => onRemove(wishlist.id)}
+                    className="text-red-400/60 hover:text-red-400 text-sm"
+                    title="移除願望"
+                >
+                    ✕
+                </button>
+            )}
+        </div>
+    );
+}
+
 type PersonalSpaceContentProps = {
     user: User;
     profile: Profile | null;
@@ -77,6 +170,36 @@ export function PersonalSpaceContent({
     const [newComment, setNewComment] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showWishlistModal, setShowWishlistModal] = useState(false);
+
+    // 願望清單本地狀態（用於排序）
+    const [localWishlists, setLocalWishlists] = useState(wishlists);
+
+    // 拖拉感應器
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
+
+    // 處理願望清單排序
+    const handleWishlistDragEnd = async (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (!over || active.id === over.id) return;
+
+        const oldIndex = localWishlists.findIndex((w) => w.id === active.id);
+        const newIndex = localWishlists.findIndex((w) => w.id === over.id);
+        const newOrder = arrayMove(localWishlists, oldIndex, newIndex);
+        setLocalWishlists(newOrder);
+
+        // 更新資料庫中的 priority
+        for (let i = 0; i < newOrder.length; i++) {
+            await supabase
+                .from("wishlists")
+                .update({ priority: i })
+                .eq("id", newOrder[i].id);
+        }
+    };
 
     // 寶可夢遊戲列表（本傳 + 外傳）
     const pokemonGames: Record<number, string> = {
@@ -285,39 +408,28 @@ export function PersonalSpaceContent({
                         </button>
                     )}
                 </div>
-                {wishlists.length > 0 ? (
-                    <div className="grid gap-3 md:grid-cols-2">
-                        {wishlists.map((wish) => {
-                            const event = Array.isArray(wish.events) ? wish.events[0] : wish.events;
-                            const imageUrl = event?.visual_card_url || event?.image_url;
-                            return (
-                                <div
-                                    key={wish.id}
-                                    className="flex items-center gap-3 rounded-lg bg-white/5 p-3"
-                                >
-                                    <div className="relative h-12 w-12 overflow-hidden rounded-lg bg-white/10">
-                                        {imageUrl ? (
-                                            <Image src={imageUrl} alt={event?.title || ""} fill className="object-cover" />
-                                        ) : (
-                                            <div className="flex h-full items-center justify-center">✨</div>
-                                        )}
-                                    </div>
-                                    <div className="flex-1">
-                                        <p className="font-medium text-white">{event?.title || "未知"}</p>
-                                        {wish.note && <p className="text-xs text-white/50">{wish.note}</p>}
-                                    </div>
-                                    {isOwnProfile && (
-                                        <button
-                                            onClick={() => handleRemoveWishlist(wish.id)}
-                                            className="text-red-400 hover:text-red-300"
-                                        >
-                                            ✕
-                                        </button>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
+                {localWishlists.length > 0 ? (
+                    <DndContext
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleWishlistDragEnd}
+                    >
+                        <SortableContext
+                            items={localWishlists.map((w) => w.id)}
+                            strategy={verticalListSortingStrategy}
+                        >
+                            <div className="space-y-2">
+                                {localWishlists.map((wish) => (
+                                    <SortableWishlistItem
+                                        key={wish.id}
+                                        wishlist={wish}
+                                        isOwnProfile={isOwnProfile}
+                                        onRemove={handleRemoveWishlist}
+                                    />
+                                ))}
+                            </div>
+                        </SortableContext>
+                    </DndContext>
                 ) : (
                     <p className="text-center text-white/50">尚未設定願望清單</p>
                 )}
