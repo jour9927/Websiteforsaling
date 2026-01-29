@@ -393,48 +393,42 @@ export function PersonalSpaceContent({
                         )}
 
                         {/* 訪問統計 */}
-                        {(profile?.total_views || profile?.today_views || recentVisitors.length > 0) && (
-                            <div className="mt-4 pt-4 border-t border-white/10">
-                                <div className="flex flex-wrap items-center gap-4">
-                                    {profile?.total_views !== undefined && (
-                                        <div className="text-sm">
-                                            <span className="text-white/50">總訪問</span>
-                                            <span className="ml-1 font-semibold text-blue-400">{profile.total_views || 0}</span>
-                                        </div>
-                                    )}
-                                    {profile?.today_views !== undefined && (
-                                        <div className="text-sm">
-                                            <span className="text-white/50">今日</span>
-                                            <span className="ml-1 font-semibold text-green-400">{profile.today_views || 0}</span>
-                                        </div>
-                                    )}
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                            <div className="flex flex-wrap items-center gap-4">
+                                <div className="text-sm">
+                                    <span className="text-white/50">總訪問</span>
+                                    <span className="ml-1 font-semibold text-blue-400">{profile?.total_views || 0}</span>
                                 </div>
-
-                                {/* 最近訪客 */}
-                                {recentVisitors.length > 0 && (
-                                    <div className="mt-3">
-                                        <p className="text-xs text-white/50 mb-2">最近訪客</p>
-                                        <div className="flex -space-x-2">
-                                            {recentVisitors.slice(0, 8).map((visitor) => (
-                                                <Link
-                                                    key={visitor.id}
-                                                    href={`/user/${visitor.username || visitor.id}`}
-                                                    className="relative h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white ring-2 ring-slate-900 transition hover:scale-110 hover:z-10"
-                                                    title={visitor.full_name || "訪客"}
-                                                >
-                                                    {(visitor.full_name || "?").slice(0, 1).toUpperCase()}
-                                                </Link>
-                                            ))}
-                                            {recentVisitors.length > 8 && (
-                                                <div className="relative h-8 w-8 rounded-full bg-white/20 flex items-center justify-center text-xs text-white ring-2 ring-slate-900">
-                                                    +{recentVisitors.length - 8}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
+                                <div className="text-sm">
+                                    <span className="text-white/50">今日</span>
+                                    <span className="ml-1 font-semibold text-green-400">{profile?.today_views || 0}</span>
+                                </div>
                             </div>
-                        )}
+
+                            {/* 最近訪客 */}
+                            {recentVisitors.length > 0 && (
+                                <div className="mt-3">
+                                    <p className="text-xs text-white/50 mb-2">最近訪客</p>
+                                    <div className="flex -space-x-2">
+                                        {recentVisitors.slice(0, 8).map((visitor) => (
+                                            <Link
+                                                key={visitor.id}
+                                                href={`/user/${visitor.username || visitor.id}`}
+                                                className="relative h-8 w-8 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white ring-2 ring-slate-900 transition hover:scale-110 hover:z-10"
+                                                title={visitor.full_name || "訪客"}
+                                            >
+                                                {(visitor.full_name || "?").slice(0, 1).toUpperCase()}
+                                            </Link>
+                                        ))}
+                                        {recentVisitors.length > 8 && (
+                                            <div className="relative h-8 w-8 rounded-full bg-white/20 flex items-center justify-center text-xs text-white ring-2 ring-slate-900">
+                                                +{recentVisitors.length - 8}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             </section>
