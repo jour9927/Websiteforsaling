@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/auth";
 import { TabSwitcher } from "@/components/TabSwitcher";
 import { EventsContent } from "@/components/EventsContent";
 import { AnnouncementsContent } from "@/components/AnnouncementsContent";
+import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
 
@@ -49,10 +50,29 @@ export default async function EventsListPage() {
 
   return (
     <div className="space-y-8">
-      <header className="glass-card p-8">
-        <p className="text-xs uppercase tracking-[0.3em] text-white/60">Event Glass</p>
-        <h1 className="mt-3 text-3xl font-semibold text-white">活動與公告</h1>
-        <p className="mt-2 text-sm text-white/70">瀏覽近期活動與最新公告消息。</p>
+      {/* Event Glass Hero */}
+      <header className="glass-card p-8 text-center">
+        <p className="text-sm uppercase tracking-[0.35em] text-slate-200">Event Glass</p>
+        <h1 className="mt-3 text-4xl font-semibold md:text-5xl">沉浸式活動公告牆</h1>
+        <p className="mt-4 text-base text-slate-200">
+          即時同步的活動資訊、抽選與盲盒，全部在行動裝置上完成。
+        </p>
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+          {!isLoggedIn ? (
+            <>
+              <Link href="/login" className="rounded-full bg-white/20 px-6 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/30">
+                登入參加
+              </Link>
+              <Link href="/signup" className="rounded-full border border-white/40 px-6 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/10">
+                立即註冊
+              </Link>
+            </>
+          ) : (
+            <Link href="/collection" className="rounded-full bg-white/20 px-6 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/30">
+              瀏覽圖鑑
+            </Link>
+          )}
+        </div>
       </header>
 
       <TabSwitcher
