@@ -357,13 +357,39 @@ export function PersonalSpaceContent({
                             </div>
                         </div>
 
+                        {/* 公開 ID 和分享 */}
                         {isOwnProfile && (
-                            <Link
-                                href="/profile"
-                                className="mt-4 inline-block rounded-lg bg-white/10 px-4 py-2 text-sm text-white/80 transition hover:bg-white/20"
-                            >
-                                編輯個人資料
-                            </Link>
+                            <div className="mt-4 flex flex-wrap items-center gap-3">
+                                <Link
+                                    href="/profile"
+                                    className="rounded-lg bg-white/10 px-4 py-2 text-sm text-white/80 transition hover:bg-white/20"
+                                >
+                                    編輯個人資料
+                                </Link>
+
+                                {profile?.username ? (
+                                    <button
+                                        onClick={() => {
+                                            const url = `${window.location.origin}/user/${profile.username}`;
+                                            navigator.clipboard.writeText(url);
+                                            alert('已複製分享連結！');
+                                        }}
+                                        className="flex items-center gap-2 rounded-lg bg-gradient-to-r from-blue-500/20 to-purple-500/20 px-4 py-2 text-sm text-white/90 transition hover:from-blue-500/30 hover:to-purple-500/30"
+                                    >
+                                        <span>🔗</span>
+                                        <span>/user/{profile.username}</span>
+                                        <span className="text-xs text-white/50">複製</span>
+                                    </button>
+                                ) : (
+                                    <Link
+                                        href="/profile"
+                                        className="flex items-center gap-2 rounded-lg border border-dashed border-white/30 px-4 py-2 text-sm text-white/60 transition hover:border-white/50 hover:text-white/80"
+                                    >
+                                        <span>🔗</span>
+                                        <span>設定公開 ID</span>
+                                    </Link>
+                                )}
+                            </div>
                         )}
 
                         {/* 訪問統計 */}
