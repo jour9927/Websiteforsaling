@@ -100,7 +100,10 @@ export function PersonalSpaceContent({
         1996: "紅/綠/藍",
     };
 
-    const getGameName = (year: number) => pokemonGames[year] || `${year}年`;
+    const getGameName = (year: number) => {
+        const game = pokemonGames[year];
+        return game ? `${game} (${year})` : `${year}年`;
+    };
 
     // 計算統計資料
     const totalItems = userItems.reduce((sum, item) => sum + item.quantity, 0);
