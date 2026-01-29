@@ -16,6 +16,7 @@ type Profile = {
   role: string;
   bio: string | null;
   pokemon_first_year: number | null;
+  pokemon_first_game: string | null;
 };
 
 type ProfileFormProps = {
@@ -29,7 +30,7 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
     full_name: profile?.full_name || "",
     email: user.email || "",
     bio: profile?.bio || "",
-    pokemon_first_year: profile?.pokemon_first_year || "",
+    pokemon_first_game: profile?.pokemon_first_game || "",
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -42,9 +43,7 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
       .from("profiles")
       .update({
         bio: formData.bio || null,
-        pokemon_first_year: formData.pokemon_first_year
-          ? parseInt(String(formData.pokemon_first_year))
-          : null,
+        pokemon_first_game: formData.pokemon_first_game || null,
       })
       .eq("id", user.id);
 
@@ -135,9 +134,9 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
         <label className="flex flex-col gap-2 text-sm">
           <span className="text-slate-200/80">首次接觸的寶可夢遊戲 🎮</span>
           <select
-            value={formData.pokemon_first_year}
+            value={formData.pokemon_first_game}
             onChange={(e) =>
-              setFormData({ ...formData, pokemon_first_year: e.target.value })
+              setFormData({ ...formData, pokemon_first_game: e.target.value })
             }
             className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
           >
@@ -148,7 +147,7 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
               {pokemonGames
                 .filter((g) => g.category === "本傳")
                 .map((game, index) => (
-                  <option key={`main-${index}`} value={game.year} className="bg-slate-800">
+                  <option key={`main-${index}`} value={game.name} className="bg-slate-800">
                     {game.year} - {game.name}
                   </option>
                 ))}
@@ -157,7 +156,7 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
               {pokemonGames
                 .filter((g) => g.category === "外傳")
                 .map((game, index) => (
-                  <option key={`spin-${index}`} value={game.year} className="bg-slate-800">
+                  <option key={`spin-${index}`} value={game.name} className="bg-slate-800">
                     {game.year} - {game.name}
                   </option>
                 ))}

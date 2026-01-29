@@ -40,6 +40,7 @@ type Profile = {
     id: string;
     full_name: string | null;
     pokemon_first_year: number | null;
+    pokemon_first_game: string | null;
     bio: string | null;
     featured_items: string[] | null;
     created_at: string;
@@ -185,11 +186,11 @@ export function PersonalSpaceContent({
                         )}
 
                         <div className="mt-4 flex flex-wrap gap-4 text-sm">
-                            {profile?.pokemon_first_year && (
+                            {(profile?.pokemon_first_game || profile?.pokemon_first_year) && (
                                 <div className="rounded-lg bg-white/10 px-3 py-2">
                                     <span className="text-white/60">首玩遊戲</span>
                                     <span className="ml-2 font-semibold text-amber-400">
-                                        {getGameName(profile.pokemon_first_year)}
+                                        {profile?.pokemon_first_game || getGameName(profile?.pokemon_first_year || 0)}
                                     </span>
                                 </div>
                             )}
