@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { MemberOnlyBlock } from "@/components/MemberOnlyBlock";
 
 type CheckInStatus = {
     canCheckIn: boolean;
@@ -15,13 +16,21 @@ export default function CheckInPage() {
     const [checking, setChecking] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const [showAnimation, setShowAnimation] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(true);
 
     // 取得簽到狀態
     useEffect(() => {
         fetch("/api/check-in")
-            .then((res) => res.json())
+            .then((res) => {
+                if (res.status === 401) {
+                    setIsLoggedIn(false);
+                    setLoading(false);
+                    return null;
+                }
+                return res.json();
+            })
             .then((data) => {
-                if (!data.error) {
+                if (data && !data.error) {
                     setStatus(data);
                 }
                 setLoading(false);
@@ -70,6 +79,25 @@ export default function CheckInPage() {
         );
     }
 
+    // 未登入用戶顯示會員限定區塊
+    if (!isLoggedIn) {
+        return (
+            <section className="space-y-6">
+                <header>
+                    <h1 className="text-2xl font-semibold text-white/90">每日簽到</h1>
+                    <p className="mt-1 text-sm text-white/60">
+                        每日簽到累積幸運點數，連續簽到獎勵更多！
+                    </p>
+                </header>
+                <MemberOnlyBlock
+                    title="會員專屬功能"
+                    description="登入後即可開始每日簽到，累積幸運點數參與抽獎"
+                    itemCount={3}
+                />
+            </section>
+        );
+    }
+
     // 計算連續簽到的獎勵預覽
     const weekDays = ["一", "二", "三", "四", "五", "六", "日"];
     const currentStreak = status?.streak || 0;
@@ -108,8 +136,8 @@ export default function CheckInPage() {
                         onClick={handleCheckIn}
                         disabled={!status?.canCheckIn || checking}
                         className={`relative h-32 w-32 rounded-full text-xl font-bold transition-all duration-300 ${status?.canCheckIn
-                                ? "bg-gradient-to-br from-amber-400 to-orange-500 text-black shadow-lg shadow-amber-500/30 hover:scale-105 hover:shadow-amber-500/50 active:scale-95"
-                                : "bg-white/10 text-white/40 cursor-not-allowed"
+                            ? "bg-gradient-to-br from-amber-400 to-orange-500 text-black shadow-lg shadow-amber-500/30 hover:scale-105 hover:shadow-amber-500/50 active:scale-95"
+                            : "bg-white/10 text-white/40 cursor-not-allowed"
                             }`}
                     >
                         {checking ? (
@@ -151,8 +179,8 @@ export default function CheckInPage() {
                             <div
                                 key={day}
                                 className={`flex h-10 w-10 flex-col items-center justify-center rounded-lg text-xs ${index < currentStreak
-                                        ? "bg-amber-500/20 text-amber-400"
-                                        : "bg-white/5 text-white/30"
+                                    ? "bg-amber-500/20 text-amber-400"
+                                    : "bg-white/5 text-white/30"
                                     }`}
                             >
                                 <span className="font-bold">{index + 1}</span>
