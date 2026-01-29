@@ -77,6 +77,31 @@ export function PersonalSpaceContent({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showWishlistModal, setShowWishlistModal] = useState(false);
 
+    // 寶可夢本傳遊戲列表
+    const pokemonGames: Record<number, string> = {
+        2022: "朱/紫",
+        2021: "晶燦鑽石/明亮珍珠",
+        2019: "劍/盾",
+        2018: "Let's Go 皮卡丘/伊布",
+        2017: "究極之日/究極之月",
+        2016: "太陽/月亮",
+        2014: "終極紅寶石/始源藍寶石",
+        2013: "X/Y",
+        2012: "黑2/白2",
+        2010: "黑/白",
+        2009: "心金/魂銀",
+        2008: "白金",
+        2006: "鑽石/珍珠",
+        2004: "火紅/葉綠",
+        2002: "紅寶石/藍寶石",
+        2000: "水晶",
+        1999: "金/銀",
+        1998: "皮卡丘",
+        1996: "紅/綠/藍",
+    };
+
+    const getGameName = (year: number) => pokemonGames[year] || `${year}年`;
+
     // 計算統計資料
     const totalItems = userItems.reduce((sum, item) => sum + item.quantity, 0);
     const totalValue = userItems.reduce((sum, item) => {
@@ -150,9 +175,9 @@ export function PersonalSpaceContent({
                         <div className="mt-4 flex flex-wrap gap-4 text-sm">
                             {profile?.pokemon_first_year && (
                                 <div className="rounded-lg bg-white/10 px-3 py-2">
-                                    <span className="text-white/60">首玩年份</span>
+                                    <span className="text-white/60">首玩遊戲</span>
                                     <span className="ml-2 font-semibold text-amber-400">
-                                        {profile.pokemon_first_year}
+                                        {getGameName(profile.pokemon_first_year)}
                                     </span>
                                 </div>
                             )}
