@@ -81,6 +81,7 @@ export default async function EventsListPage() {
             ongoingEvents={ongoingEvents}
             upcomingEvents={upcomingEvents}
             recentEvents={recentEvents}
+            isLoggedIn={isLoggedIn}
           />
         }
         announcementsContent={

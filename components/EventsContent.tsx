@@ -1,4 +1,5 @@
 import { EventCard } from "@/components/EventCard";
+import { MemberOnlyBlock } from "@/components/MemberOnlyBlock";
 
 type Event = {
     id: string;
@@ -17,9 +18,10 @@ type EventsContentProps = {
     ongoingEvents?: Event[] | null;
     upcomingEvents: Event[] | null;
     recentEvents: Event[] | null;
+    isLoggedIn?: boolean;
 };
 
-export function EventsContent({ ongoingEvents, upcomingEvents, recentEvents }: EventsContentProps) {
+export function EventsContent({ ongoingEvents, upcomingEvents, recentEvents, isLoggedIn = true }: EventsContentProps) {
     return (
         <div className="space-y-8">
             {/* 進行中的活動 */}
@@ -30,30 +32,38 @@ export function EventsContent({ ongoingEvents, upcomingEvents, recentEvents }: E
                         {ongoingEvents?.length || 0} 個活動
                     </span>
                 </div>
-                {ongoingEvents && ongoingEvents.length > 0 ? (
-                    <div className="grid gap-6 md:grid-cols-2">
-                        {ongoingEvents.map((event) => (
-                            <EventCard
-                                key={event.id}
-                                event={{
-                                    id: event.id,
-                                    title: event.title,
-                                    description: event.description || "精彩活動進行中",
-                                    date: event.start_date,
-                                    location: event.location || "線上活動",
-                                    cover: event.image_url && event.image_url.trim() !== '' ? event.image_url : undefined,
-                                    imagePosition: event.image_position || "center",
-                                    price: event.price || 0,
-                                    is_free: event.is_free ?? true
-                                }}
-                            />
-                        ))}
-                    </div>
+                {isLoggedIn ? (
+                    ongoingEvents && ongoingEvents.length > 0 ? (
+                        <div className="grid gap-6 md:grid-cols-2">
+                            {ongoingEvents.map((event) => (
+                                <EventCard
+                                    key={event.id}
+                                    event={{
+                                        id: event.id,
+                                        title: event.title,
+                                        description: event.description || "精彩活動進行中",
+                                        date: event.start_date,
+                                        location: event.location || "線上活動",
+                                        cover: event.image_url && event.image_url.trim() !== '' ? event.image_url : undefined,
+                                        imagePosition: event.image_position || "center",
+                                        price: event.price || 0,
+                                        is_free: event.is_free ?? true
+                                    }}
+                                />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="glass-card p-8 text-center">
+                            <p className="text-white/60">目前沒有進行中的活動</p>
+                            <p className="mt-2 text-sm text-white/40">敬請期待即將推出的精彩活動</p>
+                        </div>
+                    )
                 ) : (
-                    <div className="glass-card p-8 text-center">
-                        <p className="text-white/60">目前沒有進行中的活動</p>
-                        <p className="mt-2 text-sm text-white/40">敬請期待即將推出的精彩活動</p>
-                    </div>
+                    <MemberOnlyBlock
+                        title="登入查看活動詳情"
+                        description="成為會員即可查看完整活動資訊並報名參加"
+                        itemCount={2}
+                    />
                 )}
             </section>
 

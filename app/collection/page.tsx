@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/auth";
 import Link from "next/link";
 import { CollectionCard } from "@/components/CollectionCard";
+import { MemberOnlyBlock } from "@/components/MemberOnlyBlock";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +56,25 @@ export default async function CollectionPage() {
     const totalValue = events
         ?.filter((e) => ownedMap.has(e.id))
         .reduce((sum, e) => sum + (e.estimated_value || 0) * (ownedMap.get(e.id) || 1), 0) || 0;
+
+    // 未登入用戶顯示會員限定區塊
+    if (!user) {
+        return (
+            <section className="space-y-6">
+                <header>
+                    <h1 className="text-2xl font-semibold text-white/90">收藏圖鑑</h1>
+                    <p className="mt-1 text-sm text-white/60">
+                        收集所有活動卡片，打造你的專屬圖鑑！
+                    </p>
+                </header>
+                <MemberOnlyBlock
+                    title="會員專屬功能"
+                    description="登入後即可查看完整收藏圖鑑、追蹤收藏進度與資產估值"
+                    itemCount={4}
+                />
+            </section>
+        );
+    }
 
     return (
         <section className="space-y-6">
