@@ -57,29 +57,53 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
     setSaving(false);
   };
 
-  // 寶可夢本傳遊戲列表
+  // 寶可夢遊戲列表（本傳 + 外傳）
   const pokemonGames = [
-    { year: 2022, name: "朱/紫 (Switch)" },
-    { year: 2022, name: "阿爾宙斯 (Switch)" },
-    { year: 2021, name: "晶燦鑽石/明亮珍珠 (Switch)" },
-    { year: 2019, name: "劍/盾 (Switch)" },
-    { year: 2018, name: "Let's Go 皮卡丘/伊布 (Switch)" },
-    { year: 2017, name: "究極之日/究極之月 (3DS)" },
-    { year: 2016, name: "太陽/月亮 (3DS)" },
-    { year: 2014, name: "終極紅寶石/始源藍寶石 (3DS)" },
-    { year: 2013, name: "X/Y (3DS)" },
-    { year: 2012, name: "黑2/白2 (NDS)" },
-    { year: 2010, name: "黑/白 (NDS)" },
-    { year: 2009, name: "心金/魂銀 (NDS)" },
-    { year: 2008, name: "白金 (NDS)" },
-    { year: 2006, name: "鑽石/珍珠 (NDS)" },
-    { year: 2004, name: "火紅/葉綠 (GBA)" },
-    { year: 2004, name: "綠寶石 (GBA)" },
-    { year: 2002, name: "紅寶石/藍寶石 (GBA)" },
-    { year: 2000, name: "水晶 (GBC)" },
-    { year: 1999, name: "金/銀 (GBC)" },
-    { year: 1998, name: "皮卡丘 (GB)" },
-    { year: 1996, name: "紅/綠/藍 (GB)" },
+    // === 本傳系列 ===
+    { year: 2022, name: "朱/紫 (Switch)", category: "本傳" },
+    { year: 2022, name: "阿爾宙斯 (Switch)", category: "本傳" },
+    { year: 2021, name: "晶燦鑽石/明亮珍珠 (Switch)", category: "本傳" },
+    { year: 2019, name: "劍/盾 (Switch)", category: "本傳" },
+    { year: 2018, name: "Let's Go 皮卡丘/伊布 (Switch)", category: "本傳" },
+    { year: 2017, name: "究極之日/究極之月 (3DS)", category: "本傳" },
+    { year: 2016, name: "太陽/月亮 (3DS)", category: "本傳" },
+    { year: 2014, name: "終極紅寶石/始源藍寶石 (3DS)", category: "本傳" },
+    { year: 2013, name: "X/Y (3DS)", category: "本傳" },
+    { year: 2012, name: "黑2/白2 (NDS)", category: "本傳" },
+    { year: 2010, name: "黑/白 (NDS)", category: "本傳" },
+    { year: 2009, name: "心金/魂銀 (NDS)", category: "本傳" },
+    { year: 2008, name: "白金 (NDS)", category: "本傳" },
+    { year: 2006, name: "鑽石/珍珠 (NDS)", category: "本傳" },
+    { year: 2004, name: "火紅/葉綠 (GBA)", category: "本傳" },
+    { year: 2004, name: "綠寶石 (GBA)", category: "本傳" },
+    { year: 2002, name: "紅寶石/藍寶石 (GBA)", category: "本傳" },
+    { year: 2000, name: "水晶 (GBC)", category: "本傳" },
+    { year: 1999, name: "金/銀 (GBC)", category: "本傳" },
+    { year: 1998, name: "皮卡丘 (GB)", category: "本傳" },
+    { year: 1996, name: "紅/綠/藍 (GB)", category: "本傳" },
+    // === 外傳系列 ===
+    { year: 2021, name: "New 寶可夢隨樂拍 (Switch)", category: "外傳" },
+    { year: 2020, name: "寶可夢咖啡 Mix (Mobile)", category: "外傳" },
+    { year: 2019, name: "Pokemon Masters (Mobile)", category: "外傳" },
+    { year: 2018, name: "Pokemon Quest (Switch/Mobile)", category: "外傳" },
+    { year: 2016, name: "Pokemon GO (Mobile)", category: "外傳" },
+    { year: 2015, name: "神奇寶貝超級不可思議的迷宮 (3DS)", category: "外傳" },
+    { year: 2015, name: "Pokken Tournament (Wii U)", category: "外傳" },
+    { year: 2014, name: "Pokemon Shuffle (3DS/Mobile)", category: "外傳" },
+    { year: 2013, name: "神奇寶貝不可思議的迷宮 (3DS)", category: "外傳" },
+    { year: 2011, name: "Pokemon Rumble Blast (3DS)", category: "外傳" },
+    { year: 2009, name: "Pokemon Rumble (Wii)", category: "外傳" },
+    { year: 2008, name: "Pokemon Ranger 光的軌跡 (NDS)", category: "外傳" },
+    { year: 2007, name: "Pokemon 不可思議的迷宮 時之探險隊/闇之探險隊 (NDS)", category: "外傳" },
+    { year: 2006, name: "Pokemon Ranger (NDS)", category: "外傳" },
+    { year: 2005, name: "Pokemon 不可思議的迷宮 (GBA/NDS)", category: "外傳" },
+    { year: 2003, name: "Pokemon Channel (GC)", category: "外傳" },
+    { year: 2003, name: "Pokemon Colosseum (GC)", category: "外傳" },
+    { year: 2001, name: "Pokemon Stadium 金銀 (N64)", category: "外傳" },
+    { year: 2000, name: "Pokemon Stadium 2 (N64)", category: "外傳" },
+    { year: 1999, name: "Pokemon Stadium (N64)", category: "外傳" },
+    { year: 1999, name: "Pokemon 隨樂拍 (N64)", category: "外傳" },
+    { year: 1998, name: "Pokemon 皮卡丘 (N64)", category: "外傳" },
   ];
 
   return (
@@ -120,11 +144,24 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
             <option value="" className="bg-slate-800">
               選擇你的第一款寶可夢遊戲
             </option>
-            {pokemonGames.map((game, index) => (
-              <option key={index} value={game.year} className="bg-slate-800">
-                {game.year} - {game.name}
-              </option>
-            ))}
+            <optgroup label="📖 本傳系列" className="bg-slate-800">
+              {pokemonGames
+                .filter((g) => g.category === "本傳")
+                .map((game, index) => (
+                  <option key={`main-${index}`} value={game.year} className="bg-slate-800">
+                    {game.year} - {game.name}
+                  </option>
+                ))}
+            </optgroup>
+            <optgroup label="🎯 外傳系列" className="bg-slate-800">
+              {pokemonGames
+                .filter((g) => g.category === "外傳")
+                .map((game, index) => (
+                  <option key={`spin-${index}`} value={game.year} className="bg-slate-800">
+                    {game.year} - {game.name}
+                  </option>
+                ))}
+            </optgroup>
           </select>
           <span className="text-xs text-white/50">
             你第一次玩的是哪款寶可夢遊戲？

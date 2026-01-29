@@ -77,8 +77,9 @@ export function PersonalSpaceContent({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showWishlistModal, setShowWishlistModal] = useState(false);
 
-    // 寶可夢本傳遊戲列表
+    // 寶可夢遊戲列表（本傳 + 外傳）
     const pokemonGames: Record<number, string> = {
+        // 本傳
         2022: "朱/紫",
         2021: "晶燦鑽石/明亮珍珠",
         2019: "劍/盾",
@@ -98,6 +99,14 @@ export function PersonalSpaceContent({
         1999: "金/銀",
         1998: "皮卡丘",
         1996: "紅/綠/藍",
+        // 外傳（部分年份與本傳重疊，顯示本傳即可）
+        2020: "寶可夢咖啡 Mix",
+        2015: "Pokken Tournament",
+        2011: "Pokemon Rumble Blast",
+        2007: "不可思議的迷宮 時/闇之探險隊",
+        2005: "不可思議的迷宮",
+        2003: "Pokemon Colosseum",
+        2001: "Pokemon Stadium 金銀",
     };
 
     const getGameName = (year: number) => {
