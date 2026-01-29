@@ -144,16 +144,27 @@ export function PersonalSpaceContent({
         setIsSubmitting(false);
     };
 
-    // 新增願望清單
+    // 刪除留言
+    const handleDeleteComment = async (commentId: string) => {
+        await supabase.from("profile_comments").delete().eq("id", commentId);
+        router.refresh();
+    };
+
+    // 願望清單備註狀態
+    const [wishlistNote, setWishlistNote] = useState("");
+
+    // 新增願望清單（含備註）
     const handleAddWishlist = async (eventId: string) => {
         const { error } = await supabase.from("wishlists").insert({
             user_id: user.id,
             event_id: eventId,
             priority: wishlists.length,
+            note: wishlistNote || null,
         });
 
         if (!error) {
             setShowWishlistModal(false);
+            setWishlistNote("");
             router.refresh();
         }
     };
@@ -337,19 +348,40 @@ export function PersonalSpaceContent({
                 {/* 留言列表 */}
                 {comments.length > 0 ? (
                     <div className="space-y-3">
-                        {comments.map((comment) => (
-                            <div key={comment.id} className="rounded-lg bg-white/5 p-3">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm font-medium text-white">
-                                        {comment.commenter?.full_name || "匿名"}
-                                    </span>
-                                    <span className="text-xs text-white/40">
-                                        {new Date(comment.created_at).toLocaleDateString("zh-TW")}
-                                    </span>
+                        {comments.map((comment) => {
+                            const canDelete = currentUserId === comment.commenter?.id || isOwnProfile;
+                            return (
+                                <div key={comment.id} className="flex gap-3 rounded-lg bg-white/5 p-3">
+                                    {/* 頭像 */}
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-sm font-bold text-white">
+                                        {(comment.commenter?.full_name || "匿").slice(0, 1).toUpperCase()}
+                                    </div>
+                                    {/* 內容 */}
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="text-sm font-medium text-white truncate">
+                                                {comment.commenter?.full_name || "匿名"}
+                                            </span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-white/40 shrink-0">
+                                                    {new Date(comment.created_at).toLocaleDateString("zh-TW")}
+                                                </span>
+                                                {canDelete && (
+                                                    <button
+                                                        onClick={() => handleDeleteComment(comment.id)}
+                                                        className="text-red-400/60 hover:text-red-400 text-xs"
+                                                        title="刪除留言"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <p className="mt-1 text-sm text-white/80 break-words">{comment.content}</p>
+                                    </div>
                                 </div>
-                                <p className="mt-1 text-sm text-white/80">{comment.content}</p>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 ) : (
                     <p className="text-center text-white/50">還沒有留言，成為第一個留言的人吧！</p>
@@ -363,12 +395,29 @@ export function PersonalSpaceContent({
                         <div className="mb-4 flex items-center justify-between">
                             <h3 className="text-lg font-semibold text-white">選擇願望</h3>
                             <button
-                                onClick={() => setShowWishlistModal(false)}
+                                onClick={() => {
+                                    setShowWishlistModal(false);
+                                    setWishlistNote("");
+                                }}
                                 className="text-white/60 hover:text-white"
                             >
                                 ✕
                             </button>
                         </div>
+
+                        {/* 備註輸入框 */}
+                        <div className="mb-4">
+                            <input
+                                type="text"
+                                value={wishlistNote}
+                                onChange={(e) => setWishlistNote(e.target.value)}
+                                placeholder="備註（選填）：例如想要的原因..."
+                                maxLength={100}
+                                className="w-full rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                            />
+                            <p className="mt-1 text-xs text-white/40">{wishlistNote.length}/100</p>
+                        </div>
+
                         <div className="space-y-2">
                             {allEvents
                                 .filter((e) => !wishlists.some((w) => w.event_id === e.id))
