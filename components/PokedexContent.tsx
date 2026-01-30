@@ -238,7 +238,7 @@ export default function PokedexContent({
                                 </div>
                             </div>
 
-                            {/* 資訊 */}
+                            {/* 配布球 + 名稱 */}
                             <div className="flex items-center justify-center gap-1">
                                 {dist.pokeball_image_url && (
                                     <img
@@ -252,23 +252,51 @@ export default function PokedexContent({
                                     {dist.pokemon_name}
                                 </h3>
                             </div>
+
+                            {/* 配布活動 */}
                             <p className="text-center text-xs text-white/50 mt-1 truncate" title={dist.event_name}>
                                 {dist.event_name || dist.original_trainer || "—"}
                             </p>
+
+                            {/* 原始LV */}
                             <p className="text-center text-xs text-white/40 mt-0.5">
-                                Lv.{dist.level || "?"} {dist.distribution_period_start ? `• ${dist.distribution_period_start}` : ""}
+                                原始LV {dist.level || "?"}
                             </p>
 
-                            {/* 配布方式 */}
-                            <div className="mt-2 text-center">
+                            {/* 配布時間（相對時間） */}
+                            <p className="text-center text-xs text-white/30 mt-0.5">
+                                {(() => {
+                                    if (!dist.distribution_period_start) return "—";
+                                    const startDate = new Date(dist.distribution_period_start);
+                                    const now = new Date();
+                                    const diffMs = now.getTime() - startDate.getTime();
+                                    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                                    const diffMonths = Math.floor(diffDays / 30);
+                                    const diffYears = Math.floor(diffDays / 365);
+
+                                    if (diffYears >= 1) return `${diffYears}年前`;
+                                    if (diffMonths >= 1) return `${diffMonths}個月前`;
+                                    if (diffDays >= 1) return `${diffDays}天前`;
+                                    return "今天";
+                                })()}
+                            </p>
+
+                            {/* 獲取方式 */}
+                            <div className="mt-1.5 text-center">
                                 <span className={`inline-block px-2 py-0.5 rounded text-xs ${dist.distribution_method?.includes("序號") ? "bg-blue-500/20 text-blue-400" :
-                                    dist.distribution_method?.includes("密語") ? "bg-purple-500/20 text-purple-400" :
-                                        dist.distribution_method?.includes("HOME") ? "bg-green-500/20 text-green-400" :
-                                            "bg-white/10 text-white/60"
+                                        dist.distribution_method?.includes("密語") ? "bg-purple-500/20 text-purple-400" :
+                                            dist.distribution_method?.includes("HOME") ? "bg-green-500/20 text-green-400" :
+                                                dist.distribution_method?.includes("網路") || dist.distribution_method?.includes("互聯網") ? "bg-cyan-500/20 text-cyan-400" :
+                                                    "bg-white/10 text-white/60"
                                     }`}>
                                     {dist.distribution_method?.split(" ")[0] || "配布"}
                                 </span>
                             </div>
+
+                            {/* 點數（預留） */}
+                            <p className="text-center text-xs text-white/20 mt-1">
+                                —
+                            </p>
                         </div>
                     );
                 })}
