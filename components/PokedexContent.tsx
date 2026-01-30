@@ -11,6 +11,7 @@ interface Distribution {
     pokemon_dex_number?: number;
     pokemon_sprite_url?: string;
     pokeball_image_url?: string;
+    event_name?: string;
     generation: number;
     game_titles?: string[];
     original_trainer?: string;
@@ -251,11 +252,11 @@ export default function PokedexContent({
                                     {dist.pokemon_name}
                                 </h3>
                             </div>
-                            <p className="text-center text-xs text-white/50 mt-1">
-                                {dist.original_trainer || "—"}
+                            <p className="text-center text-xs text-white/50 mt-1 truncate" title={dist.event_name}>
+                                {dist.event_name || dist.original_trainer || "—"}
                             </p>
                             <p className="text-center text-xs text-white/40 mt-0.5">
-                                Lv.{dist.level || "?"}
+                                Lv.{dist.level || "?"} {dist.distribution_period_start ? `• ${dist.distribution_period_start}` : ""}
                             </p>
 
                             {/* 配布方式 */}
