@@ -9,6 +9,8 @@ interface Distribution {
     pokemon_name: string;
     pokemon_name_en?: string;
     pokemon_dex_number?: number;
+    pokemon_sprite_url?: string;
+    pokeball_image_url?: string;
     generation: number;
     game_titles?: string[];
     original_trainer?: string;
@@ -215,8 +217,21 @@ export default function PokedexContent({
                             {/* 寶可夢圖片 */}
                             <div className="w-16 h-16 mx-auto mb-2 relative">
                                 <div className={`w-full h-full rounded-full bg-gradient-to-br ${genColors[dist.generation] || "from-gray-500 to-gray-700"} p-1`}>
-                                    <div className="w-full h-full rounded-full bg-slate-800 flex items-center justify-center text-2xl">
-                                        {dist.pokemon_name.slice(0, 1)}
+                                    <div className="w-full h-full rounded-full bg-slate-800 flex items-center justify-center overflow-hidden">
+                                        {dist.pokemon_sprite_url ? (
+                                            <img
+                                                src={dist.pokemon_sprite_url}
+                                                alt={dist.pokemon_name}
+                                                className="w-12 h-12 object-contain"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                                }}
+                                            />
+                                        ) : null}
+                                        <span className={`text-2xl ${dist.pokemon_sprite_url ? 'hidden' : ''}`}>
+                                            {dist.pokemon_name.slice(0, 1)}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
