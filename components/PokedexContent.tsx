@@ -281,6 +281,17 @@ export default function PokedexContent({
                                 })()}
                             </p>
 
+                            {/* TID / 親名 */}
+                            <p className="text-center text-xs text-white/30 mt-0.5">
+                                {dist.trainer_id || dist.original_trainer ? (
+                                    <>
+                                        {dist.original_trainer && <span>{dist.original_trainer}</span>}
+                                        {dist.trainer_id && dist.original_trainer && <span> / </span>}
+                                        {dist.trainer_id && <span>ID:{dist.trainer_id}</span>}
+                                    </>
+                                ) : "—"}
+                            </p>
+
                             {/* 獲取方式 */}
                             <div className="mt-1.5 text-center">
                                 <span className={`inline-block px-2 py-0.5 rounded text-xs ${dist.distribution_method?.includes("序號") ? "bg-blue-500/20 text-blue-400" :
