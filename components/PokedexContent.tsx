@@ -223,6 +223,7 @@ export default function PokedexContent({
                                                 src={dist.pokemon_sprite_url}
                                                 alt={dist.pokemon_name}
                                                 className="w-12 h-12 object-contain"
+                                                referrerPolicy="no-referrer"
                                                 onError={(e) => {
                                                     (e.target as HTMLImageElement).style.display = 'none';
                                                     (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
@@ -243,6 +244,7 @@ export default function PokedexContent({
                                         src={dist.pokeball_image_url}
                                         alt="Ball"
                                         className="w-4 h-4 object-contain"
+                                        referrerPolicy="no-referrer"
                                     />
                                 )}
                                 <h3 className="text-center text-sm font-medium text-white truncate">
