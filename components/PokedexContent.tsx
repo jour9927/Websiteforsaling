@@ -237,9 +237,18 @@ export default function PokedexContent({
                             </div>
 
                             {/* 資訊 */}
-                            <h3 className="text-center text-sm font-medium text-white truncate">
-                                {dist.pokemon_name}
-                            </h3>
+                            <div className="flex items-center justify-center gap-1">
+                                {dist.pokeball_image_url && (
+                                    <img
+                                        src={dist.pokeball_image_url}
+                                        alt="Ball"
+                                        className="w-4 h-4 object-contain"
+                                    />
+                                )}
+                                <h3 className="text-center text-sm font-medium text-white truncate">
+                                    {dist.pokemon_name}
+                                </h3>
+                            </div>
                             <p className="text-center text-xs text-white/50 mt-1">
                                 {dist.original_trainer || "—"}
                             </p>
