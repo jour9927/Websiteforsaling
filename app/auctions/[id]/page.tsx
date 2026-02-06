@@ -83,7 +83,18 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                     )}
                 </div>
 
-                <h1 className="mt-4 text-3xl font-semibold">{auction.title}</h1>
+                {/* 標題：主標題 + 活動名稱分行 */}
+                {(() => {
+                    const [mainTitle, eventName] = auction.title.split('\n');
+                    return (
+                        <div className="mt-4">
+                            <h1 className="text-3xl font-semibold text-white">{mainTitle}</h1>
+                            {eventName && (
+                                <p className="mt-1 text-sm text-purple-300">{eventName}</p>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {auction.distributions && (
                     <div className="mt-2 text-sm text-white/60">

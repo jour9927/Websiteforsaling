@@ -97,8 +97,19 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
             </div>
 
             {/* 資訊區 */}
-            <div className="flex flex-1 flex-col gap-3 p-4">
-                <h3 className="font-semibold text-white/90 line-clamp-2">{auction.title}</h3>
+            <div className="flex flex-1 flex-col gap-2 p-4">
+                {/* 標題：主標題 + 活動名稱 */}
+                {(() => {
+                    const [mainTitle, eventName] = auction.title.split('\n');
+                    return (
+                        <div>
+                            <h3 className="font-semibold text-white/90 line-clamp-1">{mainTitle}</h3>
+                            {eventName && (
+                                <p className="text-xs text-purple-300/80 line-clamp-1">{eventName}</p>
+                            )}
+                        </div>
+                    );
+                })()}
 
                 {/* 價格 */}
                 <div className="flex items-baseline gap-2">
