@@ -12,10 +12,19 @@ const FAKE_NAMES = [
 // 模擬出價金額增量
 const BID_INCREMENTS = [100, 100, 100, 200, 500, 500, 1000];
 
-export function SimulatedViewers({ baseViewers = 8 }: { baseViewers?: number }) {
+export function SimulatedViewers({
+    baseViewers = 8,
+    viewerCount  // 新增：允許外部傳入統一的數值
+}: {
+    baseViewers?: number;
+    viewerCount?: number;
+}) {
     const [viewers, setViewers] = useState(baseViewers);
 
     useEffect(() => {
+        // 如果有外部傳入的 viewerCount，則不使用內部邏輯
+        if (viewerCount !== undefined) return;
+
         // 每 5-15 秒隨機波動 ±1-3 人
         const interval = setInterval(() => {
             setViewers(prev => {
@@ -26,7 +35,9 @@ export function SimulatedViewers({ baseViewers = 8 }: { baseViewers?: number }) 
         }, 5000 + Math.random() * 10000);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [viewerCount]);
+
+    const displayCount = viewerCount ?? viewers;
 
     return (
         <div className="flex items-center gap-2 text-sm text-white/70">
@@ -34,7 +45,7 @@ export function SimulatedViewers({ baseViewers = 8 }: { baseViewers?: number }) 
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
             </span>
-            <span>{viewers} 人正在觀看</span>
+            <span>{displayCount} 人正在觀看</span>
         </div>
     );
 }

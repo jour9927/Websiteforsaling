@@ -5,10 +5,24 @@ import { createPortal } from 'react-dom';
 import {
     BidHistoryWithSimulation,
     ViewerCountDisplay,
-    ViewerProvider
+    ViewerProvider,
+    useViewerCount
 } from "./BidHistoryWithSimulation";
 import { AuctionSidebarActivity } from "./AuctionActivityWrapper";
+import { SimulatedViewers, SimulatedBidToast } from "@/components/SimulatedActivity";
 
+// 浮動在線人數元件（使用統一的 ViewerContext）
+function FloatingViewerCount() {
+    const { viewerCount } = useViewerCount();
+
+    return (
+        <div className="fixed bottom-4 left-4 z-40">
+            <div className="glass-card px-4 py-2">
+                <SimulatedViewers viewerCount={viewerCount} />
+            </div>
+        </div>
+    );
+}
 interface RealBid {
     id: string;
     amount: number;
@@ -79,6 +93,12 @@ export function AuctionPageClient({
             bidActivity={(realBids.length || 0) + bidCount}
         >
             {children}
+
+            {/* 浮動在線人數（使用統一的 ViewerContext） */}
+            {isActive && <FloatingViewerCount />}
+
+            {/* 即時出價 Toast 通知 */}
+            {isActive && <SimulatedBidToast />}
 
             {/* 在線人數 Portal */}
             {viewerSlot && isActive && createPortal(
