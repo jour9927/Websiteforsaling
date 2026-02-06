@@ -115,41 +115,76 @@ export function SimulatedWatchers({ baseCount = 12 }: { baseCount?: number }) {
 }
 
 export function SimulatedRecentActivity() {
-    const [activities, setActivities] = useState<{ id: number; name: string; action: string; time: string }[]>([]);
+    const [activities, setActivities] = useState<{ id: number; name: string; comment: string; time: string }[]>([]);
+
+    // 隨機留言庫
+    const RANDOM_COMMENTS = [
+        "好可愛！想要",
+        "這隻超稀有的",
+        "價格還可以接受",
+        "太讚了吧",
+        "這配布很難得欸",
+        "我也想要 😭",
+        "有人要一起買嗎",
+        "性價比很高",
+        "這個必須搶",
+        "天啊這個閃光太美了",
+        "加油大家",
+        "新手入坑中",
+        "競標好刺激",
+        "衝了衝了",
+        "等等再看看",
+        "有點猶豫",
+        "這隻我收了好久",
+        "求讓 🙏",
+        "最後一分鐘再來",
+        "好緊張",
+        "這隻配招很棒",
+        "我的最愛！",
+        "難得看到這隻",
+        "機不可失",
+        "已關注 ❤️"
+    ];
 
     useEffect(() => {
-        // 初始化 3 個活動
+        // 初始化 3 個留言
+        const getRandomComment = () => RANDOM_COMMENTS[Math.floor(Math.random() * RANDOM_COMMENTS.length)];
+
         const initialActivities = [
-            { id: 1, name: FAKE_NAMES[0], action: "正在瀏覽", time: "2分鐘前" },
-            { id: 2, name: FAKE_NAMES[3], action: "加入關注", time: "5分鐘前" },
-            { id: 3, name: FAKE_NAMES[6], action: "出價了", time: "8分鐘前" },
+            { id: 1, name: FAKE_NAMES[0], comment: getRandomComment(), time: "2分鐘前" },
+            { id: 2, name: FAKE_NAMES[3], comment: getRandomComment(), time: "5分鐘前" },
+            { id: 3, name: FAKE_NAMES[6], comment: getRandomComment(), time: "8分鐘前" },
         ];
         setActivities(initialActivities);
 
-        // 每 20-40 秒新增一個活動
+        // 每 15-35 秒新增一個留言
         const interval = setInterval(() => {
             const name = FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)];
-            const actions = ["正在瀏覽", "加入關注", "出價了", "分享了"];
-            const action = actions[Math.floor(Math.random() * actions.length)];
+            const comment = RANDOM_COMMENTS[Math.floor(Math.random() * RANDOM_COMMENTS.length)];
 
             setActivities(prev => {
-                const newActivity = { id: Date.now(), name, action, time: "剛剛" };
+                const newActivity = { id: Date.now(), name, comment, time: "剛剛" };
                 return [newActivity, ...prev.slice(0, 4)]; // 保持最多 5 個
             });
-        }, 20000 + Math.random() * 20000);
+        }, 15000 + Math.random() * 20000);
 
         return () => clearInterval(interval);
     }, []);
 
     return (
-        <div className="space-y-2">
+        <div className="space-y-3">
             {activities.map(activity => (
-                <div key={activity.id} className="flex items-center gap-2 text-xs text-white/60">
-                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-[10px]">
+                <div key={activity.id} className="flex items-start gap-2 text-xs">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] text-white/70">
                         {activity.name.slice(0, 1)}
                     </span>
-                    <span>{activity.name} {activity.action}</span>
-                    <span className="ml-auto text-white/40">{activity.time}</span>
+                    <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                            <span className="text-white/80 font-medium">{activity.name}</span>
+                            <span className="text-white/40 shrink-0">{activity.time}</span>
+                        </div>
+                        <p className="text-white/60 mt-0.5 break-words">「{activity.comment}」</p>
+                    </div>
                 </div>
             ))}
         </div>
