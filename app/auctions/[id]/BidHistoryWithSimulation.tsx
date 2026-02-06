@@ -183,18 +183,3 @@ export function ViewerCountDisplay() {
         </div>
     );
 }
-
-// 側邊欄即時動態（使用相同的全局 Context）
-export function AuctionSidebarActivity() {
-    const { viewerCount } = useViewerCount();
-
-    return (
-        <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
-            <h3 className="text-xs font-semibold uppercase text-white/60">即時動態</h3>
-            <div className="flex items-center gap-2 text-sm text-white/80">
-                <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
-                <span>{viewerCount} 人正在觀看此商品</span>
-            </div>
-        </div>
-    );
-}

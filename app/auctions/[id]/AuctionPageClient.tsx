@@ -5,9 +5,9 @@ import { createPortal } from 'react-dom';
 import {
     BidHistoryWithSimulation,
     ViewerCountDisplay,
-    ViewerProvider,
-    AuctionSidebarActivity
+    ViewerProvider
 } from "./BidHistoryWithSimulation";
+import { AuctionSidebarActivity } from "./AuctionActivityWrapper";
 
 interface RealBid {
     id: string;
