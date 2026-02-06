@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/auth";
 import BidButton from "./BidButton";
+import AuctionActivityWrapper, { AuctionSidebarActivity } from "./AuctionActivityWrapper";
 
 type AuctionPageProps = {
     params: { id: string };
@@ -91,6 +92,9 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                     </div>
                 )}
             </header>
+
+            {/* 偽隨機活動通知 */}
+            <AuctionActivityWrapper isActive={!isEnded && auction.status === 'active'} />
 
             <section className="grid gap-6 md:grid-cols-[2fr_1fr]">
                 {/* 左側：圖片與說明 */}
@@ -220,6 +224,11 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                     <div className="mt-2 text-center text-xs text-white/50">
                         結束時間: {new Date(auction.end_time).toLocaleString('zh-TW')}
                     </div>
+
+                    {/* 即時動態側欄 */}
+                    {!isEnded && auction.status === 'active' && (
+                        <AuctionSidebarActivity />
+                    )}
                 </aside>
             </section>
         </div>

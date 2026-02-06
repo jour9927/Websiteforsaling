@@ -23,3 +23,19 @@ a {
 .glass-dark {
   @apply rounded-2xl border border-white/10 bg-neutral-800/40 backdrop-blur-lg shadow-inner;
 }
+
+/* Toast 滑入動畫 */
+@keyframes slide-in-right {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.3s ease-out forwards;
+}

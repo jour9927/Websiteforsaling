@@ -282,12 +282,12 @@ export default function PokedexContent({
                             </p>
 
                             {/* TID / 親名 */}
-                            <p className="text-center text-xs text-white/30 mt-0.5">
+                            <p className="text-center text-xs text-white/30 mt-0.5 truncate px-1" title={`${dist.original_trainer || ''} ${dist.trainer_id ? '/ ID:' + dist.trainer_id : ''}`}>
                                 {dist.trainer_id || dist.original_trainer ? (
                                     <>
-                                        {dist.original_trainer && <span>{dist.original_trainer}</span>}
+                                        {dist.original_trainer && <span>{dist.original_trainer.split(',')[0].trim()}</span>}
                                         {dist.trainer_id && dist.original_trainer && <span> / </span>}
-                                        {dist.trainer_id && <span>ID:{dist.trainer_id}</span>}
+                                        {dist.trainer_id && <span>ID:{dist.trainer_id.split(',')[0].trim()}</span>}
                                     </>
                                 ) : "—"}
                             </p>
@@ -295,10 +295,10 @@ export default function PokedexContent({
                             {/* 獲取方式 */}
                             <div className="mt-1.5 text-center">
                                 <span className={`inline-block px-2 py-0.5 rounded text-xs ${dist.distribution_method?.includes("序號") ? "bg-blue-500/20 text-blue-400" :
-                                        dist.distribution_method?.includes("密語") ? "bg-purple-500/20 text-purple-400" :
-                                            dist.distribution_method?.includes("HOME") ? "bg-green-500/20 text-green-400" :
-                                                dist.distribution_method?.includes("網路") || dist.distribution_method?.includes("互聯網") ? "bg-cyan-500/20 text-cyan-400" :
-                                                    "bg-white/10 text-white/60"
+                                    dist.distribution_method?.includes("密語") ? "bg-purple-500/20 text-purple-400" :
+                                        dist.distribution_method?.includes("HOME") ? "bg-green-500/20 text-green-400" :
+                                            dist.distribution_method?.includes("網路") || dist.distribution_method?.includes("互聯網") ? "bg-cyan-500/20 text-cyan-400" :
+                                                "bg-white/10 text-white/60"
                                     }`}>
                                     {dist.distribution_method?.split(" ")[0] || "配布"}
                                 </span>
