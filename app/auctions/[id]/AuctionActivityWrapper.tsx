@@ -1,6 +1,7 @@
 "use client";
 
-import { SimulatedViewers, SimulatedBidToast, SimulatedRecentActivity } from "@/components/SimulatedActivity";
+import { SimulatedViewers, SimulatedBidToast } from "@/components/SimulatedActivity";
+import AuctionComments from "@/components/AuctionComments";
 
 type AuctionActivityWrapperProps = {
     isActive: boolean;
@@ -24,11 +25,26 @@ export default function AuctionActivityWrapper({ isActive }: AuctionActivityWrap
     );
 }
 
-export function AuctionSidebarActivity() {
+type AuctionSidebarActivityProps = {
+    auctionId?: string;
+    isActive?: boolean;
+    currentUserName?: string | null;
+};
+
+export function AuctionSidebarActivity({
+    auctionId,
+    isActive = true,
+    currentUserName
+}: AuctionSidebarActivityProps) {
+    if (!auctionId) {
+        return null;
+    }
+
     return (
-        <div className="glass-card p-4">
-            <h3 className="text-sm font-semibold text-white/80 mb-3">🔔 即時動態</h3>
-            <SimulatedRecentActivity />
-        </div>
+        <AuctionComments
+            auctionId={auctionId}
+            isActive={isActive}
+            currentUserName={currentUserName}
+        />
     );
 }

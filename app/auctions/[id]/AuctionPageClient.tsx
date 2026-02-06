@@ -120,9 +120,12 @@ export function AuctionPageClient({
                 highestPriceSlot
             )}
 
-            {/* 側邊欄即時動態 Portal */}
+            {/* 側邊欄即時留言 Portal */}
             {sidebarSlot && isActive && createPortal(
-                <AuctionSidebarActivity />,
+                <AuctionSidebarActivity
+                    auctionId={auctionId}
+                    isActive={isActive}
+                />,
                 sidebarSlot
             )}
         </ViewerProvider>
