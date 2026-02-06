@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 
 // 模擬出價者名單
 const FAKE_BIDDERS = [
@@ -18,138 +18,167 @@ export interface SimulatedBid {
     is_simulated: true;
 }
 
+// 確定性隨機數生成器（基於種子）
+function seededRandom(seed: number) {
+    const x = Math.sin(seed) * 10000;
+    return x - Math.floor(x);
+}
+
+// 根據拍賣 ID 和時間生成確定性的模擬出價
+function generateDeterministicBids(
+    auctionId: string,
+    startTime: string,
+    endTime: string,
+    startingPrice: number,
+    minIncrement: number,
+    currentTime: Date
+): SimulatedBid[] {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const totalDuration = end.getTime() - start.getTime();
+    const elapsedTime = currentTime.getTime() - start.getTime();
+
+    if (elapsedTime < 0 || totalDuration <= 0) return [];
+
+    // 計算種子（基於拍賣 ID）
+    let seed = 0;
+    for (let i = 0; i < auctionId.length; i++) {
+        seed += auctionId.charCodeAt(i);
+    }
+
+    const bids: SimulatedBid[] = [];
+    let currentPrice = startingPrice;
+    let bidTime = start.getTime() + 10000 + seededRandom(seed) * 20000; // 初始延遲 10-30 秒
+    let bidIndex = 0;
+    const usedBidders = new Set<number>();
+
+    // 在結束前 30 秒停止
+    const stopTime = Math.min(currentTime.getTime(), end.getTime() - 30000);
+
+    while (bidTime < stopTime && bidIndex < 20) { // 最多 20 筆模擬出價
+        const thisSeed = seed + bidIndex * 1000;
+
+        // 選擇出價者（不重複）
+        let bidderIndex = Math.floor(seededRandom(thisSeed + 1) * FAKE_BIDDERS.length);
+        let attempts = 0;
+        while (usedBidders.has(bidderIndex) && attempts < FAKE_BIDDERS.length) {
+            bidderIndex = (bidderIndex + 1) % FAKE_BIDDERS.length;
+            attempts++;
+        }
+        usedBidders.add(bidderIndex);
+        if (usedBidders.size >= FAKE_BIDDERS.length) {
+            usedBidders.clear();
+        }
+
+        // 計算出價金額（1-3 倍最低加價）
+        const multiplier = 1 + Math.floor(seededRandom(thisSeed + 2) * 3);
+        const increment = minIncrement * multiplier;
+        currentPrice += increment;
+
+        bids.push({
+            id: `sim-${auctionId}-${bidIndex}`,
+            bidder_name: FAKE_BIDDERS[bidderIndex],
+            amount: currentPrice,
+            created_at: new Date(bidTime).toISOString(),
+            is_simulated: true
+        });
+
+        // 計算下次出價時間
+        const remainingTime = end.getTime() - bidTime;
+        let interval: number;
+
+        if (remainingTime < 120000) {
+            // 最後 2 分鐘：8-15 秒
+            interval = 8000 + seededRandom(thisSeed + 3) * 7000;
+        } else {
+            // 正常時間：15-45 秒
+            interval = 15000 + seededRandom(thisSeed + 3) * 30000;
+        }
+
+        bidTime += interval;
+        bidIndex++;
+    }
+
+    return bids;
+}
+
 interface UseSimulatedBidsProps {
     auctionId: string;
+    startTime: string;
     startingPrice: number;
     minIncrement: number;
     endTime: string;
-    currentRealBids: number; // 真實出價數量
     isActive: boolean;
 }
 
 export function useSimulatedBids({
     auctionId,
+    startTime,
     startingPrice,
     minIncrement,
     endTime,
-    currentRealBids,
     isActive
 }: UseSimulatedBidsProps) {
-    const [simulatedBids, setSimulatedBids] = useState<SimulatedBid[]>([]);
-    const [usedBidders, setUsedBidders] = useState<Set<string>>(new Set());
+    const [currentTime, setCurrentTime] = useState(new Date());
 
-    // 取得隨機出價者（不重複）
-    const getRandomBidder = useCallback(() => {
-        const available = FAKE_BIDDERS.filter(b => !usedBidders.has(b));
-        if (available.length === 0) {
-            // 如果都用過了，重置
-            setUsedBidders(new Set());
-            return FAKE_BIDDERS[Math.floor(Math.random() * FAKE_BIDDERS.length)];
-        }
-        const bidder = available[Math.floor(Math.random() * available.length)];
-        setUsedBidders(prev => new Set([...prev, bidder]));
-        return bidder;
-    }, [usedBidders]);
-
-    // 計算當前最高價（包含模擬出價）
-    const getCurrentHighest = useCallback(() => {
-        if (simulatedBids.length === 0) {
-            return startingPrice;
-        }
-        return Math.max(...simulatedBids.map(b => b.amount), startingPrice);
-    }, [simulatedBids, startingPrice]);
-
-    // 生成模擬出價
-    const generateSimulatedBid = useCallback(() => {
-        const currentHighest = getCurrentHighest();
-        // 隨機加價 $20-$100（基本上是 minIncrement 的 1-5 倍）
-        const multiplier = Math.floor(Math.random() * 3) + 1; // 1-3 倍
-        const increment = minIncrement * multiplier;
-        const newAmount = currentHighest + increment;
-
-        const newBid: SimulatedBid = {
-            id: `sim-${auctionId}-${Date.now()}`,
-            bidder_name: getRandomBidder(),
-            amount: newAmount,
-            created_at: new Date().toISOString(),
-            is_simulated: true
-        };
-
-        setSimulatedBids(prev => [newBid, ...prev]);
-        return newBid;
-    }, [auctionId, getCurrentHighest, getRandomBidder, minIncrement]);
-
+    // 每秒更新當前時間（觸發重新計算）
     useEffect(() => {
         if (!isActive) return;
 
-        const endDate = new Date(endTime);
-        const now = new Date();
+        const interval = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
 
-        // 如果競標已結束，不生成模擬出價
-        if (endDate <= now) return;
+        return () => clearInterval(interval);
+    }, [isActive]);
 
-        // 計算剩餘時間
-        const remainingMs = endDate.getTime() - now.getTime();
+    // 使用確定性算法生成模擬出價
+    const simulatedBids = useMemo(() => {
+        if (!isActive) return [];
+        return generateDeterministicBids(
+            auctionId,
+            startTime,
+            endTime,
+            startingPrice,
+            minIncrement,
+            currentTime
+        );
+    }, [auctionId, startTime, endTime, startingPrice, minIncrement, currentTime, isActive]);
 
-        // 初始延遲：10-30 秒
-        const initialDelay = 10000 + Math.random() * 20000;
-
-        // 如果有真實出價，減少模擬頻率
-        const realBidsFactor = Math.max(0.5, 1 - (currentRealBids * 0.1));
-
-        let timeoutId: NodeJS.Timeout;
-
-        const scheduleNextBid = () => {
-            const endDate = new Date(endTime);
-            const now = new Date();
-            const remainingMs = endDate.getTime() - now.getTime();
-
-            // 剩餘 30 秒內停止模擬
-            if (remainingMs < 30000) return;
-
-            // 基礎間隔：15-45 秒
-            let baseInterval = 15000 + Math.random() * 30000;
-
-            // 最後 2 分鐘加快節奏
-            if (remainingMs < 120000) {
-                baseInterval = 8000 + Math.random() * 15000;
-            }
-
-            // 考慮真實出價因素
-            const interval = baseInterval * realBidsFactor;
-
-            timeoutId = setTimeout(() => {
-                generateSimulatedBid();
-                scheduleNextBid();
-            }, interval);
-        };
-
-        // 初始延遲後開始
-        const initialTimeout = setTimeout(() => {
-            // 有一定機率在初始時就生成一筆出價
-            if (Math.random() < 0.7) {
-                generateSimulatedBid();
-            }
-            scheduleNextBid();
-        }, initialDelay);
-
-        return () => {
-            clearTimeout(initialTimeout);
-            clearTimeout(timeoutId);
-        };
-    }, [auctionId, endTime, isActive, currentRealBids, generateSimulatedBid]);
+    // 計算模擬最高價
+    const simulatedHighest = useMemo(() => {
+        if (simulatedBids.length === 0) return startingPrice;
+        return Math.max(...simulatedBids.map(b => b.amount));
+    }, [simulatedBids, startingPrice]);
 
     return {
         simulatedBids,
-        currentSimulatedHighest: getCurrentHighest()
+        simulatedHighest
     };
 }
 
-// 在線人數 hook
+// 全局在線人數 Context（讓兩處顯示同步）
+import { createContext, useContext } from 'react';
+
+interface ViewerContextType {
+    viewerCount: number;
+    stayDuration: number;
+}
+
+export const ViewerContext = createContext<ViewerContextType>({
+    viewerCount: 5,
+    stayDuration: 0
+});
+
+export function useViewerContext() {
+    return useContext(ViewerContext);
+}
+
+// 在線人數 Provider hook
 interface UseSimulatedViewersProps {
     isActive: boolean;
     endTime: string;
-    bidActivity: number; // 現有出價數
+    bidActivity: number;
 }
 
 export function useSimulatedViewers({
@@ -157,13 +186,13 @@ export function useSimulatedViewers({
     endTime,
     bidActivity
 }: UseSimulatedViewersProps) {
-    const [viewerCount, setViewerCount] = useState(5 + Math.floor(Math.random() * 4)); // 初始 5-8 人
-    const [stayDuration, setStayDuration] = useState(0); // 停留秒數
+    const [viewerCount, setViewerCount] = useState(5 + Math.floor(Math.random() * 4));
+    const [stayDuration, setStayDuration] = useState(0);
 
+    // 每秒更新停留時間
     useEffect(() => {
         if (!isActive) return;
 
-        // 每秒更新停留時間
         const stayInterval = setInterval(() => {
             setStayDuration(prev => prev + 1);
         }, 1000);
@@ -171,6 +200,7 @@ export function useSimulatedViewers({
         return () => clearInterval(stayInterval);
     }, [isActive]);
 
+    // 根據規則更新在線人數
     useEffect(() => {
         if (!isActive) return;
 
@@ -178,16 +208,15 @@ export function useSimulatedViewers({
         const now = new Date();
         const remainingMs = endDate.getTime() - now.getTime();
 
-        // 根據停留時間和剩餘時間計算在線人數
         let baseViewers = 5;
 
         // 停留時間加成
         if (stayDuration > 180) { // > 3 分鐘
-            baseViewers += 10 + Math.floor(Math.random() * 5);
+            baseViewers += 10 + Math.floor(Math.random() * 5); // 15-20
         } else if (stayDuration > 60) { // > 1 分鐘
-            baseViewers += 5 + Math.floor(Math.random() * 5);
+            baseViewers += 7 + Math.floor(Math.random() * 5); // 12-17
         } else if (stayDuration > 30) { // > 30 秒
-            baseViewers += 3 + Math.floor(Math.random() * 3);
+            baseViewers += 3 + Math.floor(Math.random() * 4); // 8-12
         }
 
         // 最後 1 分鐘激增
@@ -196,22 +225,18 @@ export function useSimulatedViewers({
         }
 
         // 出價活動加成
-        baseViewers += Math.min(bidActivity * 2, 10);
+        baseViewers += Math.min(bidActivity, 5);
 
-        // 添加一些隨機波動
-        const fluctuation = Math.floor(Math.random() * 3) - 1; // -1, 0, 1
-        const newCount = Math.max(5, baseViewers + fluctuation);
-
-        setViewerCount(newCount);
+        setViewerCount(baseViewers);
     }, [isActive, endTime, stayDuration, bidActivity]);
 
-    // 波動更新（每 3-8 秒）
+    // 小幅波動（每 3-8 秒）
     useEffect(() => {
         if (!isActive) return;
 
         const fluctuateInterval = setInterval(() => {
             setViewerCount(prev => {
-                const change = Math.floor(Math.random() * 5) - 2; // -2 to +2
+                const change = Math.floor(Math.random() * 3) - 1; // -1 to +1
                 return Math.max(5, prev + change);
             });
         }, 3000 + Math.random() * 5000);

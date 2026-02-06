@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useMemo, createContext, useContext, ReactNode } from 'react';
 import { useSimulatedBids, useSimulatedViewers } from '@/hooks/useSimulatedAuction';
 
 interface RealBid {
@@ -13,61 +13,109 @@ interface RealBid {
     };
 }
 
+// 全局在線人數 Context
+interface ViewerContextType {
+    viewerCount: number;
+    stayDuration: number;
+}
+
+const ViewerContext = createContext<ViewerContextType>({
+    viewerCount: 5,
+    stayDuration: 0
+});
+
+// 在線人數 Provider
+export function ViewerProvider({
+    children,
+    isActive,
+    endTime,
+    bidActivity
+}: {
+    children: ReactNode;
+    isActive: boolean;
+    endTime: string;
+    bidActivity: number;
+}) {
+    const { viewerCount, stayDuration } = useSimulatedViewers({
+        isActive,
+        endTime,
+        bidActivity
+    });
+
+    return (
+        <ViewerContext.Provider value={{ viewerCount, stayDuration }}>
+            {children}
+        </ViewerContext.Provider>
+    );
+}
+
+// 使用全局在線人數
+export function useViewerCount() {
+    return useContext(ViewerContext);
+}
+
 interface BidHistoryWithSimulationProps {
     auctionId: string;
     realBids: RealBid[];
+    startTime: string;
     startingPrice: number;
     minIncrement: number;
     endTime: string;
     isActive: boolean;
-    onSimulatedHighestChange?: (amount: number) => void;
+    onHighestChange?: (amount: number, bidderName: string | null) => void;
 }
 
 export function BidHistoryWithSimulation({
     auctionId,
     realBids,
+    startTime,
     startingPrice,
     minIncrement,
     endTime,
     isActive,
-    onSimulatedHighestChange
+    onHighestChange
 }: BidHistoryWithSimulationProps) {
     const { simulatedBids } = useSimulatedBids({
         auctionId,
+        startTime,
         startingPrice,
         minIncrement,
         endTime,
-        currentRealBids: realBids.length,
         isActive
     });
 
     // 合併真實和模擬出價，按金額排序
-    const allBids = [
-        ...realBids.map(bid => ({
-            id: bid.id,
-            bidder_name: bid.profiles?.full_name || bid.profiles?.email?.split('@')[0] || '匿名',
-            bidder_initials: (bid.profiles?.full_name || bid.profiles?.email || '?').slice(0, 2),
-            amount: bid.amount,
-            created_at: bid.created_at,
-            is_simulated: false as const
-        })),
-        ...simulatedBids.map(bid => ({
-            id: bid.id,
-            bidder_name: bid.bidder_name,
-            bidder_initials: bid.bidder_name.slice(0, 2),
-            amount: bid.amount,
-            created_at: bid.created_at,
-            is_simulated: true as const
-        }))
-    ].sort((a, b) => b.amount - a.amount).slice(0, 15);
+    const allBids = useMemo(() => {
+        const combined = [
+            ...realBids.map(bid => ({
+                id: bid.id,
+                bidder_name: bid.profiles?.full_name || bid.profiles?.email?.split('@')[0] || '匿名',
+                bidder_initials: (bid.profiles?.full_name || bid.profiles?.email || '?').slice(0, 2),
+                amount: bid.amount,
+                created_at: bid.created_at,
+                is_simulated: false as const,
+                is_real: true
+            })),
+            ...simulatedBids.map(bid => ({
+                id: bid.id,
+                bidder_name: bid.bidder_name,
+                bidder_initials: bid.bidder_name.slice(0, 2),
+                amount: bid.amount,
+                created_at: bid.created_at,
+                is_simulated: true as const,
+                is_real: false
+            }))
+        ];
+        return combined.sort((a, b) => b.amount - a.amount);
+    }, [realBids, simulatedBids]);
 
-    // 通知父元件模擬最高價變化
+    // 通知父元件最高價變化
     useEffect(() => {
-        if (onSimulatedHighestChange && simulatedBids.length > 0) {
-            const simHighest = Math.max(...simulatedBids.map(b => b.amount));
-            onSimulatedHighestChange(simHighest);
+        if (onHighestChange && allBids.length > 0) {
+            const highest = allBids[0];
+            onHighestChange(highest.amount, highest.bidder_name);
         }
-    }, [simulatedBids, onSimulatedHighestChange]);
+    }, [allBids, onHighestChange]);
 
     if (allBids.length === 0) {
         return (
@@ -75,18 +123,22 @@ export function BidHistoryWithSimulation({
         );
     }
 
+    // 只顯示前 5 筆，其餘模糊
+    const visibleBids = allBids.slice(0, 5);
+    const hiddenCount = Math.max(0, allBids.length - 5);
+
     return (
         <div className="mt-4 space-y-2">
-            {allBids.map((bid, index) => (
+            {visibleBids.map((bid, index) => (
                 <div
                     key={bid.id}
                     className={`flex items-center justify-between rounded-lg px-4 py-3 transition-all ${index === 0
-                        ? 'bg-yellow-500/20 border border-yellow-500/30 animate-pulse'
+                        ? 'bg-yellow-500/20 border border-yellow-500/30'
                         : 'bg-white/5'
-                        } ${bid.is_simulated ? 'border-l-2 border-l-purple-400/50' : ''}`}
+                        }`}
                 >
                     <div className="flex items-center gap-3">
-                        <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${bid.is_simulated ? 'bg-purple-500/20 text-purple-300' : 'bg-white/10'
+                        <div className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold ${index === 0 ? 'bg-yellow-500/30 text-yellow-200' : 'bg-white/10'
                             }`}>
                             {bid.bidder_initials}
                         </div>
@@ -104,34 +156,45 @@ export function BidHistoryWithSimulation({
                     </span>
                 </div>
             ))}
+
+            {/* 模糊顯示更多 */}
+            {hiddenCount > 0 && (
+                <div className="relative">
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-slate-900/80 pointer-events-none" />
+                    <div className="flex items-center justify-center py-4">
+                        <span className="text-sm text-white/40">
+                            還有 {hiddenCount} 筆出價紀錄
+                        </span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
 
-// 在線人數顯示元件
-interface ViewerCountDisplayProps {
-    isActive: boolean;
-    endTime: string;
-    bidActivity: number;
-}
-
-export function ViewerCountDisplay({
-    isActive,
-    endTime,
-    bidActivity
-}: ViewerCountDisplayProps) {
-    const { viewerCount } = useSimulatedViewers({
-        isActive,
-        endTime,
-        bidActivity
-    });
-
-    if (!isActive) return null;
+// 在線人數顯示元件（使用全局 Context）
+export function ViewerCountDisplay() {
+    const { viewerCount } = useViewerCount();
 
     return (
         <div className="flex items-center gap-2 rounded-full bg-red-500/20 px-3 py-1 text-xs font-medium text-red-200">
             <span className="h-2 w-2 rounded-full bg-red-400 animate-pulse" />
             <span>{viewerCount} 人正在觀看</span>
+        </div>
+    );
+}
+
+// 側邊欄即時動態（使用相同的全局 Context）
+export function AuctionSidebarActivity() {
+    const { viewerCount } = useViewerCount();
+
+    return (
+        <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+            <h3 className="text-xs font-semibold uppercase text-white/60">即時動態</h3>
+            <div className="flex items-center gap-2 text-sm text-white/80">
+                <span className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+                <span>{viewerCount} 人正在觀看此商品</span>
+            </div>
         </div>
     );
 }
