@@ -1,8 +1,45 @@
 import { createServerSupabaseClient } from "@/lib/auth";
 import Link from "next/link";
 import { PersonalSpaceContent } from "@/components/PersonalSpaceContent";
+import AuctionCard from "@/components/AuctionCard";
 
 export const dynamic = "force-dynamic";
+
+// 熱門競標區塊元件
+async function HotAuctionsSection() {
+  const supabase = createServerSupabaseClient();
+
+  const { data: auctions } = await supabase
+    .from('auctions')
+    .select('*, distributions(pokemon_name, pokemon_name_en, image_url)')
+    .eq('status', 'active')
+    .order('bid_count', { ascending: false })
+    .limit(4);
+
+  if (!auctions || auctions.length === 0) return null;
+
+  return (
+    <section className="glass-card p-6">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="flex items-center gap-2 text-lg font-semibold text-white/90">
+          <span className="inline-block h-2 w-2 rounded-full bg-red-400 animate-pulse"></span>
+          🔥 熱門競標
+        </h2>
+        <Link
+          href="/auctions"
+          className="text-sm text-white/60 hover:text-white transition"
+        >
+          查看更多 →
+        </Link>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {auctions.map((auction) => (
+          <AuctionCard key={auction.id} auction={auction} />
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default async function HomePage() {
   const supabase = createServerSupabaseClient();
@@ -10,11 +47,11 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 未登入用戶顯示登入引導頁
+  // 未登入用戶顯示登入引導頁 + 熱門競標
   if (!user) {
     return (
-      <div className="flex flex-col items-center justify-center gap-8 py-12">
-        <section className="glass-card max-w-lg p-8 text-center">
+      <div className="flex flex-col gap-8 py-12">
+        <section className="glass-card max-w-lg mx-auto p-8 text-center">
           <p className="text-sm uppercase tracking-[0.35em] text-slate-200">Event Glass</p>
           <h1 className="mt-3 text-4xl font-semibold md:text-5xl">個人空間</h1>
           <p className="mt-4 text-base text-slate-200">
@@ -35,6 +72,9 @@ export default async function HomePage() {
             </Link>
           </div>
         </section>
+
+        {/* 熱門競標區塊 */}
+        <HotAuctionsSection />
       </div>
     );
   }
@@ -84,15 +124,22 @@ export default async function HomePage() {
     .order("created_at", { ascending: false });
 
   return (
-    <PersonalSpaceContent
-      user={user}
-      profile={profile}
-      wishlists={wishlists || []}
-      comments={comments || []}
-      userItems={userItems || []}
-      allEvents={allEvents || []}
-      isOwnProfile={true}
-      currentUserId={user.id}
-    />
+    <div className="flex flex-col gap-8">
+      {/* 熱門競標區塊 */}
+      <HotAuctionsSection />
+
+      {/* 個人空間內容 */}
+      <PersonalSpaceContent
+        user={user}
+        profile={profile}
+        wishlists={wishlists || []}
+        comments={comments || []}
+        userItems={userItems || []}
+        allEvents={allEvents || []}
+        isOwnProfile={true}
+        currentUserId={user.id}
+      />
+    </div>
   );
 }
+
