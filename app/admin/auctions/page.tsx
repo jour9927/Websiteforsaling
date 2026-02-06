@@ -10,6 +10,8 @@ type Distribution = {
     pokemon_name: string;
     pokemon_name_en: string | null;
     pokemon_sprite_url: string | null;
+    generation: number;
+    event_name: string | null;
 };
 
 type Auction = {
@@ -67,7 +69,8 @@ export default function AdminAuctionsPage() {
             // 載入配布圖鑑列表
             const { data: distData, error: distError } = await supabase
                 .from('distributions')
-                .select('id, pokemon_name, pokemon_name_en, pokemon_sprite_url')
+                .select('id, pokemon_name, pokemon_name_en, pokemon_sprite_url, generation, event_name')
+                .order('generation', { ascending: false })
                 .order('pokemon_name', { ascending: true });
 
             if (distError) throw distError;
@@ -82,10 +85,18 @@ export default function AdminAuctionsPage() {
     const handleDistributionSelect = (distId: string) => {
         const dist = distributions.find(d => d.id === distId);
         if (dist) {
+            // 標題格式：第X世代+寶可夢名稱 / 活動名稱
+            const genLabel = `第${dist.generation}世代`;
+            const pokemonName = dist.pokemon_name + (dist.pokemon_name_en ? ` (${dist.pokemon_name_en})` : '');
+            const eventName = dist.event_name || '';
+            const title = eventName
+                ? `${genLabel} ${pokemonName}\n${eventName}`
+                : `${genLabel} ${pokemonName}`;
+
             setFormData({
                 ...formData,
                 distribution_id: distId,
-                title: dist.pokemon_name + (dist.pokemon_name_en ? ` (${dist.pokemon_name_en})` : ''),
+                title: title,
                 image_url: dist.pokemon_sprite_url || ""
             });
         }
@@ -242,7 +253,7 @@ export default function AdminAuctionsPage() {
                             <option value="">-- 選擇寶可夢 --</option>
                             {distributions.map((dist) => (
                                 <option key={dist.id} value={dist.id}>
-                                    {dist.pokemon_name} {dist.pokemon_name_en ? `(${dist.pokemon_name_en})` : ''}
+                                    [第{dist.generation}世代] {dist.pokemon_name} {dist.pokemon_name_en ? `(${dist.pokemon_name_en})` : ''} {dist.event_name ? `- ${dist.event_name}` : ''}
                                 </option>
                             ))}
                         </select>
