@@ -9,7 +9,7 @@ type Distribution = {
     id: string;
     pokemon_name: string;
     pokemon_name_en: string | null;
-    image_url: string | null;
+    pokemon_sprite_url: string | null;
 };
 
 type Auction = {
@@ -58,7 +58,7 @@ export default function AdminAuctionsPage() {
             // 載入競標列表
             const { data: auctionsData, error: auctionsError } = await supabase
                 .from('auctions')
-                .select('*, distributions(id, pokemon_name, pokemon_name_en, image_url)')
+                .select('*, distributions(id, pokemon_name, pokemon_name_en, pokemon_sprite_url)')
                 .order('created_at', { ascending: false });
 
             if (auctionsError) throw auctionsError;
@@ -67,7 +67,7 @@ export default function AdminAuctionsPage() {
             // 載入配布圖鑑列表
             const { data: distData, error: distError } = await supabase
                 .from('distributions')
-                .select('id, pokemon_name, pokemon_name_en, image_url')
+                .select('id, pokemon_name, pokemon_name_en, pokemon_sprite_url')
                 .order('pokemon_name', { ascending: true });
 
             if (distError) throw distError;
@@ -86,7 +86,7 @@ export default function AdminAuctionsPage() {
                 ...formData,
                 distribution_id: distId,
                 title: dist.pokemon_name + (dist.pokemon_name_en ? ` (${dist.pokemon_name_en})` : ''),
-                image_url: dist.image_url || ""
+                image_url: dist.pokemon_sprite_url || ""
             });
         }
     };

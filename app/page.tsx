@@ -11,7 +11,7 @@ async function HotAuctionsSection() {
 
   const { data: auctions } = await supabase
     .from('auctions')
-    .select('*, distributions(pokemon_name, pokemon_name_en, image_url)')
+    .select('*, distributions(pokemon_name, pokemon_name_en, pokemon_sprite_url)')
     .eq('status', 'active')
     .order('bid_count', { ascending: false })
     .limit(4);

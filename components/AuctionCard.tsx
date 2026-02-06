@@ -17,7 +17,7 @@ type Auction = {
     distributions?: {
         pokemon_name: string;
         pokemon_name_en: string | null;
-        image_url: string | null;
+        pokemon_sprite_url: string | null;
     };
 };
 
@@ -60,7 +60,7 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
         return () => clearInterval(interval);
     }, [auction.end_time]);
 
-    const imageUrl = auction.image_url || auction.distributions?.image_url;
+    const imageUrl = auction.image_url || auction.distributions?.pokemon_sprite_url;
     const currentHighest = auction.current_price > 0 ? auction.current_price : auction.starting_price;
 
     return (

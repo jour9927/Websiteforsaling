@@ -16,7 +16,7 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
     // 取得競標資訊
     const { data: auction, error } = await supabase
         .from('auctions')
-        .select('*, distributions(pokemon_name, pokemon_name_en, image_url, original_trainer, trainer_id)')
+        .select('*, distributions(pokemon_name, pokemon_name_en, pokemon_sprite_url, original_trainer, trainer_id)')
         .eq('id', params.id)
         .single();
 
@@ -57,7 +57,7 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
         highestBidder = data;
     }
 
-    const imageUrl = auction.image_url || auction.distributions?.image_url;
+    const imageUrl = auction.image_url || auction.distributions?.pokemon_sprite_url;
     const isEnded = new Date(auction.end_time) < new Date() || auction.status === 'ended';
     const currentHighest = auction.current_price > 0 ? auction.current_price : auction.starting_price;
     const minBid = auction.current_price > 0
