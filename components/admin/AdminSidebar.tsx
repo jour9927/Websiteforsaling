@@ -8,6 +8,8 @@ import type { Route } from "next";
 export const adminNavItems = [
   { href: "/admin" as Route, label: "儀表板", icon: "📊" },
   { href: "/admin/events" as Route, label: "活動管理", icon: "📅" },
+  { href: "/admin/auctions" as Route, label: "競標管理", icon: "🔨" },
+  { href: "/admin/members" as Route, label: "會員管理", icon: "👥" },
   { href: "/admin/registrations" as Route, label: "報名/抽選", icon: "🎫" },
   { href: "/admin/announcements" as Route, label: "公告管理", icon: "📢" },
   { href: "/admin/items" as Route, label: "物品管理", icon: "🎁" },
@@ -35,7 +37,7 @@ export function AdminSidebar() {
           return (
             <Link
               key={item.href}
-                href={item.href}
+              href={item.href}
               className={`${baseLinkClasses} ${active ? "bg-white/20 text-white" : "text-white/70 hover:bg-white/10"}`}
             >
               <span className="flex items-center gap-2">
@@ -84,9 +86,8 @@ export function AdminMobileNav() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 text-xs transition ${
-                    active ? "bg-white/10 text-white" : "bg-white/5 text-white/70 hover:bg-white/10"
-                  }`}
+                  className={`flex items-center gap-2 rounded-2xl border border-white/10 px-3 py-2 text-xs transition ${active ? "bg-white/10 text-white" : "bg-white/5 text-white/70 hover:bg-white/10"
+                    }`}
                 >
                   <span className="text-sm">{item.icon}</span>
                   <span>{item.label}</span>
