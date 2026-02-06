@@ -14,178 +14,128 @@
 
 ---
 
-## 核心需求
+## 實作進度
 
-### 主要目標
-建立一個「社交圈」頁面，透過**偽隨機人流機制**營造活躍的社群氛圍，增強用戶對平台的依賴感。
+### ✅ 已完成功能
 
-### 核心概念
-- 展示精心策劃的「會員動態」
-- 混合真實事件 + 模擬動態
-- 營造「專屬圈層」的歸屬感
-- 利用社會認同心理增加黏性
+#### 1. 模擬在線人數 (`SimulatedViewers`)
+| 功能 | 狀態 |
+|------|------|
+| 隨時間動態變化 | ✅ |
+| 最後一分鐘激增 | ✅ |
+| 統一兩處顯示（標題旁 + 左下角浮動） | ✅ |
+| 使用 ViewerContext 全局同步 | ✅ |
+
+**顯示規則：**
+- 0-30 秒：5-10 人
+- 1-3 分鐘：12-20 人
+- 3+ 分鐘：18-30 人
+- 最後 1 分鐘：+5-10 人激增
 
 ---
 
-## 功能需求
+#### 2. 模擬出價系統 (`BidHistoryWithSimulation`)
+| 功能 | 狀態 |
+|------|------|
+| 基於 auctionId 確定性生成 | ✅ |
+| 混合真實 + 模擬出價排序 | ✅ |
+| 真實出價必須高於模擬最高價 | ✅ |
+| 通過 Portal 同步更新最高價 | ✅ |
 
-### 1. 社交動態牆 (Social Feed)
-
-#### 動態類型選項
-| 類型 | 範例 | 說明 |
-|-----|------|------|
-| 報名通知 | 「王** 剛剛報名了 XXX 活動」 | 真實/模擬 |
-| 中獎公告 | 「恭喜 L** 抽中 限量精品」 | 真實/模擬 |
-| 新會員加入 | 「歡迎 新會員 加入」 | 真實/模擬 |
-| 正在瀏覽 | 「T** 正在瀏覽此活動」 | 模擬為主 |
-| 付款完成 | 「會員已完成付款」 | 真實/模擬 |
-| 活動回顧 | 「上週活動精彩回顧」 | 編輯內容 |
-
-#### 動態生成邏輯
+**整合邏輯：**
 ```
-偽隨機機制：
-1. 優先顯示真實發生的事件（報名、中獎等）
-2. 空檔期自動穿插預設/模擬動態
-3. 時間間隔隨機化（避免規律感）
-4. 隱私保護：只顯示姓氏 + 模糊化（王**、L***）
+有效最高價 = MAX(真實最高價, 模擬最高價, 起標價)
+最低出價 = 有效最高價 + 最低加價
 ```
 
-#### 頻率選項
-- 高頻：1-3 分鐘產生一則
-- 中頻：5-10 分鐘產生一則
-- 低頻：15-30 分鐘產生一則
+---
+
+#### 3. 即時留言系統 (`AuctionComments`)
+| 功能 | 狀態 |
+|------|------|
+| 真實留言存入資料庫 | ✅ |
+| 即時訂閱 Realtime | ✅ |
+| 模擬留言穿插 | ✅ |
+| 標記自己的留言（高亮 + "你" 標籤） | ✅ |
+
+**智能模擬：**
+- 模擬用戶 30% 機率相互 @
+- 留言內容圍繞競標主題
+- 網站/活動相關留言混合
+
+**心理學 @回覆：**
+- 延遲 10-15 秒後才回覆
+- 每人只回一次（避免重複）
+- 回覆模板：「什麼意思？」「為什麼這樣說」「認真？」等引發好奇
 
 ---
 
-### 2. 顯示位置選項
+#### 4. 出價 Toast 通知 (`SimulatedBidToast`)
+| 功能 | 狀態 |
+|------|------|
+| 右下角彈出通知 | ✅ |
+| 隨機間隔顯示 | ✅ |
+| 自動消失動畫 | ✅ |
 
-| 位置 | 說明 |
-|-----|------|
-| 專屬頁面 | 獨立的 `/social` 社交圈頁面 |
-| 首頁側邊欄 | 浮動在右側的動態列表 |
-| 活動詳情頁 | 顯示「誰在看這個活動」 |
-| 全站 Toast | 右下角的即時通知彈窗 |
-
----
-
-### 3. 會員身份展示選項
-
-| 格式 | 範例 |
-|-----|------|
-| 姓氏 + 隱碼 | 王** |
-| 英文首字母 | L*** |
-| 會員編號 | 會員 #0892 |
-| 暱稱/頭銜 | 「尊榮會員」 |
-| 頭像 + 隱藏名 | 🧑 + *** |
+**⚠️ 待改進：** 目前未與模擬出價連動，需要強化
 
 ---
 
-### 4. VIP 等級系統（可選）
+### 📋 待實作功能
 
-#### 等級劃分方式
-- 消費等級：依付款金額
-- 參與等級：依報名/中獎次數
-- 邀請等級：依邀請碼使用數
-- 手動指定：管理員直接設定
+#### Toast 連動強化（優先）
+- [ ] 連動模擬出價紀錄（同步顯示）
+- [ ] 最後一分鐘倒數提醒
+- [ ] 真實出價也顯示 Toast
+- [ ] 競爭心理觸發訊息：「有人剛出價！」「競爭激烈！」
 
-#### 等級展示
-- 等級徽章（金/銀/銅）
-- 專屬標籤（VIP、尊榮會員等）
-- 特殊頭像框
-
----
-
-### 5. 額外功能選項
-
-| 功能 | 說明 | 心理效應 |
-|-----|------|---------|
-| 線上人數 | 「目前 12 人在線」 | 社會認同 |
-| 熱門排行 | 「本週最熱活動」 | FOMO |
-| 倒數計時 | 「活動開始倒數 2天3小時」 | 緊迫感 |
-| 名額警示 | 「僅剩 3 個名額！」 | 稀缺性 |
-| 會員榮耀榜 | 「本月幸運會員」 | 身份認同 |
-| 參與人數 | 「32 位會員正在關注」 | 社會認同 |
+#### 其他計劃
+- [ ] 社交圈專屬頁面 `/social`
+- [ ] 會員榮耀榜
+- [ ] VIP 等級系統
+- [ ] 熱門排行
 
 ---
 
-## 技術考量
+## 資料表結構
 
-### 現有資料表（可利用）
-- `profiles` - 使用者資料
-- `events` - 活動資訊
-- `registrations` - 報名紀錄
-- `draw_results` - 抽獎結果
-
-### 可能需要新增的資料表
+### auction_comments（已建立）
 ```sql
--- 社交動態表
-CREATE TABLE social_activities (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  activity_type TEXT NOT NULL, -- 'registration', 'draw_win', 'new_member', 'browsing', 'payment'
-  user_id UUID REFERENCES profiles(id), -- NULL if simulated
-  event_id UUID REFERENCES events(id),
-  display_name TEXT NOT NULL, -- 「王**」
-  message TEXT NOT NULL,
-  is_simulated BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT NOW()
-);
-
--- 模擬動態模板表（可選）
-CREATE TABLE activity_templates (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  activity_type TEXT NOT NULL,
-  message_template TEXT NOT NULL, -- 「{name} 剛剛報名了 {event}」
-  is_active BOOLEAN DEFAULT true
+CREATE TABLE auction_comments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auction_id UUID NOT NULL REFERENCES auctions(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    content TEXT NOT NULL,
+    user_name TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 ```
 
-### 實作方式選項
+### 索引和 RLS
+```sql
+CREATE INDEX idx_auction_comments_auction_id ON auction_comments(auction_id);
+CREATE INDEX idx_auction_comments_created_at ON auction_comments(created_at DESC);
 
-#### 方案 A：純前端模擬（簡單）
-- 使用 JavaScript 生成偽隨機動態
-- 不需後端修改
-- 無法追蹤、無法調整
-
-#### 方案 B：後端支持（完整）
-- 建立資料表儲存動態
-- 定時任務生成模擬動態
-- 混合真實事件
-- 管理後台可調整
+-- 所有人可讀取
+CREATE POLICY "Anyone can read" ON auction_comments FOR SELECT USING (true);
+-- 登入可留言
+CREATE POLICY "Auth can insert" ON auction_comments FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+-- 只能刪自己
+CREATE POLICY "Delete own" ON auction_comments FOR DELETE USING (auth.uid() = user_id);
+```
 
 ---
 
-## UI 參考
+## 相關檔案
 
-### 動態牆樣式
-```
-┌─────────────────────────────────────┐
-│  🔴 即時動態                         │
-│  ───────────────────────────────    │
-│  • 3分鐘前  T***先生 正在瀏覽活動     │
-│  • 5分鐘前  新會員加入                │
-│  • 12分鐘前 L***小姐 報名了活動       │
-│  • 28分鐘前 恭喜 W*** 獲得獎品        │
-└─────────────────────────────────────┘
-```
-
-### 熱門統計樣式
-```
-┌──────────────────────────────────────────┐
-│  🌟 本週熱門                              │
-│  ─────────────────────────────────       │
-│  👥 32 位會員正在關注此活動               │
-│  ⏰ 剩餘名額：5/20                        │
-│  🔥 報名人數較上週 ↑ 45%                  │
-└──────────────────────────────────────────┘
-```
-
-### Toast 通知樣式
-```
-┌────────────────────────┐
-│ 🎉 王** 剛剛報名了活動  │
-│     3 秒前              │
-└────────────────────────┘
-```
+| 檔案 | 說明 |
+|------|------|
+| `components/SimulatedActivity.tsx` | SimulatedViewers, SimulatedBidToast, SimulatedRecentActivity |
+| `components/AuctionComments.tsx` | 即時留言系統 |
+| `hooks/useSimulatedAuction.ts` | 模擬出價和在線人數 Hook |
+| `app/auctions/[id]/BidHistoryWithSimulation.tsx` | 出價紀錄 + ViewerContext |
+| `app/auctions/[id]/AuctionPageClient.tsx` | Portal 渲染控制 |
+| `app/auctions/[id]/BidButton.tsx` | 整合模擬最高價的出價按鈕 |
 
 ---
 
@@ -194,7 +144,6 @@ CREATE TABLE activity_templates (
 ### 道德邊界
 - 以「展示社群活躍度」為主，避免完全虛假的用戶資料
 - 模擬動態應合理，避免過度誇大
-- 考慮在隱私政策中說明（可選）
 
 ### 真實感原則
 - 動態內容要合理（時間、事件類型）
@@ -204,29 +153,11 @@ CREATE TABLE activity_templates (
 ### 隱私保護
 - 即使真實用戶，也應隱藏完整姓名
 - 不顯示可識別的個人資訊
-- 符合個資保護規範
-
----
-
-## 待確認事項
-
-請在實作前確認以下問題：
-
-1. **動態類型**：需要哪些類型？（A-G 選擇）
-2. **動態頻率**：高/中/低頻？
-3. **真實 vs 模擬比例**：100%真實 / 真實優先 / 混合 / 100%模擬？
-4. **顯示位置**：專屬頁面 / 側邊欄 / Toast / 以上皆是？
-5. **會員身份展示**：姓氏隱碼 / 會員編號 / 其他？
-6. **VIP 等級**：是否需要？如何劃分？
-7. **額外功能**：線上人數 / 熱門排行 / 倒數 / 名額警示？
-8. **實作方式**：純前端 / 後端支持？
 
 ---
 
 ## 文件資訊
 
 - **建立日期**: 2026-02-01
+- **最後更新**: 2026-02-07
 - **專案路徑**: `/Users/alan_dingchaoliao/Documents/網站開發/網站架設`
-- **相關文件**: 
-  - `PROJECT_CONTEXT.md` - 專案上下文
-  - `WEBSITE_FEATURES.md` - 現有功能清單
