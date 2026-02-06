@@ -45,10 +45,8 @@ export default function AdminAuctionsPage() {
         title: "",
         description: "",
         image_url: "",
-        starting_price: 100,
-        min_increment: 100,
-        end_time: "",
-        status: "draft" as 'draft' | 'active'
+        min_increment: 20,
+        status: "active" as 'draft' | 'active'  // 預設立即開始
     });
 
     useEffect(() => {
@@ -111,6 +109,10 @@ export default function AdminAuctionsPage() {
         try {
             const { data: { user } } = await supabase.auth.getUser();
 
+            // 固定設定：起標價 $20，結束時間為建立後 10 分鐘
+            const startTime = new Date();
+            const endTime = new Date(startTime.getTime() + 10 * 60 * 1000); // +10 分鐘
+
             const { error } = await supabase
                 .from('auctions')
                 .insert([{
@@ -118,27 +120,25 @@ export default function AdminAuctionsPage() {
                     title: formData.title,
                     description: formData.description || null,
                     image_url: formData.image_url || null,
-                    starting_price: formData.starting_price,
+                    starting_price: 20,  // 固定 $20
                     min_increment: formData.min_increment,
                     current_price: 0,
-                    start_time: new Date().toISOString(),
-                    end_time: formData.end_time,
+                    start_time: startTime.toISOString(),
+                    end_time: endTime.toISOString(),  // 自動 +10 分鐘
                     status: formData.status,
                     created_by: user?.id
                 }]);
 
             if (error) throw error;
 
-            setSuccess("競標建立成功！");
+            setSuccess("競標建立成功！將在 10 分鐘後結標");
             setFormData({
                 distribution_id: "",
                 title: "",
                 description: "",
                 image_url: "",
-                starting_price: 100,
-                min_increment: 100,
-                end_time: "",
-                status: "draft"
+                min_increment: 20,
+                status: "active"
             });
             loadData();
         } catch (err) {
@@ -280,52 +280,17 @@ export default function AdminAuctionsPage() {
                         />
                     </label>
 
-                    <label className="flex flex-col gap-2 text-xs text-white/70">
-                        起標價 (NT$) *
-                        <input
-                            type="number"
-                            min={1}
-                            value={formData.starting_price}
-                            onChange={(e) => setFormData({ ...formData, starting_price: parseInt(e.target.value) || 100 })}
-                            required
-                            className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
-                        />
-                    </label>
-
-                    <label className="flex flex-col gap-2 text-xs text-white/70">
-                        最低加價 (NT$) *
-                        <input
-                            type="number"
-                            min={1}
-                            value={formData.min_increment}
-                            onChange={(e) => setFormData({ ...formData, min_increment: parseInt(e.target.value) || 100 })}
-                            required
-                            className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
-                        />
-                    </label>
-
-                    <label className="flex flex-col gap-2 text-xs text-white/70">
-                        結束時間 *
-                        <input
-                            type="datetime-local"
-                            value={formData.end_time}
-                            onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                            required
-                            className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
-                        />
-                    </label>
-
-                    <label className="flex flex-col gap-2 text-xs text-white/70">
-                        初始狀態
-                        <select
-                            value={formData.status}
-                            onChange={(e) => setFormData({ ...formData, status: e.target.value as 'draft' | 'active' })}
-                            className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
-                        >
-                            <option value="draft">草稿</option>
-                            <option value="active">立即開始</option>
-                        </select>
-                    </label>
+                    {/* 固定設定說明 */}
+                    <div className="flex flex-col gap-2 text-xs text-white/70 md:col-span-2">
+                        <div className="rounded-xl border border-white/20 bg-white/5 px-4 py-3">
+                            <p className="font-medium text-white/90">📋 競標設定（固定）</p>
+                            <ul className="mt-2 space-y-1 text-white/60">
+                                <li>• 起標價：<span className="text-yellow-300 font-medium">$20</span></li>
+                                <li>• 最低加價：<span className="text-yellow-300 font-medium">$20</span></li>
+                                <li>• 競標時長：<span className="text-green-300 font-medium">10 分鐘</span>（建立後自動開始倒數）</li>
+                            </ul>
+                        </div>
+                    </div>
 
                     <label className="flex flex-col gap-2 text-xs text-white/70 md:col-span-2">
                         競標說明

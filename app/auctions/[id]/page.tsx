@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/auth";
 import BidButton from "./BidButton";
 import AuctionActivityWrapper, { AuctionSidebarActivity } from "./AuctionActivityWrapper";
+import { BidHistoryWithSimulation, ViewerCountDisplay } from "./BidHistoryWithSimulation";
 
 type AuctionPageProps = {
     params: { id: string };
@@ -77,9 +78,16 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                             已結標
                         </span>
                     ) : (
-                        <span className="rounded-full bg-green-500/20 px-3 py-1 text-xs font-medium text-green-200 animate-pulse">
-                            🔴 競標進行中
-                        </span>
+                        <>
+                            <span className="rounded-full bg-green-500/20 px-3 py-1 text-xs font-medium text-green-200 animate-pulse">
+                                🔴 競標進行中
+                            </span>
+                            <ViewerCountDisplay
+                                isActive={auction.status === 'active'}
+                                endTime={auction.end_time}
+                                bidActivity={(bids?.length || 0) + auction.bid_count}
+                            />
+                        </>
                     )}
                 </div>
 
@@ -135,39 +143,17 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                         </article>
                     )}
 
-                    {/* 出價紀錄 */}
+                    {/* 出價紀錄（含模擬出價） */}
                     <article className="glass-card p-6">
                         <h2 className="text-lg font-semibold text-white/90">出價紀錄</h2>
-                        {!bids || bids.length === 0 ? (
-                            <p className="mt-4 text-sm text-white/60">尚無出價紀錄</p>
-                        ) : (
-                            <div className="mt-4 space-y-2">
-                                {bids.map((bid, index) => (
-                                    <div
-                                        key={bid.id}
-                                        className={`flex items-center justify-between rounded-lg px-4 py-3 ${index === 0 ? 'bg-yellow-500/20 border border-yellow-500/30' : 'bg-white/5'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-xs font-semibold">
-                                                {(bid.profiles?.full_name || bid.profiles?.email || '?').slice(0, 2)}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm text-white/90">
-                                                    {bid.profiles?.full_name || bid.profiles?.email?.split('@')[0] || '匿名'}
-                                                </p>
-                                                <p className="text-xs text-white/50">
-                                                    {new Date(bid.created_at).toLocaleString('zh-TW')}
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <span className={`font-bold ${index === 0 ? 'text-yellow-300' : 'text-white/70'}`}>
-                                            ${bid.amount.toLocaleString()}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                        <BidHistoryWithSimulation
+                            auctionId={params.id}
+                            realBids={bids || []}
+                            startingPrice={auction.starting_price}
+                            minIncrement={auction.min_increment}
+                            endTime={auction.end_time}
+                            isActive={!isEnded && auction.status === 'active'}
+                        />
                     </article>
                 </div>
 
