@@ -1,31 +1,49 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type BidButtonProps = {
     auctionId: string;
-    minBid: number;
     minIncrement: number;
-    currentPrice: number;
+    currentPrice: number;      // 真實最高價（從資料庫）
+    startingPrice: number;     // 起標價
+    simulatedHighest?: number; // 模擬最高價（從 Client 傳入）
 };
 
-export default function BidButton({ auctionId, minBid, minIncrement, currentPrice }: BidButtonProps) {
+export default function BidButton({
+    auctionId,
+    minIncrement,
+    currentPrice,
+    startingPrice,
+    simulatedHighest = 0
+}: BidButtonProps) {
     const router = useRouter();
+
+    // 計算有效最高價（真實 vs 模擬取大者）
+    const effectiveHighest = Math.max(currentPrice, simulatedHighest, startingPrice);
+
+    // 最低出價 = 有效最高價 + 最低加價
+    const minBid = effectiveHighest + minIncrement;
+
     const [bidAmount, setBidAmount] = useState(minBid);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
+    // 當 minBid 變化時更新預設出價金額
+    useEffect(() => {
+        setBidAmount(minBid);
+    }, [minBid]);
+
     const handleQuickBid = (increment: number) => {
-        const basePrice = currentPrice > 0 ? currentPrice : minBid;
-        setBidAmount(basePrice + increment);
+        setBidAmount(effectiveHighest + increment);
     };
 
     const handleBid = async () => {
         if (bidAmount < minBid) {
-            setError(`出價金額需 ≥ $${minBid}`);
+            setError(`出價金額需 ≥ $${minBid.toLocaleString()}`);
             return;
         }
 
@@ -60,7 +78,7 @@ export default function BidButton({ auctionId, minBid, minIncrement, currentPric
             setSuccess("出價成功！");
             router.refresh();
 
-            // 更新最低出價金額
+            // 更新為下一個最低出價金額
             setBidAmount(bidAmount + minIncrement);
         } catch (err) {
             setError(err instanceof Error ? err.message : "出價失敗");
@@ -86,22 +104,22 @@ export default function BidButton({ auctionId, minBid, minIncrement, currentPric
             {/* 快速加價按鈕 */}
             <div className="flex gap-2">
                 <button
-                    onClick={() => handleQuickBid(100)}
+                    onClick={() => handleQuickBid(minIncrement)}
                     className="flex-1 rounded-lg border border-white/20 bg-white/10 py-2 text-sm font-medium text-white/90 transition hover:bg-white/20"
                 >
-                    +$100
+                    +${minIncrement}
                 </button>
                 <button
-                    onClick={() => handleQuickBid(500)}
+                    onClick={() => handleQuickBid(minIncrement * 2)}
                     className="flex-1 rounded-lg border border-white/20 bg-white/10 py-2 text-sm font-medium text-white/90 transition hover:bg-white/20"
                 >
-                    +$500
+                    +${minIncrement * 2}
                 </button>
                 <button
-                    onClick={() => handleQuickBid(1000)}
+                    onClick={() => handleQuickBid(minIncrement * 5)}
                     className="flex-1 rounded-lg border border-white/20 bg-white/10 py-2 text-sm font-medium text-white/90 transition hover:bg-white/20"
                 >
-                    +$1000
+                    +${minIncrement * 5}
                 </button>
             </div>
 
@@ -121,6 +139,9 @@ export default function BidButton({ auctionId, minBid, minIncrement, currentPric
 
             <p className="text-center text-xs text-white/50">
                 最低出價: ${minBid.toLocaleString()}
+                {simulatedHighest > currentPrice && (
+                    <span className="text-purple-300"> (含模擬出價)</span>
+                )}
             </p>
 
             {/* 出價按鈕 */}

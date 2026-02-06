@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/auth";
-import BidButton from "./BidButton";
 import { AuctionPageClient } from "./AuctionPageClient";
 
 type AuctionPageProps = {
@@ -59,9 +58,6 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
 
     const imageUrl = auction.image_url || auction.distributions?.pokemon_sprite_url;
     const isEnded = new Date(auction.end_time) < new Date() || auction.status === 'ended';
-    const minBid = auction.current_price > 0
-        ? auction.current_price + auction.min_increment
-        : auction.starting_price;
 
     // 傳遞給 Client Component 的資料
     const clientProps = {
@@ -196,12 +192,8 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                                 競標尚未開始
                             </div>
                         ) : (
-                            <BidButton
-                                auctionId={params.id}
-                                minBid={minBid}
-                                minIncrement={auction.min_increment}
-                                currentPrice={auction.current_price}
-                            />
+                            /* BidButton 由 AuctionPageClient Portal 渲染以獲取模擬最高價 */
+                            <div id="bid-button-slot" />
                         )}
 
                         {/* 結束時間 */}

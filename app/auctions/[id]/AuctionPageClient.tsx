@@ -10,6 +10,7 @@ import {
 } from "./BidHistoryWithSimulation";
 import { AuctionSidebarActivity } from "./AuctionActivityWrapper";
 import { SimulatedViewers, SimulatedBidToast } from "@/components/SimulatedActivity";
+import BidButton from "./BidButton";
 
 // 浮動在線人數元件（使用統一的 ViewerContext）
 function FloatingViewerCount() {
@@ -85,6 +86,7 @@ export function AuctionPageClient({
     const bidHistorySlot = mounted ? document.getElementById('bid-history-slot') : null;
     const highestPriceSlot = mounted ? document.getElementById('highest-price-slot') : null;
     const sidebarSlot = mounted ? document.getElementById('sidebar-activity-slot') : null;
+    const bidButtonSlot = mounted ? document.getElementById('bid-button-slot') : null;
 
     return (
         <ViewerProvider
@@ -147,6 +149,18 @@ export function AuctionPageClient({
                     isActive={isActive}
                 />,
                 sidebarSlot
+            )}
+
+            {/* 出價按鈕 Portal（傳遞模擬最高價） */}
+            {bidButtonSlot && isActive && createPortal(
+                <BidButton
+                    auctionId={auctionId}
+                    minIncrement={minIncrement}
+                    currentPrice={realCurrentPrice}
+                    startingPrice={startingPrice}
+                    simulatedHighest={displayHighest}
+                />,
+                bidButtonSlot
             )}
         </ViewerProvider>
     );
