@@ -87,7 +87,7 @@ export function SimulatedViewerJoinToast() {
                     <span className="text-xl">🔔</span>
                     <div>
                         <p className="text-sm font-medium text-white/90">
-                            {toast.name} 進入了競標
+                            {toast.name} 加入觀看
                         </p>
                         <p className="text-xs text-white/50">剛剛</p>
                     </div>
