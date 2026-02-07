@@ -11,7 +11,7 @@ export default async function AuctionsPage() {
         .from('auctions')
         .select('*, distributions(pokemon_name, pokemon_name_en, image_url)')
         .in('status', ['active', 'ended'])
-        .order('end_time', { ascending: true });
+        .order('created_at', { ascending: false });
 
     const activeAuctions = auctions?.filter(a => a.status === 'active') || [];
     const endedAuctions = auctions?.filter(a => a.status === 'ended') || [];

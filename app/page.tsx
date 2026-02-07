@@ -14,7 +14,7 @@ async function HotAuctionsSection() {
     .from('auctions')
     .select('*, distributions(pokemon_name, pokemon_name_en, pokemon_sprite_url)')
     .eq('status', 'active')
-    .order('bid_count', { ascending: false })
+    .order('created_at', { ascending: false })
     .limit(4);
 
   if (!auctions || auctions.length === 0) return null;
