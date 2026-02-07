@@ -9,8 +9,6 @@ const FAKE_NAMES = [
     "會員#0892", "會員#1203", "會員#0567", "會員#0341", "會員#0789",
 ];
 
-// 模擬出價金額增量
-const BID_INCREMENTS = [100, 100, 100, 200, 500, 500, 1000];
 
 export function SimulatedViewers({
     baseViewers = 8,
