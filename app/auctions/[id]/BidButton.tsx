@@ -140,7 +140,7 @@ export default function BidButton({
             <p className="text-center text-xs text-white/50">
                 最低出價: ${minBid.toLocaleString()}
                 {simulatedHighest > currentPrice && (
-                    <span className="text-purple-300"> (含模擬出價)</span>
+                    <span className="text-purple-300"> (目前點數不可用)</span>
                 )}
             </p>
 
