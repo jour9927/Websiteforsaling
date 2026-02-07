@@ -92,20 +92,20 @@ const SIMULATED_INTERACTIONS = [
     (targetName: string) => `@${targetName} 你收了嗎`,
 ];
 
-// 心理學吸引人的回覆（對真實用戶 - 只回一次，引發好奇）
-const PSYCHOLOGY_REPLIES = [
-    (name: string) => `@${name} 什麼意思？`,
-    (name: string) => `@${name} 你說的是指...？`,
-    (name: string) => `@${name} 真的嗎？`,
-    (name: string) => `@${name} 有道理欸`,
-    (name: string) => `@${name} 我也這樣想`,
-    (name: string) => `@${name} 所以呢？`,
-    (name: string) => `@${name} 認真？`,
-    (name: string) => `@${name} 為什麼這樣說`,
-    (name: string) => `@${name} 然後呢`,
-    (name: string) => `@${name} 怎麼說？`,
-    (name: string) => `@${name} 再說一次？`,
-    (name: string) => `@${name} 展開講講`,
+// 通用回覆（對真實用戶 - 只回一次，適合任何留言）
+const GENERIC_REPLIES = [
+    (name: string) => `@${name} 嗨嗨 👋`,
+    (name: string) => `@${name} 你好啊`,
+    (name: string) => `@${name} 歡迎！`,
+    (name: string) => `@${name} 哈囉～`,
+    (name: string) => `@${name} 😄`,
+    (name: string) => `@${name} 加油！`,
+    (name: string) => `@${name} 一起看！`,
+    (name: string) => `@${name} 🔥`,
+    (name: string) => `@${name} 也來競標嗎`,
+    (name: string) => `@${name} 這隻不錯吧`,
+    (name: string) => `@${name} 收藏家？`,
+    (name: string) => `@${name} 👀`,
 ];
 
 interface Comment {
@@ -324,7 +324,7 @@ export default function AuctionComments({
         // 延遲 10-15 秒後回覆
         setTimeout(() => {
             const replyUser = virtualProfilesRef.current[Math.floor(Math.random() * virtualProfilesRef.current.length)];
-            const replyTemplate = PSYCHOLOGY_REPLIES[Math.floor(Math.random() * PSYCHOLOGY_REPLIES.length)];
+            const replyTemplate = GENERIC_REPLIES[Math.floor(Math.random() * GENERIC_REPLIES.length)];
             const newReply: Comment = {
                 id: `reply-${Date.now()}`,
                 user_name: replyUser?.display_name || '會員**',
