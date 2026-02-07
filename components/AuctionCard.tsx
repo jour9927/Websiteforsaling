@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import type { Route } from "next";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { getEstimatedBidCount } from "@/lib/simulatedBidCount";
 
 type Auction = {
     id: string;
@@ -11,6 +12,7 @@ type Auction = {
     image_url: string | null;
     starting_price: number;
     current_price: number;
+    start_time?: string;
     end_time: string;
     status: 'active' | 'ended';
     bid_count: number;
@@ -28,10 +30,12 @@ type AuctionCardProps = {
 export default function AuctionCard({ auction }: AuctionCardProps) {
     const [remainingTime, setRemainingTime] = useState("");
     const [isEnded, setIsEnded] = useState(auction.status === 'ended');
+    const [currentTime, setCurrentTime] = useState(new Date());
 
     useEffect(() => {
         const updateTime = () => {
             const now = new Date();
+            setCurrentTime(now);
             const end = new Date(auction.end_time);
             const diff = end.getTime() - now.getTime();
 
@@ -59,6 +63,20 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
         const interval = setInterval(updateTime, 1000);
         return () => clearInterval(interval);
     }, [auction.end_time]);
+
+    // 計算估算的出價數（真實 + 模擬）
+    const estimatedBidCount = useMemo(() => {
+        if (!auction.start_time) return auction.bid_count;
+
+        const simulatedCount = getEstimatedBidCount({
+            auctionId: auction.id,
+            startTime: auction.start_time,
+            endTime: auction.end_time,
+            currentTime: isEnded ? new Date(auction.end_time) : currentTime
+        });
+
+        return auction.bid_count + simulatedCount;
+    }, [auction.id, auction.start_time, auction.end_time, auction.bid_count, currentTime, isEnded]);
 
     const imageUrl = auction.image_url || auction.distributions?.pokemon_sprite_url;
     const currentHighest = auction.current_price > 0 ? auction.current_price : auction.starting_price;
@@ -123,7 +141,7 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
 
                 {/* 底部資訊 */}
                 <div className="mt-auto flex items-center justify-between text-xs text-white/60">
-                    <span>🔥 {auction.bid_count} 次出價</span>
+                    <span>🔥 {estimatedBidCount} 次出價</span>
                     <span className={`font-medium ${isEnded ? 'text-gray-400' : 'text-orange-300'}`}>
                         ⏱ {remainingTime}
                     </span>
