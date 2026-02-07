@@ -227,9 +227,15 @@ export function PersonalSpaceContent({
         return Math.abs(hash);
     };
 
-    // 加入日期讓每天產生不同結果
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-    const userHash = hashCode(user.id + today);
+    // 加入日期讓每天產生不同結果（以上午 11:00 為分界點）
+    const now = new Date();
+    // 如果現在時間早於 11:00，就用昨天的日期
+    const adjustedDate = new Date(now);
+    if (now.getHours() < 11) {
+        adjustedDate.setDate(adjustedDate.getDate() - 1);
+    }
+    const todayKey = adjustedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    const userHash = hashCode(user.id + todayKey);
 
     // 生成虛擬訪客（2-5 位）
     const virtualVisitorCount = 2 + (userHash % 4);
