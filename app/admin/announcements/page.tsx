@@ -37,7 +37,7 @@ export default function AdminAnnouncementsPage() {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      
+
       setAnnouncements(data || []);
     } catch (err) {
       setError(err instanceof Error ? err.message : '載入失敗');
@@ -64,21 +64,21 @@ export default function AdminAnnouncementsPage() {
       }
 
       console.log('當前使用者:', user.id);
-      
+
       // 檢查使用者是否為管理員
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
-      
+
       if (profileError) {
         console.error('取得身份錯誤:', profileError);
         throw new Error(`取得身份失敗: ${profileError.message}`);
       }
-      
+
       console.log('使用者身份:', profile);
-      
+
       if (profile?.role !== 'admin') {
         throw new Error('只有管理員可以建立公告');
       }
@@ -86,10 +86,11 @@ export default function AdminAnnouncementsPage() {
       const insertData = {
         title: formData.title,
         content: formData.content,
+        status: formData.published_at ? 'scheduled' : 'published',
         published_at: formData.published_at || null,
         created_by: user.id
       };
-      
+
       console.log('準備插入資料:', insertData);
 
       const { data, error } = await supabase
@@ -101,7 +102,7 @@ export default function AdminAnnouncementsPage() {
         console.error('插入錯誤:', error);
         throw new Error(`插入失敗: ${error.message} (code: ${error.code})`);
       }
-      
+
       console.log('插入成功:', data);
 
       setSuccess("公告建立成功！");
@@ -163,37 +164,37 @@ export default function AdminAnnouncementsPage() {
         <form onSubmit={handleSubmit} className="mt-4 grid gap-4 md:grid-cols-2">
           <label className="flex flex-col gap-2 text-xs text-white/70">
             公告標題 *
-            <input 
+            <input
               value={formData.title}
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               required
-              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none" 
-              placeholder="輸入公告標題" 
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+              placeholder="輸入公告標題"
             />
           </label>
           <label className="flex flex-col gap-2 text-xs text-white/70">
             發布排程
-            <input 
-              type="datetime-local" 
+            <input
+              type="datetime-local"
               value={formData.published_at}
-              onChange={(e) => setFormData({...formData, published_at: e.target.value})}
-              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none" 
+              onChange={(e) => setFormData({ ...formData, published_at: e.target.value })}
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
             />
           </label>
           <label className="flex flex-col gap-2 text-xs text-white/70 md:col-span-2">
             公告內容 *
-            <textarea 
-              rows={6} 
+            <textarea
+              rows={6}
               value={formData.content}
-              onChange={(e) => setFormData({...formData, content: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
               required
-              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none" 
-              placeholder="可使用 Markdown 撰寫公告內容" 
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+              placeholder="可使用 Markdown 撰寫公告內容"
             />
           </label>
           <div className="flex gap-3 md:col-span-2">
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={saving}
               className="rounded-xl bg-white/20 px-4 py-2 text-sm font-semibold text-white/90 transition hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -205,7 +206,7 @@ export default function AdminAnnouncementsPage() {
 
       <article className="glass-card p-6">
         <h2 className="text-lg font-semibold text-white/90">公告清單</h2>
-        
+
         {loading ? (
           <div className="mt-4 text-center text-white/60">載入中...</div>
         ) : announcements.length === 0 ? (
@@ -237,7 +238,7 @@ export default function AdminAnnouncementsPage() {
                           編輯
                         </Link>
                         <span className="text-white/40">|</span>
-                        <button 
+                        <button
                           onClick={() => handleDelete(item.id)}
                           className="text-red-300 hover:text-red-200"
                         >
