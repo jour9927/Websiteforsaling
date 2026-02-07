@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/auth";
 import { AuctionPageClient } from "./AuctionPageClient";
+import { getEstimatedBidCount } from "@/lib/simulatedBidCount";
 
 type AuctionPageProps = {
     params: { id: string };
@@ -167,7 +168,14 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-white/60">出價次數</span>
-                                <span className="text-white/90">{auction.bid_count} 次</span>
+                                <span className="text-white/90">
+                                    {auction.bid_count + getEstimatedBidCount({
+                                        auctionId: auction.id,
+                                        startTime: auction.start_time || new Date(new Date(auction.end_time).getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+                                        endTime: auction.end_time,
+                                        currentTime: auction.status === 'ended' ? new Date(auction.end_time) : new Date()
+                                    })} 次
+                                </span>
                             </div>
                         </div>
 
