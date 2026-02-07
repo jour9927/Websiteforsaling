@@ -273,6 +273,12 @@ export function PersonalSpaceContent({
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
+    // 虛擬瀏覽量統計（加到真實數據上）
+    const virtualTotalViews = 50 + (userHash % 150); // 50-199
+    const virtualTodayViews = 2 + (userHash % 8); // 2-9
+    const displayTotalViews = (profile?.total_views || 0) + virtualTotalViews;
+    const displayTodayViews = (profile?.today_views || 0) + virtualTodayViews;
+
     // 處理願望清單排序
     const handleWishlistDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
@@ -477,11 +483,11 @@ export function PersonalSpaceContent({
                             {/* 統計卡片 */}
                             <div className="grid grid-cols-2 gap-3 mb-4">
                                 <div className="rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 p-3 text-center">
-                                    <p className="text-2xl font-bold text-blue-400">{profile?.total_views || 0}</p>
+                                    <p className="text-2xl font-bold text-blue-400">{displayTotalViews}</p>
                                     <p className="text-xs text-white/50 mt-1">👁️ 歷史總瀏覽量</p>
                                 </div>
                                 <div className="rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 p-3 text-center">
-                                    <p className="text-2xl font-bold text-green-400">{profile?.today_views || 0}</p>
+                                    <p className="text-2xl font-bold text-green-400">{displayTodayViews}</p>
                                     <p className="text-xs text-white/50 mt-1">✨ 今日訪問</p>
                                 </div>
                             </div>
