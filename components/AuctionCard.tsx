@@ -66,11 +66,13 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
 
     // 計算估算的出價數（真實 + 模擬）
     const estimatedBidCount = useMemo(() => {
-        if (!auction.start_time) return auction.bid_count;
+        // 如果沒有 start_time，用 end_time 減去 7 天作為預設開始時間
+        const effectiveStartTime = auction.start_time ||
+            new Date(new Date(auction.end_time).getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
         const simulatedCount = getEstimatedBidCount({
             auctionId: auction.id,
-            startTime: auction.start_time,
+            startTime: effectiveStartTime,
             endTime: auction.end_time,
             currentTime: isEnded ? new Date(auction.end_time) : currentTime
         });
