@@ -1,11 +1,28 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { loadVirtualProfiles, VirtualProfile } from '@/lib/virtualProfiles';
 import Link from 'next/link';
 
-// 競標相關留言（更像真實用戶）
+// 種子隨機數生成器（基於字串生成一致的隨機序列）
+function createSeededRandom(seed: string) {
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+        const char = seed.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+
+    return function () {
+        hash = Math.imul(hash ^ (hash >>> 16), 2246822507);
+        hash = Math.imul(hash ^ (hash >>> 13), 3266489909);
+        hash ^= hash >>> 16;
+        return (hash >>> 0) / 4294967296;
+    };
+}
+
+// 競標相關留言（擴充到 30+ 句）
 const AUCTION_COMMENTS = [
     "這隻好難得！",
     "競標好刺激 🔥",
@@ -22,9 +39,24 @@ const AUCTION_COMMENTS = [
     "是我想要的配布！",
     "關注中 👀",
     "剛剛有人出價嗎",
+    "這價格很佛",
+    "再觀望一下",
+    "快結束了！",
+    "這隻超稀有",
+    "值得收藏",
+    "好想要啊",
+    "先卡位",
+    "等結標",
+    "這隻終於出現了",
+    "夢寐以求的配布",
+    "收藏價值很高",
+    "加油加油",
+    "緊張刺激",
+    "最後衝刺！",
+    "拜託讓我",
 ];
 
-// 網站/活動相關留言
+// 網站/活動相關留言（擴充到 20+ 句）
 const SITE_COMMENTS = [
     "最近活動好多",
     "新功能好方便",
@@ -36,6 +68,16 @@ const SITE_COMMENTS = [
     "剛加入這個群",
     "現在競標場超熱鬧",
     "大家晚安",
+    "大家好",
+    "今天運氣好嗎",
+    "有推薦的嗎",
+    "這平台不錯欸",
+    "介面很漂亮",
+    "第一次來",
+    "這裡好多寶物",
+    "收藏控報到",
+    "每天都要來看看",
+    "通知響了馬上來",
 ];
 
 // 模擬用戶相互 @ 對話（讓氛圍更真實）
@@ -46,6 +88,8 @@ const SIMULATED_INTERACTIONS = [
     (targetName: string) => `@${targetName} 加油`,
     (targetName: string) => `@${targetName} 哈哈 你也來了`,
     (targetName: string) => `@${targetName} 等下要出嗎`,
+    (targetName: string) => `@${targetName} 好久不見`,
+    (targetName: string) => `@${targetName} 你收了嗎`,
 ];
 
 // 心理學吸引人的回覆（對真實用戶 - 只回一次，引發好奇）
@@ -168,7 +212,18 @@ export default function AuctionComments({
     useEffect(() => {
         if (!isActive) return;
 
-        // 從不同池子選擇留言
+        // 建立基於競標ID + 日期的種子隨機
+        const today = new Date().toISOString().split('T')[0];
+        const seededRandom = createSeededRandom(`${auctionId}-${today}`);
+
+        // 使用種子隨機選擇留言（初始留言固定）
+        const getSeededComment = () => {
+            const useAuction = seededRandom() > 0.3;
+            const pool = useAuction ? AUCTION_COMMENTS : SITE_COMMENTS;
+            return pool[Math.floor(seededRandom() * pool.length)];
+        };
+
+        // 使用真隨機選擇留言（動態留言）
         const getRandomComment = () => {
             const pool = Math.random() > 0.3 ? AUCTION_COMMENTS : SITE_COMMENTS;
             return pool[Math.floor(Math.random() * pool.length)];
@@ -181,9 +236,11 @@ export default function AuctionComments({
 
             if (profiles.length === 0) return;
 
-            // 初始化 2 則模擬留言
-            const user1 = profiles[Math.floor(Math.random() * profiles.length)];
-            const user2 = profiles[Math.floor(Math.random() * profiles.length)];
+            // 使用種子隨機選擇初始用戶（固定）
+            const userIndex1 = Math.floor(seededRandom() * profiles.length);
+            const userIndex2 = Math.floor(seededRandom() * profiles.length);
+            const user1 = profiles[userIndex1];
+            const user2 = profiles[userIndex2 === userIndex1 ? (userIndex2 + 1) % profiles.length : userIndex2];
 
             activeSimUsersRef.current = [user1, user2];
 
@@ -192,7 +249,7 @@ export default function AuctionComments({
                     id: 'sim-1',
                     user_name: user1.display_name,
                     virtual_user_id: user1.id,
-                    content: getRandomComment(),
+                    content: getSeededComment(),
                     created_at: new Date(Date.now() - 120000).toISOString(),
                     is_simulated: true
                 },
@@ -200,7 +257,7 @@ export default function AuctionComments({
                     id: 'sim-2',
                     user_name: user2.display_name,
                     virtual_user_id: user2.id,
-                    content: getRandomComment(),
+                    content: getSeededComment(),
                     created_at: new Date(Date.now() - 60000).toISOString(),
                     is_simulated: true
                 }
