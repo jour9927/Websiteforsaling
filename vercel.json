@@ -1,0 +1,8 @@
+{
+    "crons": [
+        {
+            "path": "/api/cron/virtual-visits",
+            "schedule": "0 11 * * *"
+        }
+    ]
+}
