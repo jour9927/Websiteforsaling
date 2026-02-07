@@ -135,7 +135,7 @@ export function NotificationBell({ isAuthenticated }: NotificationBellProps) {
 
             {/* 下拉選單 */}
             {isOpen && (
-                <div className="absolute right-0 top-full mt-2 w-72 origin-top-right rounded-xl border border-white/10 bg-midnight-900/95 p-3 shadow-xl backdrop-blur animate-fadeIn">
+                <div className="absolute left-0 top-full mt-2 w-72 origin-top-left rounded-xl border border-white/10 bg-midnight-900/95 p-3 shadow-xl backdrop-blur animate-fadeIn z-50">
                     <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
                         <span className="text-xs font-semibold text-white/80">通知</span>
                         {unreadCount > 0 && (
