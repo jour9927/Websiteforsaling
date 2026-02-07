@@ -52,7 +52,7 @@ export function SimulatedViewerJoinToast() {
     const [toasts, setToasts] = useState<{ id: number; name: string }[]>([]);
 
     useEffect(() => {
-        // 每 20-50 秒產生一個進入通知
+        // 每 15-45 秒產生一個進入通知
         const generateToast = () => {
             const name = FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)];
 
@@ -65,14 +65,14 @@ export function SimulatedViewerJoinToast() {
             }, 4000);
         };
 
-        // 初始延遲 8-15 秒
+        // 初始延遲 10-20 秒
         const initialDelay = setTimeout(() => {
             generateToast();
 
-            // 之後每 20-50 秒產生一個
-            const interval = setInterval(generateToast, 20000 + Math.random() * 30000);
+            // 之後每 15-45 秒產生一個
+            const interval = setInterval(generateToast, 15000 + Math.random() * 30000);
             return () => clearInterval(interval);
-        }, 8000 + Math.random() * 7000);
+        }, 10000 + Math.random() * 10000);
 
         return () => clearTimeout(initialDelay);
     }, []);
@@ -84,7 +84,7 @@ export function SimulatedViewerJoinToast() {
                     key={toast.id}
                     className="animate-slide-in-right glass-card flex items-center gap-3 px-4 py-3 shadow-lg border border-green-500/30"
                 >
-                    <span className="text-xl">👋</span>
+                    <span className="text-xl">🔔</span>
                     <div>
                         <p className="text-sm font-medium text-white/90">
                             {toast.name} 進入了競標
