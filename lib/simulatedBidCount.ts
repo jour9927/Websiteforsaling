@@ -1,6 +1,6 @@
 /**
  * 確定性出價計數工具函數
- * 使用與詳情頁相同的種子算法計算模擬出價數
+ * 使用簡化的數學公式計算模擬出價數
  */
 
 // 確定性隨機數生成器（基於種子）
@@ -18,7 +18,7 @@ interface EstimateBidCountParams {
 
 /**
  * 根據競標 ID 和時間計算確定性的模擬出價數量
- * 這個函數與 useSimulatedBids hook 使用相同的算法
+ * 使用簡化的數學公式，避免 while loop
  */
 export function getEstimatedBidCount({
     auctionId,
@@ -29,7 +29,7 @@ export function getEstimatedBidCount({
     const start = new Date(startTime);
     const end = new Date(endTime);
     const totalDuration = end.getTime() - start.getTime();
-    const elapsedTime = currentTime.getTime() - start.getTime();
+    const elapsedTime = Math.min(currentTime.getTime(), end.getTime()) - start.getTime();
 
     if (elapsedTime < 0 || totalDuration <= 0) return 0;
 
@@ -42,35 +42,13 @@ export function getEstimatedBidCount({
     // 根據種子決定這個競標的最大出價數（20-50 筆）
     const maxBids = 20 + Math.floor(seededRandom(seed * 7) * 31);
 
-    let bidCount = 0;
-    let bidTime = start.getTime() + 10000 + seededRandom(seed) * 20000; // 初始延遲 10-30 秒
-    let bidIndex = 0;
+    // 簡化計算：根據已經過時間的比例來決定出價數
+    const progress = Math.min(elapsedTime / totalDuration, 1);
 
-    // 計算到當前時間為止的出價數量
-    // 在結束前 30 秒停止
-    const stopTime = Math.min(currentTime.getTime(), end.getTime() - 30000);
+    // 用對數函數讓早期出價更密集，後期趨緩
+    const bidCount = Math.floor(maxBids * Math.pow(progress, 0.7));
 
-    while (bidTime < stopTime && bidIndex < maxBids) {
-        const thisSeed = seed + bidIndex * 1000;
-        bidCount++;
-
-        // 計算下次出價時間
-        const remainingTime = end.getTime() - bidTime;
-        let interval: number;
-
-        if (remainingTime < 120000) {
-            // 最後 2 分鐘：8-15 秒
-            interval = 8000 + seededRandom(thisSeed + 3) * 7000;
-        } else {
-            // 正常時間：根據種子決定間隔長度（讓有些競標更熱門）
-            const baseInterval = 15000 + seededRandom(seed * 3) * 20000; // 15-35 秒基底
-            interval = baseInterval + seededRandom(thisSeed + 3) * 15000;
-        }
-
-        bidTime += interval;
-        bidIndex++;
-    }
-
-    return bidCount;
+    return Math.min(bidCount, maxBids);
 }
+
 
