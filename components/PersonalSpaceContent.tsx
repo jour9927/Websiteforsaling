@@ -217,7 +217,7 @@ export function PersonalSpaceContent({
         "期待你的新增收藏 👀",
     ];
 
-    // 使用用戶 ID 生成確定性的隨機數（保證每次刷新結果一致）
+    // 使用「用戶 ID + 日期」生成確定性的隨機數（每天變化，但同一天內一致）
     const hashCode = (str: string) => {
         let hash = 0;
         for (let i = 0; i < str.length; i++) {
@@ -227,7 +227,9 @@ export function PersonalSpaceContent({
         return Math.abs(hash);
     };
 
-    const userHash = hashCode(user.id);
+    // 加入日期讓每天產生不同結果
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const userHash = hashCode(user.id + today);
 
     // 生成虛擬訪客（2-5 位）
     const virtualVisitorCount = 2 + (userHash % 4);
