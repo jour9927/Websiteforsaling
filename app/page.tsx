@@ -35,10 +35,10 @@ async function HotAuctionsSection() {
       </div>
       {/* 橫向滑動容器 - 帶漸層遮罩 */}
       <div className="relative">
-        {/* 左側漸層遮罩 */}
-        <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white/10 to-transparent z-10 pointer-events-none rounded-l-lg" />
-        {/* 右側漸層遮罩 */}
-        <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white/10 to-transparent z-10 pointer-events-none rounded-r-lg" />
+        {/* 左側漸層遮罩 - 深色淡出 */}
+        <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-slate-900/80 to-transparent z-10 pointer-events-none" />
+        {/* 右側漸層遮罩 - 深色淡出 */}
+        <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-slate-900/80 to-transparent z-10 pointer-events-none" />
 
         <div className="flex gap-4 overflow-x-auto overflow-y-visible pb-4 pt-2 snap-x snap-mandatory scrollbar-hide px-4">
           {auctions.map((auction) => (
