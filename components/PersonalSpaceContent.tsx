@@ -193,6 +193,84 @@ export function PersonalSpaceContent({
         })
     );
 
+    // ===== 虛擬互動系統 =====
+    // 虛擬用戶名稱池
+    const VIRTUAL_NAMES = [
+        "王**", "李**", "陳**", "林**", "張**", "黃**", "劉**", "楊**",
+        "P***", "S***", "M***", "T***", "A***", "K***",
+        "小**", "大**", "阿**"
+    ];
+
+    // 虛擬留言池
+    const VIRTUAL_COMMENTS = [
+        "收藏好漂亮！🌟",
+        "大佬帶帶我 🙏",
+        "什麼時候再上新的？",
+        "好羨慕你的收藏",
+        "這個配布我也有！",
+        "可以交流一下嗎？",
+        "新手報到！學習中 📚",
+        "你的願望清單我都想要 😂",
+        "收藏家 respect 🫡",
+        "路過留言～",
+        "太強了吧這收藏！",
+        "期待你的新增收藏 👀",
+    ];
+
+    // 使用用戶 ID 生成確定性的隨機數（保證每次刷新結果一致）
+    const hashCode = (str: string) => {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+            hash |= 0;
+        }
+        return Math.abs(hash);
+    };
+
+    const userHash = hashCode(user.id);
+
+    // 生成虛擬訪客（2-5 位）
+    const virtualVisitorCount = 2 + (userHash % 4);
+    const virtualVisitors = Array.from({ length: virtualVisitorCount }, (_, i) => {
+        const nameIndex = (userHash + i * 7) % VIRTUAL_NAMES.length;
+        const virtualId = `virtual-${userHash}-${i}`;
+        return {
+            id: virtualId,
+            full_name: VIRTUAL_NAMES[nameIndex],
+            username: null,
+            isVirtual: true,
+        };
+    });
+
+    // 生成虛擬留言（1-3 則）
+    const virtualCommentCount = 1 + (userHash % 3);
+    const virtualComments = Array.from({ length: virtualCommentCount }, (_, i) => {
+        const nameIndex = (userHash + i * 11) % VIRTUAL_NAMES.length;
+        const commentIndex = (userHash + i * 13) % VIRTUAL_COMMENTS.length;
+        const daysAgo = (userHash + i * 5) % 14 + 1; // 1-14 天前
+        const createdDate = new Date();
+        createdDate.setDate(createdDate.getDate() - daysAgo);
+
+        return {
+            id: `virtual-comment-${userHash}-${i}`,
+            content: VIRTUAL_COMMENTS[commentIndex],
+            created_at: createdDate.toISOString(),
+            commenter: {
+                id: `virtual-${userHash}-${i}`,
+                full_name: VIRTUAL_NAMES[nameIndex],
+            },
+            isVirtual: true,
+        };
+    });
+
+    // 合併真實和虛擬訪客
+    const allVisitors = [...recentVisitors, ...virtualVisitors];
+
+    // 合併真實和虛擬留言，按時間排序（新的在前）
+    const allComments = [...comments, ...virtualComments].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
     // 處理願望清單排序
     const handleWishlistDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
@@ -407,28 +485,29 @@ export function PersonalSpaceContent({
                             </div>
 
                             {/* 今天有誰看過你 */}
-                            {recentVisitors.length > 0 ? (
+                            {allVisitors.length > 0 ? (
                                 <div className="rounded-xl bg-white/5 p-3">
                                     <p className="text-sm font-medium text-white/80 mb-2">👀 今天有誰看過你</p>
                                     <div className="flex items-center gap-2">
                                         <div className="flex -space-x-2 flex-1">
-                                            {recentVisitors.slice(0, 6).map((visitor) => (
+                                            {allVisitors.slice(0, 6).map((visitor: { id: string; full_name?: string | null; username?: string | null; isVirtual?: boolean }) => (
                                                 <Link
                                                     key={visitor.id}
-                                                    href={`/user/${visitor.username || visitor.id}`}
+                                                    href={visitor.isVirtual ? "#" : `/user/${visitor.username || visitor.id}`}
                                                     className="relative h-9 w-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white ring-2 ring-slate-800 transition hover:scale-110 hover:z-10"
                                                     title={visitor.full_name || "訪客"}
+                                                    onClick={(e) => visitor.isVirtual && e.preventDefault()}
                                                 >
                                                     {(visitor.full_name || "?").slice(0, 1).toUpperCase()}
                                                 </Link>
                                             ))}
-                                            {recentVisitors.length > 6 && (
+                                            {allVisitors.length > 6 && (
                                                 <div className="relative h-9 w-9 rounded-full bg-white/20 flex items-center justify-center text-xs font-medium text-white ring-2 ring-slate-800">
-                                                    +{recentVisitors.length - 6}
+                                                    +{allVisitors.length - 6}
                                                 </div>
                                             )}
                                         </div>
-                                        <span className="text-xs text-white/40 whitespace-nowrap">共 {recentVisitors.length} 人</span>
+                                        <span className="text-xs text-white/40 whitespace-nowrap">共 {allVisitors.length} 人</span>
                                     </div>
                                 </div>
                             ) : (
@@ -542,10 +621,11 @@ export function PersonalSpaceContent({
                 </div>
 
                 {/* 留言列表 */}
-                {comments.length > 0 ? (
+                {allComments.length > 0 ? (
                     <div className="space-y-3">
-                        {comments.map((comment) => {
-                            const canDelete = currentUserId === comment.commenter?.id || isOwnProfile;
+                        {allComments.map((comment: { id: string; content: string; created_at: string; commenter?: { id: string; full_name?: string | null } | null; isVirtual?: boolean }) => {
+                            const isVirtualComment = comment.isVirtual;
+                            const canDelete = !isVirtualComment && (currentUserId === comment.commenter?.id || isOwnProfile);
                             return (
                                 <div key={comment.id} className="flex gap-3 rounded-lg bg-white/5 p-3">
                                     {/* 頭像 */}

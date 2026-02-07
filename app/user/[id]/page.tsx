@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { PersonalSpaceContent } from "@/components/PersonalSpaceContent";
 import Link from "next/link";
+import Image from "next/image";
 
 export const dynamic = "force-dynamic";
 
@@ -14,66 +15,217 @@ function isUUID(str: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 }
 
-// 虛擬用戶頁面元件
-function VirtualUserPage({ profile }: {
+// 虛擬用戶完整頁面元件（與真實用戶一樣豐富）
+function VirtualUserPage({ profile, featuredEvents }: {
     profile: {
         display_name: string;
         member_since: string;
         collection_count: number;
         bid_count: number;
         avatar_seed: string;
-    }
+        bio?: string;
+        pokemon_first_game?: string;
+        total_value?: number;
+        total_views?: number;
+        today_views?: number;
+    };
+    featuredEvents: Array<{
+        id: string;
+        title: string;
+        image_url: string | null;
+        visual_card_url: string | null;
+    }>;
 }) {
+    // 假的願望清單
+    const fakeWishlists = featuredEvents.slice(0, 3).map((event, index) => ({
+        id: `wish-${index}`,
+        title: event.title,
+        image: event.visual_card_url || event.image_url,
+        note: ['超想要！', '夢寐以求', '求收'][index] || null
+    }));
+
+    // 假的留言
+    const fakeComments = [
+        { id: 'c1', name: '訪客A', content: '收藏好漂亮！', time: '2天前' },
+        { id: 'c2', name: '訪客B', content: '大佬帶帶我 🙏', time: '5天前' },
+        { id: 'c3', name: '路人C', content: '什麼時候再上新的？', time: '1週前' },
+    ];
+
     return (
-        <div className="glass-card max-w-lg mx-auto p-8 text-center space-y-6">
-            {/* 頭像 */}
-            <div className="flex justify-center">
-                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-amber-400/30 to-orange-500/30 text-3xl font-bold text-white/90 border-2 border-white/20">
-                    {profile.display_name.slice(0, 1)}
+        <div className="space-y-8">
+            {/* 個人資料卡 */}
+            <section className="glass-card p-6">
+                <div className="flex flex-col gap-6 md:flex-row md:items-start">
+                    {/* 頭像 */}
+                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-3xl font-bold text-white shadow-lg">
+                        {profile.display_name.slice(0, 2).toUpperCase()}
+                    </div>
+
+                    {/* 資訊 */}
+                    <div className="flex-1">
+                        <h1 className="text-2xl font-bold text-white">
+                            {profile.display_name}
+                        </h1>
+                        <p className="mt-1 text-sm text-white/60">會員</p>
+
+                        {profile.bio && (
+                            <p className="mt-3 text-sm text-white/80">{profile.bio}</p>
+                        )}
+
+                        <div className="mt-4 flex flex-wrap gap-4 text-sm">
+                            {profile.pokemon_first_game && (
+                                <div className="rounded-lg bg-white/10 px-3 py-2">
+                                    <span className="text-white/60">首玩遊戲</span>
+                                    <span className="ml-2 font-semibold text-amber-400">
+                                        {profile.pokemon_first_game}
+                                    </span>
+                                </div>
+                            )}
+                            <div className="rounded-lg bg-white/10 px-3 py-2">
+                                <span className="text-white/60">加入日期</span>
+                                <span className="ml-2 font-semibold text-white">
+                                    {new Date(profile.member_since).toLocaleDateString("zh-TW")}
+                                </span>
+                            </div>
+                            <div className="rounded-lg bg-white/10 px-3 py-2">
+                                <span className="text-white/60">收藏數量</span>
+                                <span className="ml-2 font-semibold text-green-400">{profile.collection_count}</span>
+                            </div>
+                            <div className="rounded-lg bg-white/10 px-3 py-2">
+                                <span className="text-white/60">資產估值</span>
+                                <span className="ml-2 font-semibold text-amber-400">
+                                    ${(profile.total_value || profile.collection_count * 150).toLocaleString()}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* 訪問統計 */}
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                                <div className="rounded-xl bg-gradient-to-br from-blue-500/10 to-cyan-500/10 p-3 text-center">
+                                    <p className="text-2xl font-bold text-blue-400">{profile.total_views || 87}</p>
+                                    <p className="text-xs text-white/50 mt-1">👁️ 歷史總瀏覽量</p>
+                                </div>
+                                <div className="rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/10 p-3 text-center">
+                                    <p className="text-2xl font-bold text-green-400">{profile.today_views || 3}</p>
+                                    <p className="text-xs text-white/50 mt-1">✨ 今日訪問</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
+            </section>
 
-            {/* 名稱 */}
-            <div>
-                <h1 className="text-2xl font-semibold text-white/90">{profile.display_name}</h1>
-                <p className="text-sm text-white/50 mt-1">會員</p>
-            </div>
+            {/* 精選收藏展示 */}
+            <section className="glass-card p-6">
+                <h2 className="mb-4 text-lg font-semibold text-white">🏆 精選收藏</h2>
+                {featuredEvents.length > 0 ? (
+                    <div className="grid grid-cols-5 gap-3 md:grid-cols-10">
+                        {featuredEvents.slice(0, 10).map((event, index) => {
+                            const imageUrl = event.visual_card_url || event.image_url;
+                            return (
+                                <div
+                                    key={event.id}
+                                    className="group relative aspect-square overflow-hidden rounded-lg bg-white/10"
+                                >
+                                    {imageUrl ? (
+                                        <Image
+                                            src={imageUrl}
+                                            alt={event.title || "收藏"}
+                                            fill
+                                            className="object-cover transition group-hover:scale-110"
+                                        />
+                                    ) : (
+                                        <div className="flex h-full items-center justify-center text-2xl">
+                                            🎴
+                                        </div>
+                                    )}
+                                    <div className="absolute left-1 top-1 rounded-full bg-black/50 px-1.5 text-xs text-white">
+                                        #{index + 1}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                ) : (
+                    <p className="text-center text-white/50">尚未有收藏</p>
+                )}
+            </section>
 
-            {/* 隱私提示 */}
-            <div className="rounded-xl bg-white/5 border border-white/10 p-4">
-                <p className="text-sm text-white/60">
-                    🔒 此會員已設為隱私模式
-                </p>
-            </div>
+            {/* 願望清單 */}
+            <section className="glass-card p-6">
+                <h2 className="mb-4 text-lg font-semibold text-white">💫 願望清單</h2>
+                {fakeWishlists.length > 0 ? (
+                    <div className="space-y-2">
+                        {fakeWishlists.map((wish) => (
+                            <div key={wish.id} className="flex items-center gap-3 rounded-lg bg-white/10 p-3">
+                                <div className="relative h-12 w-12 overflow-hidden rounded bg-white/10">
+                                    {wish.image ? (
+                                        <Image
+                                            src={wish.image}
+                                            alt={wish.title}
+                                            fill
+                                            className="object-cover"
+                                        />
+                                    ) : (
+                                        <div className="flex h-full items-center justify-center">🎴</div>
+                                    )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-white truncate">
+                                        {wish.title}
+                                    </p>
+                                    {wish.note && (
+                                        <p className="text-xs text-white/50 truncate">{wish.note}</p>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <p className="text-center text-white/50">尚未設定願望清單</p>
+                )}
+            </section>
 
-            {/* 基本資訊 */}
-            <div className="grid grid-cols-2 gap-4">
-                <div className="rounded-xl bg-white/5 p-4">
-                    <p className="text-xs text-white/50">加入日期</p>
-                    <p className="text-lg font-semibold text-white/80">
-                        {new Date(profile.member_since).toLocaleDateString('zh-TW', { year: 'numeric', month: 'short' })}
-                    </p>
+            {/* 留言區 */}
+            <section className="glass-card p-6">
+                <h2 className="mb-4 text-lg font-semibold text-white">💬 留言區</h2>
+
+                {/* 留言列表 */}
+                <div className="space-y-3">
+                    {fakeComments.map((comment) => (
+                        <div key={comment.id} className="flex gap-3 rounded-lg bg-white/5 p-3">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-sm font-bold text-white">
+                                {comment.name.slice(0, 1).toUpperCase()}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="text-sm font-medium text-white truncate">
+                                        {comment.name}
+                                    </span>
+                                    <span className="text-xs text-white/40 shrink-0">
+                                        {comment.time}
+                                    </span>
+                                </div>
+                                <p className="mt-1 text-sm text-white/80 break-words">{comment.content}</p>
+                            </div>
+                        </div>
+                    ))}
                 </div>
-                <div className="rounded-xl bg-white/5 p-4">
-                    <p className="text-xs text-white/50">收藏數量</p>
-                    <p className="text-lg font-semibold text-white/80">{profile.collection_count}</p>
-                </div>
-            </div>
 
-            {/* 參與紀錄 */}
-            <div className="rounded-xl bg-gradient-to-r from-sky-500/10 to-purple-500/10 border border-white/10 p-4">
-                <p className="text-sm text-white/70">
-                    參與競標 <span className="font-semibold text-sky-300">{profile.bid_count}</span> 次
-                </p>
-            </div>
+                {/* 提示訊息 */}
+                <p className="mt-4 text-center text-xs text-white/40">此會員尚未開放留言功能</p>
+            </section>
 
             {/* 返回連結 */}
-            <Link
-                href="/auctions"
-                className="inline-block text-sm text-white/50 hover:text-white/80 transition"
-            >
-                ← 返回競標區
-            </Link>
+            <div className="text-center">
+                <Link
+                    href="/auctions"
+                    className="inline-block text-sm text-white/50 hover:text-white/80 transition"
+                >
+                    ← 返回競標區
+                </Link>
+            </div>
         </div>
     );
 }
@@ -96,8 +248,15 @@ export default async function UserProfilePage({ params }: Props) {
             .single();
 
         if (virtualProfile) {
-            // 是虛擬用戶，顯示簡化頁面
-            return <VirtualUserPage profile={virtualProfile} />;
+            // 是虛擬用戶，抓取活動作為精選收藏
+            const { data: events } = await supabase
+                .from("events")
+                .select("id, title, image_url, visual_card_url")
+                .eq("status", "published")
+                .order("created_at", { ascending: false })
+                .limit(10);
+
+            return <VirtualUserPage profile={virtualProfile} featuredEvents={events || []} />;
         }
     }
 
