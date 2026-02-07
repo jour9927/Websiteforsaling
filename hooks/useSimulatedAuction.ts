@@ -134,14 +134,15 @@ export function useSimulatedBids({
 
     // 使用確定性算法生成模擬出價
     const simulatedBids = useMemo(() => {
-        if (!isActive) return [];
+        // 如果結束了，用 endTime 來計算最終的出價紀錄
+        const timeToUse = isActive ? currentTime : new Date(endTime);
         return generateDeterministicBids(
             auctionId,
             startTime,
             endTime,
             startingPrice,
             minIncrement,
-            currentTime
+            timeToUse
         );
     }, [auctionId, startTime, endTime, startingPrice, minIncrement, currentTime, isActive]);
 
