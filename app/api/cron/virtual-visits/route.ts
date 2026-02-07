@@ -1,6 +1,25 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
+// 虛擬留言池
+const VIRTUAL_COMMENTS = [
+    "收藏好漂亮！🌟",
+    "大佬帶帶我 🙏",
+    "什麼時候再上新的？",
+    "好羨慕你的收藏",
+    "這個配布我也有！",
+    "可以交流一下嗎？",
+    "新手報到！學習中 📚",
+    "你的願望清單我都想要 😂",
+    "收藏家 respect 🫡",
+    "路過留言～",
+    "太強了吧這收藏！",
+    "期待你的新增收藏 👀",
+    "真羨慕你的收藏量！",
+    "剛入坑的新人來學習了",
+    "收藏真的太讚了！",
+];
+
 export async function GET(request: NextRequest) {
     // 驗證 cron secret（防止惡意觸發）
     const authHeader = request.headers.get("authorization");
@@ -28,7 +47,7 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: "No profiles found" });
         }
 
-        // 2. 獲取所有虛擬用戶（用來當訪客）
+        // 2. 獲取所有虛擬用戶（用來當訪客和留言者）
         const { data: virtualProfiles, error: virtualError } = await supabase
             .from("virtual_profiles")
             .select("id, display_name");
@@ -38,9 +57,10 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: "No virtual profiles found" });
         }
 
-        // 3. 為每個用戶添加隨機數量的虛擬訪問（1-5 次）
+        // 3. 為每個用戶添加虛擬訪問和留言
         const now = new Date();
         const visits = [];
+        const comments = [];
         const viewUpdates = [];
 
         for (const profile of profiles) {
@@ -54,34 +74,58 @@ export async function GET(request: NextRequest) {
             for (const visitor of selectedVisitors) {
                 visits.push({
                     profile_user_id: profile.id,
-                    visitor_id: null, // NULL 表示虛擬訪客
-                    virtual_visitor_id: visitor.id, // 使用現有虛擬用戶的 ID
+                    visitor_id: null,
+                    virtual_visitor_id: visitor.id,
                     is_virtual: true,
                     visited_at: now.toISOString(),
                 });
             }
 
-            // 記錄要更新的 view 計數
+            // 隨機決定是否留言（30% 機率）
+            if (Math.random() < 0.3) {
+                const commenter = shuffledVirtual[0]; // 用第一個訪客來留言
+                const randomComment = VIRTUAL_COMMENTS[Math.floor(Math.random() * VIRTUAL_COMMENTS.length)];
+
+                comments.push({
+                    profile_user_id: profile.id,
+                    commenter_id: null,
+                    virtual_commenter_id: commenter.id,
+                    is_virtual: true,
+                    content: randomComment,
+                    created_at: now.toISOString(),
+                });
+            }
+
             viewUpdates.push({
                 id: profile.id,
                 addViews: selectedVisitors.length,
             });
         }
 
-        // 4. 批次插入訪問記錄（忽略重複）
-        const { error: insertError } = await supabase
+        // 4. 批次插入訪問記錄
+        const { error: visitError } = await supabase
             .from("profile_visits")
             .upsert(visits, {
                 onConflict: "profile_user_id,virtual_visitor_id",
                 ignoreDuplicates: true
             });
 
-        if (insertError) {
-            console.error("Insert error:", insertError);
-            // 不要因為插入錯誤而中斷，繼續更新計數
+        if (visitError) {
+            console.error("Visit insert error:", visitError);
         }
 
-        // 5. 更新每個用戶的 view 計數
+        // 5. 批次插入留言
+        if (comments.length > 0) {
+            const { error: commentError } = await supabase
+                .from("profile_comments")
+                .insert(comments);
+
+            if (commentError) {
+                console.error("Comment insert error:", commentError);
+            }
+        }
+
+        // 6. 更新每個用戶的 view 計數
         for (const update of viewUpdates) {
             await supabase.rpc("increment_profile_views", {
                 profile_id: update.id,
@@ -89,19 +133,20 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // 6. 重置今日訪問（如果是上午 11:00）
+        // 7. 重置今日訪問（如果是上午 11:00）
         const hour = now.getHours();
         if (hour === 11) {
             await supabase
                 .from("profiles")
                 .update({ today_views: 0 })
-                .neq("id", "00000000-0000-0000-0000-000000000000"); // 更新所有
+                .neq("id", "00000000-0000-0000-0000-000000000000");
         }
 
         return NextResponse.json({
             success: true,
-            message: `Added virtual visits for ${profiles.length} profiles using ${virtualProfiles.length} virtual users`,
+            message: `Added ${visits.length} visits and ${comments.length} comments`,
             totalVisits: visits.length,
+            totalComments: comments.length,
             timestamp: now.toISOString(),
         });
 
