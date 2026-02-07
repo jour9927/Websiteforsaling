@@ -30,12 +30,10 @@ type AuctionCardProps = {
 export default function AuctionCard({ auction }: AuctionCardProps) {
     const [remainingTime, setRemainingTime] = useState("");
     const [isEnded, setIsEnded] = useState(auction.status === 'ended');
-    const [currentTime, setCurrentTime] = useState(new Date());
 
     useEffect(() => {
         const updateTime = () => {
             const now = new Date();
-            setCurrentTime(now);
             const end = new Date(auction.end_time);
             const diff = end.getTime() - now.getTime();
 
@@ -64,7 +62,7 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
         return () => clearInterval(interval);
     }, [auction.end_time]);
 
-    // 計算估算的出價數（真實 + 模擬）
+    // 計算估算的出價數（只在載入時計算一次，不需要即時更新）
     const estimatedBidCount = useMemo(() => {
         // 如果沒有 start_time，用 end_time 減去 7 天作為預設開始時間
         const effectiveStartTime = auction.start_time ||
@@ -74,11 +72,11 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
             auctionId: auction.id,
             startTime: effectiveStartTime,
             endTime: auction.end_time,
-            currentTime: isEnded ? new Date(auction.end_time) : currentTime
+            currentTime: isEnded ? new Date(auction.end_time) : new Date()
         });
 
         return auction.bid_count + simulatedCount;
-    }, [auction.id, auction.start_time, auction.end_time, auction.bid_count, currentTime, isEnded]);
+    }, [auction.id, auction.start_time, auction.end_time, auction.bid_count, isEnded]);
 
     const imageUrl = auction.image_url || auction.distributions?.pokemon_sprite_url;
     const currentHighest = auction.current_price > 0 ? auction.current_price : auction.starting_price;
