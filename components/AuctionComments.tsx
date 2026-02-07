@@ -168,16 +168,47 @@ export default function AuctionComments({
     useEffect(() => {
         if (!isActive) return;
 
-        // 載入虛擬用戶
-        loadVirtualProfiles().then(profiles => {
-            virtualProfilesRef.current = profiles;
-        });
-
-        // 從不同池子選擇留言，增加多樣性
+        // 從不同池子選擇留言
         const getRandomComment = () => {
             const pool = Math.random() > 0.3 ? AUCTION_COMMENTS : SITE_COMMENTS;
             return pool[Math.floor(Math.random() * pool.length)];
         };
+
+        // 載入虛擬用戶並初始化
+        const initSimulation = async () => {
+            const profiles = await loadVirtualProfiles();
+            virtualProfilesRef.current = profiles;
+
+            if (profiles.length === 0) return;
+
+            // 初始化 2 則模擬留言
+            const user1 = profiles[Math.floor(Math.random() * profiles.length)];
+            const user2 = profiles[Math.floor(Math.random() * profiles.length)];
+
+            activeSimUsersRef.current = [user1, user2];
+
+            const initialSimulated: Comment[] = [
+                {
+                    id: 'sim-1',
+                    user_name: user1.display_name,
+                    virtual_user_id: user1.id,
+                    content: getRandomComment(),
+                    created_at: new Date(Date.now() - 120000).toISOString(),
+                    is_simulated: true
+                },
+                {
+                    id: 'sim-2',
+                    user_name: user2.display_name,
+                    virtual_user_id: user2.id,
+                    content: getRandomComment(),
+                    created_at: new Date(Date.now() - 60000).toISOString(),
+                    is_simulated: true
+                }
+            ];
+            setSimulatedComments(initialSimulated);
+        };
+
+        initSimulation();
 
         const getRandomVirtualUser = (): VirtualProfile | null => {
             const profiles = virtualProfilesRef.current;
@@ -192,31 +223,6 @@ export default function AuctionComments({
             }
             return profile;
         };
-
-        // 初始化 2 則模擬留言（延遲等虛擬用戶載入）
-        setTimeout(() => {
-            const user1 = getRandomVirtualUser();
-            const user2 = getRandomVirtualUser();
-            const initialSimulated: Comment[] = [
-                {
-                    id: 'sim-1',
-                    user_name: user1?.display_name || '會員**',
-                    virtual_user_id: user1?.id,
-                    content: getRandomComment(),
-                    created_at: new Date(Date.now() - 120000).toISOString(),
-                    is_simulated: true
-                },
-                {
-                    id: 'sim-2',
-                    user_name: user2?.display_name || '會員**',
-                    virtual_user_id: user2?.id,
-                    content: getRandomComment(),
-                    created_at: new Date(Date.now() - 60000).toISOString(),
-                    is_simulated: true
-                }
-            ];
-            setSimulatedComments(initialSimulated);
-        }, 500);
 
         // 每 15-35 秒新增一個模擬留言
         const interval = setInterval(() => {
