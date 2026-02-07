@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PersonalSpaceContent } from "@/components/PersonalSpaceContent";
 import AuctionCard from "@/components/AuctionCard";
 
+// 每次請求都重新執行，確保競標數據是最新的
 export const dynamic = "force-dynamic";
 
 // 熱門競標區塊元件
