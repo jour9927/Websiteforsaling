@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { loadVirtualProfiles, VirtualProfile } from '@/lib/virtualProfiles';
 import Link from 'next/link';
@@ -309,7 +309,7 @@ export default function AuctionComments({
         }, 15000 + Math.random() * 20000);
 
         return () => clearInterval(interval);
-    }, [isActive]);
+    }, [isActive, auctionId]);
 
     // 觸發模擬 @回覆（延遲 10-15 秒，只回一次）
     const triggerSimulatedReply = useCallback((userName: string) => {
