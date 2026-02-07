@@ -28,7 +28,17 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: "No profiles found" });
         }
 
-        // 2. 為每個用戶添加隨機數量的虛擬訪問（1-5 次）
+        // 2. 獲取所有虛擬用戶（用來當訪客）
+        const { data: virtualProfiles, error: virtualError } = await supabase
+            .from("virtual_profiles")
+            .select("id, display_name");
+
+        if (virtualError) throw virtualError;
+        if (!virtualProfiles || virtualProfiles.length === 0) {
+            return NextResponse.json({ message: "No virtual profiles found" });
+        }
+
+        // 3. 為每個用戶添加隨機數量的虛擬訪問（1-5 次）
         const now = new Date();
         const visits = [];
         const viewUpdates = [];
@@ -37,14 +47,15 @@ export async function GET(request: NextRequest) {
             // 隨機決定這個用戶今天獲得多少虛擬訪問（1-5）
             const visitCount = Math.floor(Math.random() * 5) + 1;
 
-            for (let i = 0; i < visitCount; i++) {
-                // 為每次訪問生成一個虛擬訪客 ID
-                const virtualVisitorId = crypto.randomUUID();
+            // 從虛擬用戶中隨機選擇不重複的訪客
+            const shuffledVirtual = [...virtualProfiles].sort(() => Math.random() - 0.5);
+            const selectedVisitors = shuffledVirtual.slice(0, visitCount);
 
+            for (const visitor of selectedVisitors) {
                 visits.push({
                     profile_user_id: profile.id,
                     visitor_id: null, // NULL 表示虛擬訪客
-                    virtual_visitor_id: virtualVisitorId,
+                    virtual_visitor_id: visitor.id, // 使用現有虛擬用戶的 ID
                     is_virtual: true,
                     visited_at: now.toISOString(),
                 });
@@ -53,11 +64,11 @@ export async function GET(request: NextRequest) {
             // 記錄要更新的 view 計數
             viewUpdates.push({
                 id: profile.id,
-                addViews: visitCount,
+                addViews: selectedVisitors.length,
             });
         }
 
-        // 3. 批次插入訪問記錄（忽略重複）
+        // 4. 批次插入訪問記錄（忽略重複）
         const { error: insertError } = await supabase
             .from("profile_visits")
             .upsert(visits, {
@@ -70,7 +81,7 @@ export async function GET(request: NextRequest) {
             // 不要因為插入錯誤而中斷，繼續更新計數
         }
 
-        // 4. 更新每個用戶的 view 計數
+        // 5. 更新每個用戶的 view 計數
         for (const update of viewUpdates) {
             await supabase.rpc("increment_profile_views", {
                 profile_id: update.id,
@@ -78,8 +89,7 @@ export async function GET(request: NextRequest) {
             });
         }
 
-        // 5. 重置今日訪問（如果是新的一天）
-        // 檢查是否需要重置 today_views（在上午 11:00）
+        // 6. 重置今日訪問（如果是上午 11:00）
         const hour = now.getHours();
         if (hour === 11) {
             await supabase
@@ -90,7 +100,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            message: `Added virtual visits for ${profiles.length} profiles`,
+            message: `Added virtual visits for ${profiles.length} profiles using ${virtualProfiles.length} virtual users`,
             totalVisits: visits.length,
             timestamp: now.toISOString(),
         });
