@@ -142,9 +142,25 @@ export async function GET(request: NextRequest) {
                 .neq("id", "00000000-0000-0000-0000-000000000000");
         }
 
+        // 8. 清理 7 天以上的虛擬留言和訪問記錄
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+        await supabase
+            .from("profile_comments")
+            .delete()
+            .eq("is_virtual", true)
+            .lt("created_at", sevenDaysAgo.toISOString());
+
+        await supabase
+            .from("profile_visits")
+            .delete()
+            .eq("is_virtual", true)
+            .lt("visited_at", sevenDaysAgo.toISOString());
+
         return NextResponse.json({
             success: true,
-            message: `Added ${visits.length} visits and ${comments.length} comments`,
+            message: `Added ${visits.length} visits and ${comments.length} comments, cleaned old records (7+ days)`,
             totalVisits: visits.length,
             totalComments: comments.length,
             timestamp: now.toISOString(),
