@@ -50,51 +50,46 @@ export function SimulatedViewers({
     );
 }
 
-export function SimulatedBidToast() {
-    const [toasts, setToasts] = useState<{ id: number; name: string; amount: number }[]>([]);
-    const [lastBidAmount, setLastBidAmount] = useState(1000 + Math.floor(Math.random() * 5000));
+export function SimulatedViewerJoinToast() {
+    const [toasts, setToasts] = useState<{ id: number; name: string }[]>([]);
 
     useEffect(() => {
-        // 每 15-45 秒產生一個模擬出價通知
+        // 每 20-50 秒產生一個進入通知
         const generateToast = () => {
             const name = FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)];
-            const increment = BID_INCREMENTS[Math.floor(Math.random() * BID_INCREMENTS.length)];
-            const newAmount = lastBidAmount + increment;
-
-            setLastBidAmount(newAmount);
 
             const id = Date.now();
-            setToasts(prev => [...prev, { id, name, amount: newAmount }]);
+            setToasts(prev => [...prev, { id, name }]);
 
-            // 5 秒後移除 Toast
+            // 4 秒後移除 Toast
             setTimeout(() => {
                 setToasts(prev => prev.filter(t => t.id !== id));
-            }, 5000);
+            }, 4000);
         };
 
-        // 初始延遲 10-20 秒
+        // 初始延遲 8-15 秒
         const initialDelay = setTimeout(() => {
             generateToast();
 
-            // 之後每 15-45 秒產生一個
-            const interval = setInterval(generateToast, 15000 + Math.random() * 30000);
+            // 之後每 20-50 秒產生一個
+            const interval = setInterval(generateToast, 20000 + Math.random() * 30000);
             return () => clearInterval(interval);
-        }, 10000 + Math.random() * 10000);
+        }, 8000 + Math.random() * 7000);
 
         return () => clearTimeout(initialDelay);
-    }, [lastBidAmount]);
+    }, []);
 
     return (
         <div className="fixed bottom-4 right-4 z-50 flex flex-col gap-2">
             {toasts.map(toast => (
                 <div
                     key={toast.id}
-                    className="animate-slide-in-right glass-card flex items-center gap-3 px-4 py-3 shadow-lg border border-yellow-500/30"
+                    className="animate-slide-in-right glass-card flex items-center gap-3 px-4 py-3 shadow-lg border border-green-500/30"
                 >
-                    <span className="text-xl">🔔</span>
+                    <span className="text-xl">👋</span>
                     <div>
                         <p className="text-sm font-medium text-white/90">
-                            {toast.name} 出價了 ${toast.amount.toLocaleString()}
+                            {toast.name} 進入了競標
                         </p>
                         <p className="text-xs text-white/50">剛剛</p>
                     </div>

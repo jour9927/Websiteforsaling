@@ -1,6 +1,6 @@
 "use client";
 
-import { SimulatedViewers, SimulatedBidToast } from "@/components/SimulatedActivity";
+import { SimulatedViewers, SimulatedViewerJoinToast } from "@/components/SimulatedActivity";
 import AuctionComments from "@/components/AuctionComments";
 import { useViewerCount } from "./BidHistoryWithSimulation";
 
@@ -14,7 +14,7 @@ export default function AuctionActivityWrapper({ isActive }: AuctionActivityWrap
     return (
         <>
             {/* 即時出價 Toast 通知 */}
-            <SimulatedBidToast />
+            <SimulatedViewerJoinToast />
 
             {/* 在線觀看人數 - 浮動顯示（使用全局 ViewerContext） */}
             <FloatingViewerCount />

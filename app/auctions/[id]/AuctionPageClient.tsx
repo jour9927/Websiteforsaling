@@ -9,7 +9,7 @@ import {
     useViewerCount
 } from "./BidHistoryWithSimulation";
 import { AuctionSidebarActivity } from "./AuctionActivityWrapper";
-import { SimulatedViewers, SimulatedBidToast } from "@/components/SimulatedActivity";
+import { SimulatedViewers, SimulatedViewerJoinToast } from "@/components/SimulatedActivity";
 import BidButton from "./BidButton";
 
 // 浮動在線人數元件（使用統一的 ViewerContext）
@@ -149,7 +149,7 @@ export function AuctionPageClient({
             {isActiveState && <FloatingViewerCount />}
 
             {/* 即時出價 Toast 通知 */}
-            {isActiveState && <SimulatedBidToast />}
+            {isActiveState && <SimulatedViewerJoinToast />}
 
             {/* 在線人數 Portal */}
             {viewerSlot && isActiveState && createPortal(
