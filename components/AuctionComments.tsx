@@ -342,22 +342,52 @@ export default function AuctionComments({
         e.preventDefault();
         if (!inputValue.trim() || !user || isSubmitting) return;
 
+        const content = inputValue.trim();
         setIsSubmitting(true);
+        setInputValue('');
+
+        // 樂觀更新：立即顯示用戶的留言
+        const optimisticComment: Comment = {
+            id: `temp-${Date.now()}`,
+            user_id: user.id,
+            user_name: user.name,
+            content,
+            created_at: new Date().toISOString(),
+            is_simulated: false,
+            is_own: true
+        };
+        setComments(prev => [...prev, optimisticComment]);
+
         try {
-            const { error } = await supabase
+            const { data, error } = await supabase
                 .from('auction_comments')
                 .insert({
                     auction_id: auctionId,
                     user_id: user.id,
                     user_name: user.name,
-                    content: inputValue.trim()
-                });
+                    content
+                })
+                .select()
+                .single();
 
-            if (!error) {
-                setInputValue('');
+            if (!error && data) {
+                // 用真實資料替換樂觀更新的留言
+                setComments(prev => prev.map(c =>
+                    c.id === optimisticComment.id
+                        ? { ...data, is_simulated: false, is_own: true }
+                        : c
+                ));
                 // 觸發模擬回覆（只會回一次）
                 triggerSimulatedReply(user.name);
+            } else {
+                // 發生錯誤，移除樂觀更新的留言
+                setComments(prev => prev.filter(c => c.id !== optimisticComment.id));
+                setInputValue(content); // 恢復輸入內容
             }
+        } catch {
+            // 發生錯誤，移除樂觀更新的留言
+            setComments(prev => prev.filter(c => c.id !== optimisticComment.id));
+            setInputValue(content);
         } finally {
             setIsSubmitting(false);
         }
