@@ -33,8 +33,8 @@ async function HotAuctionsSection() {
           查看更多 →
         </Link>
       </div>
-      {/* 橫向滑動容器 */}
-      <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide -mx-2 px-2">
+      {/* 橫向滑動容器 - 添加 py-2 給 hover 放大效果留空間 */}
+      <div className="flex gap-4 overflow-x-auto overflow-y-visible pb-4 pt-2 snap-x snap-mandatory scrollbar-hide -mx-2 px-2">
         {auctions.map((auction) => (
           <div
             key={auction.id}
