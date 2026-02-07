@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Route } from "next";
+import { NotificationBell } from "./NotificationBell";
 
 type SiteHeaderProps = {
   displayName: string;
@@ -59,18 +60,21 @@ export function SiteHeader({ displayName, isAuthenticated, isAdmin }: SiteHeader
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-midnight-900/80 backdrop-blur">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4 md:px-6">
-        <Link
-          href={profileHref}
-          className="flex items-center gap-3 rounded-full border border-white/20 px-3 py-2 text-left text-sm text-white transition hover:bg-white/10"
-        >
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xs font-semibold uppercase">
-            {normalizedName.slice(0, 2)}
-          </span>
-          <span className="flex flex-col leading-tight">
-            <span className="text-xs uppercase tracking-[0.35em] text-white/60">目前帳號</span>
-            <span className="font-semibold text-white">{normalizedName}</span>
-          </span>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            href={profileHref}
+            className="flex items-center gap-3 rounded-full border border-white/20 px-3 py-2 text-left text-sm text-white transition hover:bg-white/10"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-xs font-semibold uppercase">
+              {normalizedName.slice(0, 2)}
+            </span>
+            <span className="flex flex-col leading-tight">
+              <span className="text-xs uppercase tracking-[0.35em] text-white/60">目前帳號</span>
+              <span className="font-semibold text-white">{normalizedName}</span>
+            </span>
+          </Link>
+          <NotificationBell isAuthenticated={isAuthenticated} />
+        </div>
         <nav className="hidden items-center gap-6 text-sm text-white/80 lg:flex">
           {visiblePrimaryLinks.map((item) => (
             <Link
