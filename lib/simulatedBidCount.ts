@@ -39,15 +39,18 @@ export function getEstimatedBidCount({
         seed += auctionId.charCodeAt(i);
     }
 
+    // 根據種子決定這個競標的最大出價數（8-20 筆）
+    const maxBids = 8 + Math.floor(seededRandom(seed * 7) * 13);
+
     let bidCount = 0;
     let bidTime = start.getTime() + 10000 + seededRandom(seed) * 20000; // 初始延遲 10-30 秒
     let bidIndex = 0;
 
-    // 計算到當前時間為止的出價數量（最多 20 筆）
+    // 計算到當前時間為止的出價數量
     // 在結束前 30 秒停止
     const stopTime = Math.min(currentTime.getTime(), end.getTime() - 30000);
 
-    while (bidTime < stopTime && bidIndex < 20) {
+    while (bidTime < stopTime && bidIndex < maxBids) {
         const thisSeed = seed + bidIndex * 1000;
         bidCount++;
 
@@ -59,8 +62,9 @@ export function getEstimatedBidCount({
             // 最後 2 分鐘：8-15 秒
             interval = 8000 + seededRandom(thisSeed + 3) * 7000;
         } else {
-            // 正常時間：15-45 秒
-            interval = 15000 + seededRandom(thisSeed + 3) * 30000;
+            // 正常時間：根據種子決定間隔長度（讓有些競標更熱門）
+            const baseInterval = 15000 + seededRandom(seed * 3) * 20000; // 15-35 秒基底
+            interval = baseInterval + seededRandom(thisSeed + 3) * 15000;
         }
 
         bidTime += interval;
@@ -69,3 +73,4 @@ export function getEstimatedBidCount({
 
     return bidCount;
 }
+
