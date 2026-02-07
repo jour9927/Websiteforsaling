@@ -50,6 +50,9 @@ type Comment = {
     id: string;
     content: string;
     created_at: string;
+    parent_id?: string | null;
+    is_virtual?: boolean;
+    has_real_reply?: boolean;
     commenter: { id: string; full_name: string | null } | null;
 };
 
@@ -179,6 +182,7 @@ export function PersonalSpaceContent({
 }: PersonalSpaceContentProps) {
     const router = useRouter();
     const [newComment, setNewComment] = useState("");
+    const [replyTo, setReplyTo] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showWishlistModal, setShowWishlistModal] = useState(false);
 
@@ -361,10 +365,12 @@ export function PersonalSpaceContent({
             profile_user_id: profile?.id || user.id,
             commenter_id: commenterId,
             content: newComment.trim(),
+            parent_id: replyTo,
         });
 
         if (!error) {
             setNewComment("");
+            setReplyTo(null);
             router.refresh();
         }
         setIsSubmitting(false);
@@ -617,61 +623,132 @@ export function PersonalSpaceContent({
                 <h2 className="mb-4 text-lg font-semibold text-white">💬 留言區</h2>
 
                 {/* 留言輸入 */}
-                <div className="mb-4 flex gap-2">
-                    <input
-                        type="text"
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        placeholder="留下一則訊息..."
-                        className="flex-1 rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
-                    />
-                    <button
-                        onClick={handleSubmitComment}
-                        disabled={isSubmitting || !newComment.trim()}
-                        className="rounded-lg bg-blue-500/20 px-4 py-2 text-sm text-blue-200 transition hover:bg-blue-500/30 disabled:opacity-50"
-                    >
-                        發送
-                    </button>
+                <div className="mb-4">
+                    {replyTo && (
+                        <div className="mb-2 flex items-center gap-2 text-sm text-blue-300">
+                            <span>↳ 回覆中</span>
+                            <button
+                                onClick={() => { setReplyTo(null); setNewComment(""); }}
+                                className="text-white/40 hover:text-white"
+                            >
+                                ✕ 取消
+                            </button>
+                        </div>
+                    )}
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={newComment}
+                            onChange={(e) => setNewComment(e.target.value)}
+                            placeholder={replyTo ? "輸入回覆內容..." : "留下一則訊息..."}
+                            className="flex-1 rounded-lg border border-white/20 bg-white/10 px-4 py-2 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                            onKeyDown={(e) => e.key === "Enter" && handleSubmitComment()}
+                        />
+                        <button
+                            onClick={handleSubmitComment}
+                            disabled={isSubmitting || !newComment.trim()}
+                            className="rounded-lg bg-blue-500/20 px-4 py-2 text-sm text-blue-200 transition hover:bg-blue-500/30 disabled:opacity-50"
+                        >
+                            {replyTo ? "回覆" : "發送"}
+                        </button>
+                    </div>
                 </div>
 
-                {/* 留言列表 */}
+                {/* 留言列表 - 討論串結構 */}
                 {allComments.length > 0 ? (
                     <div className="space-y-3">
-                        {allComments.map((comment: { id: string; content: string; created_at: string; commenter?: { id: string; full_name?: string | null } | null; isVirtual?: boolean }) => {
-                            const isVirtualComment = comment.isVirtual;
-                            const canDelete = !isVirtualComment && (currentUserId === comment.commenter?.id || isOwnProfile);
-                            return (
-                                <div key={comment.id} className="flex gap-3 rounded-lg bg-white/5 p-3">
-                                    {/* 頭像 */}
-                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-sm font-bold text-white">
-                                        {(comment.commenter?.full_name || "匿").slice(0, 1).toUpperCase()}
-                                    </div>
-                                    {/* 內容 */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between gap-2">
-                                            <span className="text-sm font-medium text-white truncate">
-                                                {comment.commenter?.full_name || "匿名"}
-                                            </span>
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-xs text-white/40 shrink-0">
-                                                    {new Date(comment.created_at).toLocaleDateString("zh-TW")}
-                                                </span>
-                                                {canDelete && (
+                        {/* 先顯示頂層留言（沒有 parent_id 的） */}
+                        {allComments
+                            .filter((c: Comment & { isVirtual?: boolean }) => !c.parent_id)
+                            .map((comment: Comment & { isVirtual?: boolean }) => {
+                                const isVirtualComment = comment.isVirtual || comment.is_virtual;
+                                const canDelete = !isVirtualComment && (currentUserId === comment.commenter?.id || isOwnProfile);
+                                // 找出這則留言的回覆
+                                const replies = allComments.filter((c: Comment & { isVirtual?: boolean }) => c.parent_id === comment.id);
+
+                                return (
+                                    <div key={comment.id}>
+                                        {/* 頂層留言 */}
+                                        <div className="flex gap-3 rounded-lg bg-white/5 p-3">
+                                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-sm font-bold text-white">
+                                                {(comment.commenter?.full_name || "匿").slice(0, 1).toUpperCase()}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-2">
+                                                    <span className="text-sm font-medium text-white truncate">
+                                                        {comment.commenter?.full_name || "匿名"}
+                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs text-white/40 shrink-0">
+                                                            {new Date(comment.created_at).toLocaleDateString("zh-TW")}
+                                                        </span>
+                                                        {canDelete && (
+                                                            <button
+                                                                onClick={() => handleDeleteComment(comment.id)}
+                                                                className="text-red-400/60 hover:text-red-400 text-xs"
+                                                                title="刪除留言"
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <p className="mt-1 text-sm text-white/80 break-words">{comment.content}</p>
+                                                {/* 回覆按鈕 */}
+                                                {currentUserId && (
                                                     <button
-                                                        onClick={() => handleDeleteComment(comment.id)}
-                                                        className="text-red-400/60 hover:text-red-400 text-xs"
-                                                        title="刪除留言"
+                                                        onClick={() => {
+                                                            setReplyTo(comment.id);
+                                                            setNewComment(`@${comment.commenter?.full_name || "匿名"} `);
+                                                        }}
+                                                        className="mt-2 text-xs text-blue-300/60 hover:text-blue-300"
                                                     >
-                                                        ✕
+                                                        ↳ 回覆
                                                     </button>
                                                 )}
                                             </div>
                                         </div>
-                                        <p className="mt-1 text-sm text-white/80 break-words">{comment.content}</p>
+
+                                        {/* 子留言（回覆） */}
+                                        {replies.length > 0 && (
+                                            <div className="ml-8 mt-2 space-y-2 border-l-2 border-white/10 pl-4">
+                                                {replies.map((reply: Comment & { isVirtual?: boolean }) => {
+                                                    const isReplyVirtual = reply.isVirtual || reply.is_virtual;
+                                                    const canDeleteReply = !isReplyVirtual && (currentUserId === reply.commenter?.id || isOwnProfile);
+                                                    return (
+                                                        <div key={reply.id} className="flex gap-3 rounded-lg bg-white/5 p-3">
+                                                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-teal-500 text-xs font-bold text-white">
+                                                                {(reply.commenter?.full_name || "匿").slice(0, 1).toUpperCase()}
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <div className="flex items-center justify-between gap-2">
+                                                                    <span className="text-sm font-medium text-white truncate">
+                                                                        {reply.commenter?.full_name || "匿名"}
+                                                                    </span>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-xs text-white/40 shrink-0">
+                                                                            {new Date(reply.created_at).toLocaleDateString("zh-TW")}
+                                                                        </span>
+                                                                        {canDeleteReply && (
+                                                                            <button
+                                                                                onClick={() => handleDeleteComment(reply.id)}
+                                                                                className="text-red-400/60 hover:text-red-400 text-xs"
+                                                                            >
+                                                                                ✕
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                                <p className="mt-1 text-sm text-white/80 break-words">{reply.content}</p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
                     </div>
                 ) : (
                     <p className="text-center text-white/50">還沒有留言，成為第一個留言的人吧！</p>

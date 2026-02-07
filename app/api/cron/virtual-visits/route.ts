@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
                 .neq("id", "00000000-0000-0000-0000-000000000000");
         }
 
-        // 8. 清理 7 天以上的虛擬留言和訪問記錄
+        // 8. 清理 7 天以上的虛擬留言（跳過有真實回覆的討論串）
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -150,6 +150,8 @@ export async function GET(request: NextRequest) {
             .from("profile_comments")
             .delete()
             .eq("is_virtual", true)
+            .eq("has_real_reply", false) // 跳過有真實回覆的討論串
+            .is("parent_id", null) // 只刪除頂層留言（子留言會 CASCADE 刪除）
             .lt("created_at", sevenDaysAgo.toISOString());
 
         await supabase

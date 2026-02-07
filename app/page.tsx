@@ -105,7 +105,7 @@ export default async function HomePage() {
     .eq("user_id", user.id)
     .order("priority", { ascending: false });
 
-  // 載入用戶的留言（只顯示最近 3 天）
+  // 載入用戶的留言（只顯示最近 3 天，或有真實回覆的討論串）
   const threeDaysAgo = new Date();
   threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
@@ -116,9 +116,9 @@ export default async function HomePage() {
       commenter:commenter_id (id, full_name)
     `)
     .eq("profile_user_id", user.id)
-    .gte("created_at", threeDaysAgo.toISOString())
+    .or(`created_at.gte.${threeDaysAgo.toISOString()},has_real_reply.eq.true`)
     .order("created_at", { ascending: false })
-    .limit(10);
+    .limit(50);
 
   // 載入用戶收藏（用於精選展示）
   const { data: userItems } = await supabase
