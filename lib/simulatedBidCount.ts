@@ -39,8 +39,8 @@ export function getEstimatedBidCount({
         seed += auctionId.charCodeAt(i);
     }
 
-    // 根據種子決定這個競標的最大出價數（8-20 筆）
-    const maxBids = 8 + Math.floor(seededRandom(seed * 7) * 13);
+    // 根據種子決定這個競標的最大出價數（20-50 筆）
+    const maxBids = 20 + Math.floor(seededRandom(seed * 7) * 31);
 
     let bidCount = 0;
     let bidTime = start.getTime() + 10000 + seededRandom(seed) * 20000; // 初始延遲 10-30 秒
