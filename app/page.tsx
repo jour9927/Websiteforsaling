@@ -33,11 +33,19 @@ async function HotAuctionsSection() {
           查看更多 →
         </Link>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* 橫向滑動容器 */}
+      <div className="flex gap-4 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide -mx-2 px-2">
         {auctions.map((auction) => (
-          <AuctionCard key={auction.id} auction={auction} />
+          <div
+            key={auction.id}
+            className="flex-shrink-0 w-[280px] snap-start"
+          >
+            <AuctionCard auction={auction} />
+          </div>
         ))}
       </div>
+      {/* 滑動提示 */}
+      <p className="text-xs text-white/40 text-center mt-2">← 左右滑動查看更多 →</p>
     </section>
   );
 }
