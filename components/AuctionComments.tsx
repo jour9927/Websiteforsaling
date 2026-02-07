@@ -2,14 +2,8 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
-
-// 模擬用戶名單
-const FAKE_NAMES = [
-    '王**', '李**', '張**', '陳**', '林**', '黃**', '趙**', '周**',
-    'L***', 'K***', 'M***', 'S***', 'T***', 'A***', 'J***', 'R***',
-    '會員#0892', '會員#1234', '會員#5678', '會員#3456', '會員#7890',
-    'Trainer_X', 'PKM_Fan', '神奧勇者', '卡洛斯冠軍', '關都大師'
-];
+import { loadVirtualProfiles, VirtualProfile } from '@/lib/virtualProfiles';
+import Link from 'next/link';
 
 // 競標相關留言（更像真實用戶）
 const AUCTION_COMMENTS = [
@@ -73,6 +67,7 @@ const PSYCHOLOGY_REPLIES = [
 interface Comment {
     id: string;
     user_id?: string;
+    virtual_user_id?: string;  // 虛擬用戶 ID（可點擊連結）
     user_name: string;
     content: string;
     created_at: string;
@@ -101,7 +96,9 @@ export default function AuctionComments({
     // 追蹤已回覆的真實用戶（每人只回一次）
     const repliedUsersRef = useRef<Set<string>>(new Set());
     // 追蹤模擬用戶（用於相互 @）
-    const activeSimUsersRef = useRef<string[]>([]);
+    const activeSimUsersRef = useRef<VirtualProfile[]>([]);
+    // 快取的虛擬用戶列表
+    const virtualProfilesRef = useRef<VirtualProfile[]>([]);
 
     // 取得當前用戶
     useEffect(() => {
@@ -171,61 +168,76 @@ export default function AuctionComments({
     useEffect(() => {
         if (!isActive) return;
 
+        // 載入虛擬用戶
+        loadVirtualProfiles().then(profiles => {
+            virtualProfilesRef.current = profiles;
+        });
+
         // 從不同池子選擇留言，增加多樣性
         const getRandomComment = () => {
             const pool = Math.random() > 0.3 ? AUCTION_COMMENTS : SITE_COMMENTS;
             return pool[Math.floor(Math.random() * pool.length)];
         };
 
-        const getRandomName = () => {
-            const name = FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)];
+        const getRandomVirtualUser = (): VirtualProfile | null => {
+            const profiles = virtualProfilesRef.current;
+            if (profiles.length === 0) return null;
+            const profile = profiles[Math.floor(Math.random() * profiles.length)];
             // 追蹤活躍的模擬用戶
-            if (!activeSimUsersRef.current.includes(name)) {
-                activeSimUsersRef.current.push(name);
+            if (!activeSimUsersRef.current.find(u => u.id === profile.id)) {
+                activeSimUsersRef.current.push(profile);
                 if (activeSimUsersRef.current.length > 5) {
                     activeSimUsersRef.current.shift();
                 }
             }
-            return name;
+            return profile;
         };
 
-        // 初始化 2 則模擬留言
-        const initialSimulated: Comment[] = [
-            {
-                id: 'sim-1',
-                user_name: getRandomName(),
-                content: getRandomComment(),
-                created_at: new Date(Date.now() - 120000).toISOString(),
-                is_simulated: true
-            },
-            {
-                id: 'sim-2',
-                user_name: getRandomName(),
-                content: getRandomComment(),
-                created_at: new Date(Date.now() - 60000).toISOString(),
-                is_simulated: true
-            }
-        ];
-        setSimulatedComments(initialSimulated);
+        // 初始化 2 則模擬留言（延遲等虛擬用戶載入）
+        setTimeout(() => {
+            const user1 = getRandomVirtualUser();
+            const user2 = getRandomVirtualUser();
+            const initialSimulated: Comment[] = [
+                {
+                    id: 'sim-1',
+                    user_name: user1?.display_name || '會員**',
+                    virtual_user_id: user1?.id,
+                    content: getRandomComment(),
+                    created_at: new Date(Date.now() - 120000).toISOString(),
+                    is_simulated: true
+                },
+                {
+                    id: 'sim-2',
+                    user_name: user2?.display_name || '會員**',
+                    virtual_user_id: user2?.id,
+                    content: getRandomComment(),
+                    created_at: new Date(Date.now() - 60000).toISOString(),
+                    is_simulated: true
+                }
+            ];
+            setSimulatedComments(initialSimulated);
+        }, 500);
 
         // 每 15-35 秒新增一個模擬留言
         const interval = setInterval(() => {
-            const userName = getRandomName();
+            const virtualUser = getRandomVirtualUser();
+            if (!virtualUser) return;
 
             // 30% 機率會 @ 其他模擬用戶
             let content: string;
             if (Math.random() < 0.3 && activeSimUsersRef.current.length > 1) {
-                const otherUsers = activeSimUsersRef.current.filter(n => n !== userName);
+                const otherUsers = activeSimUsersRef.current.filter(u => u.id !== virtualUser.id);
                 const targetUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
                 const interaction = SIMULATED_INTERACTIONS[Math.floor(Math.random() * SIMULATED_INTERACTIONS.length)];
-                content = interaction(targetUser);
+                content = interaction(targetUser.display_name);
             } else {
                 content = getRandomComment();
             }
 
             const newSimComment: Comment = {
                 id: `sim-${Date.now()}`,
-                user_name: userName,
+                user_name: virtualUser.display_name,
+                virtual_user_id: virtualUser.id,
                 content,
                 created_at: new Date().toISOString(),
                 is_simulated: true
@@ -248,10 +260,12 @@ export default function AuctionComments({
 
         // 延遲 10-15 秒後回覆
         setTimeout(() => {
+            const replyUser = virtualProfilesRef.current[Math.floor(Math.random() * virtualProfilesRef.current.length)];
             const replyTemplate = PSYCHOLOGY_REPLIES[Math.floor(Math.random() * PSYCHOLOGY_REPLIES.length)];
             const newReply: Comment = {
                 id: `reply-${Date.now()}`,
-                user_name: FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)],
+                user_name: replyUser?.display_name || '會員**',
+                virtual_user_id: replyUser?.id,
                 content: replyTemplate(userName),
                 created_at: new Date().toISOString(),
                 is_simulated: true
@@ -329,15 +343,25 @@ export default function AuctionComments({
                             </span>
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                    <span className={`font-medium ${comment.is_own
-                                        ? 'text-purple-300'
-                                        : comment.is_simulated
-                                            ? 'text-white/70'
-                                            : 'text-purple-300'
-                                        }`}>
-                                        {comment.user_name}
-                                        {comment.is_own && <span className="ml-1 text-[10px] text-purple-400">(你)</span>}
-                                    </span>
+                                    {/* 用戶名可點擊連結 */}
+                                    {(comment.virtual_user_id || comment.user_id) && !comment.is_own ? (
+                                        <Link
+                                            href={`/user/${comment.virtual_user_id || comment.user_id}`}
+                                            className={`font-medium hover:underline ${comment.is_simulated ? 'text-white/70' : 'text-purple-300'}`}
+                                        >
+                                            {comment.user_name}
+                                        </Link>
+                                    ) : (
+                                        <span className={`font-medium ${comment.is_own
+                                            ? 'text-purple-300'
+                                            : comment.is_simulated
+                                                ? 'text-white/70'
+                                                : 'text-purple-300'
+                                            }`}>
+                                            {comment.user_name}
+                                            {comment.is_own && <span className="ml-1 text-[10px] text-purple-400">(你)</span>}
+                                        </span>
+                                    )}
                                     <span className="text-white/40">{formatTime(comment.created_at)}</span>
                                 </div>
                                 <p className="text-white/80 mt-0.5 break-words">{comment.content}</p>

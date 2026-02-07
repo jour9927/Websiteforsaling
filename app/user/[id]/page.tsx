@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { PersonalSpaceContent } from "@/components/PersonalSpaceContent";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,70 @@ function isUUID(str: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 }
 
+// 虛擬用戶頁面元件
+function VirtualUserPage({ profile }: {
+    profile: {
+        display_name: string;
+        member_since: string;
+        collection_count: number;
+        bid_count: number;
+        avatar_seed: string;
+    }
+}) {
+    return (
+        <div className="glass-card max-w-lg mx-auto p-8 text-center space-y-6">
+            {/* 頭像 */}
+            <div className="flex justify-center">
+                <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-amber-400/30 to-orange-500/30 text-3xl font-bold text-white/90 border-2 border-white/20">
+                    {profile.display_name.slice(0, 1)}
+                </div>
+            </div>
+
+            {/* 名稱 */}
+            <div>
+                <h1 className="text-2xl font-semibold text-white/90">{profile.display_name}</h1>
+                <p className="text-sm text-white/50 mt-1">會員</p>
+            </div>
+
+            {/* 隱私提示 */}
+            <div className="rounded-xl bg-white/5 border border-white/10 p-4">
+                <p className="text-sm text-white/60">
+                    🔒 此會員已設為隱私模式
+                </p>
+            </div>
+
+            {/* 基本資訊 */}
+            <div className="grid grid-cols-2 gap-4">
+                <div className="rounded-xl bg-white/5 p-4">
+                    <p className="text-xs text-white/50">加入日期</p>
+                    <p className="text-lg font-semibold text-white/80">
+                        {new Date(profile.member_since).toLocaleDateString('zh-TW', { year: 'numeric', month: 'short' })}
+                    </p>
+                </div>
+                <div className="rounded-xl bg-white/5 p-4">
+                    <p className="text-xs text-white/50">收藏數量</p>
+                    <p className="text-lg font-semibold text-white/80">{profile.collection_count}</p>
+                </div>
+            </div>
+
+            {/* 參與紀錄 */}
+            <div className="rounded-xl bg-gradient-to-r from-sky-500/10 to-purple-500/10 border border-white/10 p-4">
+                <p className="text-sm text-white/70">
+                    參與競標 <span className="font-semibold text-sky-300">{profile.bid_count}</span> 次
+                </p>
+            </div>
+
+            {/* 返回連結 */}
+            <Link
+                href="/auctions"
+                className="inline-block text-sm text-white/50 hover:text-white/80 transition"
+            >
+                ← 返回競標區
+            </Link>
+        </div>
+    );
+}
+
 export default async function UserProfilePage({ params }: Props) {
     const { id: idOrUsername } = await params;
     const supabase = createServerSupabaseClient();
@@ -22,7 +87,21 @@ export default async function UserProfilePage({ params }: Props) {
         data: { user: currentUser },
     } = await supabase.auth.getUser();
 
-    // 根據 UUID 或 username 查詢目標用戶
+    // 先檢查是否為虛擬用戶
+    if (isUUID(idOrUsername)) {
+        const { data: virtualProfile } = await supabase
+            .from("virtual_profiles")
+            .select("*")
+            .eq("id", idOrUsername)
+            .single();
+
+        if (virtualProfile) {
+            // 是虛擬用戶，顯示簡化頁面
+            return <VirtualUserPage profile={virtualProfile} />;
+        }
+    }
+
+    // 根據 UUID 或 username 查詢真實用戶
     let targetProfile;
     if (isUUID(idOrUsername)) {
         const { data } = await supabase
