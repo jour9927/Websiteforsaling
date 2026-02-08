@@ -3,6 +3,15 @@ import { createServerSupabaseClient } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+// 計算某日期距今多少天
+function daysBetween(date1: Date, date2: Date): number {
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    d1.setHours(0, 0, 0, 0);
+    d2.setHours(0, 0, 0, 0);
+    return Math.floor((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+}
+
 // GET: 取得簽到狀態
 export async function GET() {
     const supabase = createServerSupabaseClient();
@@ -16,7 +25,14 @@ export async function GET() {
 
     const { data: profile } = await supabase
         .from("profiles")
-        .select("last_check_in, check_in_streak, fortune_points")
+        .select(`
+            last_check_in, 
+            check_in_streak, 
+            fortune_points,
+            check_in_goal_distribution_id,
+            check_in_debt,
+            check_in_milestone
+        `)
         .eq("id", user.id)
         .single();
 
@@ -26,6 +42,9 @@ export async function GET() {
             streak: 0,
             fortunePoints: 0,
             lastCheckIn: null,
+            debt: 0,
+            milestone: 40,
+            goalDistribution: null,
         });
     }
 
@@ -42,11 +61,25 @@ export async function GET() {
         canCheckIn = lastCheckInDate.getTime() < today.getTime();
     }
 
+    // 查詢目標寶可夢資訊
+    let goalDistribution = null;
+    if (profile.check_in_goal_distribution_id) {
+        const { data: dist } = await supabase
+            .from("distributions")
+            .select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny")
+            .eq("id", profile.check_in_goal_distribution_id)
+            .single();
+        goalDistribution = dist;
+    }
+
     return NextResponse.json({
         canCheckIn,
         streak: profile.check_in_streak || 0,
         fortunePoints: profile.fortune_points || 0,
         lastCheckIn: profile.last_check_in,
+        debt: profile.check_in_debt || 0,
+        milestone: profile.check_in_milestone || 40,
+        goalDistribution,
     });
 }
 
@@ -64,7 +97,14 @@ export async function POST() {
     // 取得目前的 profile
     const { data: profile } = await supabase
         .from("profiles")
-        .select("last_check_in, check_in_streak, fortune_points")
+        .select(`
+            last_check_in, 
+            check_in_streak, 
+            fortune_points,
+            check_in_goal_distribution_id,
+            check_in_debt,
+            check_in_milestone
+        `)
         .eq("id", user.id)
         .single();
 
@@ -85,26 +125,77 @@ export async function POST() {
         }
     }
 
-    // 計算連續簽到天數
-    let newStreak = 1;
+    // 計算連續簽到天數和補簽債務
+    let newStreak = profile?.check_in_streak || 0;
+    let newDebt = profile?.check_in_debt || 0;
+    const milestone = profile?.check_in_milestone || 40;
+
     if (profile?.last_check_in) {
         const lastCheckIn = new Date(profile.last_check_in);
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
+        const daysSinceLastCheckIn = daysBetween(lastCheckIn, today);
 
-        const lastCheckInDate = new Date(lastCheckIn);
-        lastCheckInDate.setHours(0, 0, 0, 0);
-
-        // 如果上次簽到是昨天，連續天數 +1
-        if (lastCheckInDate.getTime() === yesterday.getTime()) {
-            newStreak = (profile.check_in_streak || 0) + 1;
+        if (daysSinceLastCheckIn === 1) {
+            // 昨天有簽到，正常處理
+            if (newDebt > 0) {
+                // 有債務，先還債
+                newDebt -= 1;
+            } else {
+                // 無債務，連續天數 +1
+                newStreak += 1;
+            }
+        } else if (daysSinceLastCheckIn > 1) {
+            // 斷簽了！計算債務
+            const missedDays = daysSinceLastCheckIn - 1;
+            newDebt += missedDays * 2;  // 每斷 1 天加 2 天債務
+            newStreak = 1;  // 連續天數重置為 1
         }
-        // 否則重置為 1
+    } else {
+        // 第一次簽到
+        newStreak = 1;
     }
 
-    // 計算獎勵點數（依連續天數增加）
-    const bonusPoints = Math.min(newStreak, 7); // 最多 7 點/天
+    // 計算獎勵點數（依連續天數增加，最多 7 點/天）
+    const bonusPoints = Math.min(newStreak, 7);
     const newFortunePoints = (profile?.fortune_points || 0) + bonusPoints;
+
+    // 檢查是否達成里程碑
+    let milestoneReached = false;
+    let rewardDistribution = null;
+
+    if (newStreak >= milestone && profile?.check_in_goal_distribution_id && newDebt === 0) {
+        milestoneReached = true;
+
+        // 查詢獎勵寶可夢資訊
+        const { data: dist } = await supabase
+            .from("distributions")
+            .select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny")
+            .eq("id", profile.check_in_goal_distribution_id)
+            .single();
+        rewardDistribution = dist;
+
+        // 新增到用戶的配布圖鑑
+        await supabase
+            .from("user_distributions")
+            .upsert({
+                user_id: user.id,
+                distribution_id: profile.check_in_goal_distribution_id,
+                notes: `連續簽到 ${milestone} 天獎勵`
+            }, {
+                onConflict: "user_id,distribution_id"
+            });
+
+        // 記錄獎勵
+        await supabase
+            .from("check_in_rewards")
+            .insert({
+                user_id: user.id,
+                distribution_id: profile.check_in_goal_distribution_id,
+                milestone_days: milestone
+            });
+
+        // 重置連續天數，開始新一輪
+        newStreak = 0;
+    }
 
     // 更新 profile
     const { error } = await supabase
@@ -113,6 +204,7 @@ export async function POST() {
             last_check_in: now.toISOString(),
             check_in_streak: newStreak,
             fortune_points: newFortunePoints,
+            check_in_debt: newDebt,
         })
         .eq("id", user.id);
 
@@ -124,11 +216,27 @@ export async function POST() {
         );
     }
 
+    // 構建訊息
+    let message = `簽到成功！`;
+    if (newDebt > 0) {
+        message += ` 補簽進度：還需 ${newDebt} 天`;
+    } else {
+        message += ` 連續 ${newStreak} 天`;
+    }
+    message += `，獲得 ${bonusPoints} 幸運點數！`;
+
+    if (milestoneReached && rewardDistribution) {
+        message = `🎉 恭喜達成 ${milestone} 天連續簽到！獲得 ${rewardDistribution.pokemon_name}！`;
+    }
+
     return NextResponse.json({
         success: true,
         streak: newStreak,
         fortunePoints: newFortunePoints,
         bonusPoints,
-        message: `簽到成功！連續 ${newStreak} 天，獲得 ${bonusPoints} 幸運點數！`,
+        debt: newDebt,
+        milestoneReached,
+        rewardDistribution,
+        message,
     });
 }
