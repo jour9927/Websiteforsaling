@@ -451,9 +451,12 @@ export function PersonalSpaceContent({
                                 {profile?.full_name || "未設定名稱"}
                             </h1>
                             {publicImage?.nickname && (
-                                <span className="text-sm text-white/40">
-                                    （{publicImage.nickname} {publicImage.approval_rate}%認同）
-                                </span>
+                                <>
+                                    <span className="text-white">{publicImage.nickname}</span>
+                                    <span className="text-sm text-white/40">
+                                        （{publicImage.approval_rate}%認同）
+                                    </span>
+                                </>
                             )}
                         </div>
                         <p className="mt-1 text-sm text-white/60">{user.email}</p>
