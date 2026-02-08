@@ -144,14 +144,21 @@ export default function CommentThread({ comments, profileUserId, currentUserId, 
         if (!newComment.trim() || !currentUserId) return;
         setIsSubmitting(true);
 
+        // 檢查 replyTo 是否為有效 UUID（虛擬留言 ID 格式是 virtual-comment-xxx，不是 UUID）
+        const isValidUUID = replyTo && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(replyTo);
+        const parentId = isValidUUID ? replyTo : null;
+
         const { error } = await supabase.from("profile_comments").insert({
             profile_user_id: profileUserId,
             commenter_id: currentUserId,
             content: newComment.trim(),
-            parent_id: replyTo,
+            parent_id: parentId,
         });
 
-        if (!error) {
+        if (error) {
+            console.error("Comment insert error:", error);
+            alert(`留言失敗: ${error.message}`);
+        } else {
             setNewComment("");
             setReplyTo(null);
             router.refresh();
