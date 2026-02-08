@@ -659,14 +659,46 @@ export function PersonalSpaceContent({
             {publicPerceptions.length > 0 && (
                 <section className="glass-card p-6">
                     <h2 className="mb-4 text-lg font-semibold text-white">👁️ 公眾認知</h2>
-                    <div className="space-y-3">
+                    <div className="space-y-4">
                         {publicPerceptions.map((p) => (
-                            <div key={p.id} className="flex items-center justify-between rounded-lg bg-white/5 p-3">
-                                <span className="text-white">&ldquo;{p.content}&rdquo;</span>
-                                <div className="flex items-center gap-4 text-sm">
-                                    <span className="text-green-400">認同 {p.agree_rate}%</span>
-                                    <span className="text-red-400">不認同 {p.disagree_rate}%</span>
-                                    <span className="text-white/40">(參與 {p.participation_rate} 人)</span>
+                            <div key={p.id} className="rounded-lg bg-white/5 p-4">
+                                {/* 第一行：內容 */}
+                                <p className="text-white mb-3">&ldquo;{p.content}&rdquo;</p>
+
+                                {/* 第二行：進度條和數據 */}
+                                <div className="flex items-center gap-3">
+                                    {/* 認同進度條 */}
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between text-xs mb-1">
+                                            <span className="text-green-400">認同</span>
+                                            <span className="text-green-400">{p.agree_rate}%</span>
+                                        </div>
+                                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-green-500 rounded-full transition-all"
+                                                style={{ width: `${p.agree_rate}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* 不認同進度條 */}
+                                    <div className="flex-1">
+                                        <div className="flex items-center justify-between text-xs mb-1">
+                                            <span className="text-red-400">不認同</span>
+                                            <span className="text-red-400">{p.disagree_rate}%</span>
+                                        </div>
+                                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                                            <div
+                                                className="h-full bg-red-500 rounded-full transition-all"
+                                                style={{ width: `${p.disagree_rate}%` }}
+                                            />
+                                        </div>
+                                    </div>
+
+                                    {/* 參與人數 */}
+                                    <span className="text-xs text-white/40 whitespace-nowrap">
+                                        參與 {p.participation_rate} 人
+                                    </span>
                                 </div>
                             </div>
                         ))}
