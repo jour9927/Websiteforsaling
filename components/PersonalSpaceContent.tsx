@@ -454,7 +454,7 @@ export function PersonalSpaceContent({
                                 <>
                                     <span className="text-white">{publicImage.nickname}</span>
                                     <span className="text-sm text-white/40">
-                                        （{publicImage.approval_rate}%認同）
+                                        （公眾形象名 約{publicImage.approval_rate}%認同）
                                     </span>
                                 </>
                             )}
