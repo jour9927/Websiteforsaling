@@ -8,7 +8,7 @@ type Distribution = {
     id: string;
     pokemon_name: string;
     pokemon_name_en?: string;
-    pokemon_sprite_url?: string;
+    image_url?: string;
     is_shiny?: boolean;
     generation?: number;
 };
@@ -236,9 +236,9 @@ export default function CheckInPage() {
                     <div className="mt-3 flex items-center justify-between">
                         {status?.goalDistribution ? (
                             <div className="flex items-center gap-2">
-                                {status.goalDistribution.pokemon_sprite_url && (
+                                {status.goalDistribution.image_url && (
                                     <Image
-                                        src={status.goalDistribution.pokemon_sprite_url}
+                                        src={status.goalDistribution.image_url}
                                         alt={status.goalDistribution.pokemon_name}
                                         width={32}
                                         height={32}
@@ -297,8 +297,8 @@ export default function CheckInPage() {
                     {message && (
                         <p
                             className={`mt-4 text-sm ${message.includes("成功") || message.includes("恭喜")
-                                    ? "text-emerald-400"
-                                    : "text-red-400"
+                                ? "text-emerald-400"
+                                : "text-red-400"
                                 }`}
                         >
                             {message}
@@ -314,8 +314,8 @@ export default function CheckInPage() {
                             <div
                                 key={day}
                                 className={`flex h-10 w-10 flex-col items-center justify-center rounded-lg text-xs ${day <= (currentStreak % 7 || (currentStreak > 0 ? 7 : 0))
-                                        ? "bg-amber-500/20 text-amber-400"
-                                        : "bg-white/5 text-white/30"
+                                    ? "bg-amber-500/20 text-amber-400"
+                                    : "bg-white/5 text-white/30"
                                     }`}
                             >
                                 <span className="font-bold">{day}</span>
@@ -385,9 +385,9 @@ export default function CheckInPage() {
                                         onClick={() => handleSetGoal(dist.id)}
                                         className="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition text-left"
                                     >
-                                        {dist.pokemon_sprite_url && (
+                                        {dist.image_url && (
                                             <Image
-                                                src={dist.pokemon_sprite_url}
+                                                src={dist.image_url}
                                                 alt={dist.pokemon_name}
                                                 width={40}
                                                 height={40}

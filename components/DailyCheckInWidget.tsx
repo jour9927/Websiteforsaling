@@ -12,7 +12,7 @@ type CheckInStatus = {
     goalDistribution: {
         id: string;
         pokemon_name: string;
-        pokemon_sprite_url?: string;
+        image_url?: string;
         is_shiny?: boolean;
     } | null;
 };
@@ -111,8 +111,8 @@ export function DailyCheckInWidget() {
                     onClick={handleCheckIn}
                     disabled={!status.canCheckIn || checking}
                     className={`relative px-4 py-2 rounded-full text-sm font-semibold transition-all ${status.canCheckIn
-                            ? "bg-gradient-to-r from-amber-400 to-orange-500 text-black hover:scale-105 active:scale-95"
-                            : "bg-white/10 text-white/40 cursor-not-allowed"
+                        ? "bg-gradient-to-r from-amber-400 to-orange-500 text-black hover:scale-105 active:scale-95"
+                        : "bg-white/10 text-white/40 cursor-not-allowed"
                         }`}
                 >
                     {checking ? "..." : status.canCheckIn ? "👆 簽到" : "✓ 已簽到"}
@@ -139,9 +139,9 @@ export function DailyCheckInWidget() {
                 {status.goalDistribution ? (
                     <div className="mt-2 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            {status.goalDistribution.pokemon_sprite_url && (
+                            {status.goalDistribution.image_url && (
                                 <img
-                                    src={status.goalDistribution.pokemon_sprite_url}
+                                    src={status.goalDistribution.image_url}
                                     alt={status.goalDistribution.pokemon_name}
                                     className="w-6 h-6"
                                 />
@@ -171,8 +171,8 @@ export function DailyCheckInWidget() {
             {/* 訊息提示 */}
             {message && (
                 <div className={`px-4 py-2 text-xs text-center ${message.includes("成功") || message.includes("恭喜")
-                        ? "bg-emerald-500/20 text-emerald-400"
-                        : "bg-red-500/20 text-red-400"
+                    ? "bg-emerald-500/20 text-emerald-400"
+                    : "bg-red-500/20 text-red-400"
                     }`}>
                     {message}
                 </div>
