@@ -669,14 +669,14 @@ export function PersonalSpaceContent({
                                 <p className="text-white mb-3">&ldquo;{p.content}&rdquo;</p>
 
                                 {/* 第二行：進度條和數據 */}
-                                <div className="flex items-center gap-3">
-                                    {/* 認同進度條 */}
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between text-xs mb-1">
+                                <div className="flex items-end gap-3">
+                                    {/* 認同進度條 - 如果認同多則放大 */}
+                                    <div className={`flex-1 transition-all ${p.agree_rate > p.disagree_rate ? 'scale-105 origin-left' : 'opacity-60'}`}>
+                                        <div className={`flex items-center justify-between mb-1 ${p.agree_rate > p.disagree_rate ? 'text-sm font-medium' : 'text-xs'}`}>
                                             <span className="text-green-400">認同</span>
                                             <span className="text-green-400">{p.agree_rate}%</span>
                                         </div>
-                                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                                        <div className={`bg-white/10 rounded-full overflow-hidden ${p.agree_rate > p.disagree_rate ? 'h-3' : 'h-2'}`}>
                                             <div
                                                 className="h-full bg-green-500 rounded-full transition-all"
                                                 style={{ width: `${p.agree_rate}%` }}
@@ -684,13 +684,13 @@ export function PersonalSpaceContent({
                                         </div>
                                     </div>
 
-                                    {/* 不認同進度條 */}
-                                    <div className="flex-1">
-                                        <div className="flex items-center justify-between text-xs mb-1">
+                                    {/* 不認同進度條 - 如果不認同多則放大 */}
+                                    <div className={`flex-1 transition-all ${p.disagree_rate > p.agree_rate ? 'scale-105 origin-right' : 'opacity-60'}`}>
+                                        <div className={`flex items-center justify-between mb-1 ${p.disagree_rate > p.agree_rate ? 'text-sm font-medium' : 'text-xs'}`}>
                                             <span className="text-red-400">不認同</span>
                                             <span className="text-red-400">{p.disagree_rate}%</span>
                                         </div>
-                                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                                        <div className={`bg-white/10 rounded-full overflow-hidden ${p.disagree_rate > p.agree_rate ? 'h-3' : 'h-2'}`}>
                                             <div
                                                 className="h-full bg-red-500 rounded-full transition-all"
                                                 style={{ width: `${p.disagree_rate}%` }}
