@@ -452,7 +452,7 @@ export function PersonalSpaceContent({
                             </h1>
                             {publicImage?.nickname && (
                                 <>
-                                    <span className="text-amber-400 italic font-medium">{publicImage.nickname}</span>
+                                    <span className="text-amber-400 font-medium">{publicImage.nickname}</span>
                                     <span className="text-xs text-white/30">
                                         （公眾形象名 約{publicImage.approval_rate}%認同）
                                     </span>
