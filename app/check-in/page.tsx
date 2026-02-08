@@ -11,6 +11,9 @@ type Distribution = {
     pokemon_sprite_url?: string;
     is_shiny?: boolean;
     generation?: number;
+    original_trainer?: string;
+    event_name?: string;
+    distribution_period_start?: string;
 };
 
 type CheckInStatus = {
@@ -394,14 +397,14 @@ export default function CheckInPage() {
                                                 className="pixelated"
                                             />
                                         )}
-                                        <div className="min-w-0">
+                                        <div className="min-w-0 flex-1">
                                             <p className="text-sm text-white truncate">
                                                 {dist.pokemon_name}
                                                 {dist.is_shiny && " ✨"}
                                             </p>
-                                            {dist.pokemon_name_en && (
-                                                <p className="text-[10px] text-white/40 truncate">{dist.pokemon_name_en}</p>
-                                            )}
+                                            <p className="text-[10px] text-amber-400/70 truncate">
+                                                {dist.event_name || dist.original_trainer || "配布"}
+                                            </p>
                                         </div>
                                     </button>
                                 ))}
