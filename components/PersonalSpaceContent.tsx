@@ -660,7 +660,7 @@ export function PersonalSpaceContent({
                 <section className="glass-card p-6">
                     <div className="flex items-baseline gap-2 mb-4">
                         <h2 className="text-lg font-semibold text-white">👁️ 公眾認知</h2>
-                        <span className="text-xs text-white/30">大家眼中的你是什麼樣的</span>
+                        <span className="text-xs text-white/30">你在社群中的形象</span>
                     </div>
                     <div className="space-y-4">
                         {publicPerceptions.map((p) => (
