@@ -106,7 +106,7 @@ export default async function HomePage() {
     .order("priority", { ascending: false });
 
   // 載入用戶的留言（顯示最近的留言）
-  const { data: comments } = await supabase
+  const { data: comments, error: commentsError } = await supabase
     .from("profile_comments")
     .select(`
       *,
@@ -115,6 +115,14 @@ export default async function HomePage() {
     .eq("profile_user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50);
+
+  // 除錯日誌 - 在 Vercel 日誌中查看
+  console.log("[DEBUG] Comments query for user:", user.id);
+  console.log("[DEBUG] Comments result count:", comments?.length ?? 0);
+  console.log("[DEBUG] Comments error:", commentsError);
+  if (comments && comments.length > 0) {
+    console.log("[DEBUG] First comment:", JSON.stringify(comments[0]));
+  }
 
   // 載入用戶收藏（用於精選展示）
   const { data: userItems } = await supabase
