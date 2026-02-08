@@ -76,6 +76,19 @@ type Visitor = {
     username: string | null;
 };
 
+type PublicImage = {
+    nickname: string | null;
+    approval_rate: number;
+};
+
+type PublicPerception = {
+    id: string;
+    content: string;
+    agree_rate: number;
+    disagree_rate: number;
+    participation_rate: number;
+};
+
 type User = {
     id: string;
     email?: string;
@@ -167,6 +180,8 @@ type PersonalSpaceContentProps = {
     isOwnProfile: boolean;
     currentUserId?: string;
     recentVisitors?: Visitor[];
+    publicImage?: PublicImage | null;
+    publicPerceptions?: PublicPerception[];
 };
 
 export function PersonalSpaceContent({
@@ -179,6 +194,8 @@ export function PersonalSpaceContent({
     isOwnProfile,
     currentUserId,
     recentVisitors = [],
+    publicImage,
+    publicPerceptions = [],
 }: PersonalSpaceContentProps) {
     const router = useRouter();
     const [newComment, setNewComment] = useState("");
@@ -361,6 +378,13 @@ export function PersonalSpaceContent({
         if (!newComment.trim() || !commenterId) return;
         setIsSubmitting(true);
 
+        console.log("Submitting comment:", {
+            profile_user_id: profile?.id || user.id,
+            commenter_id: commenterId,
+            content: newComment.trim(),
+            parent_id: replyTo,
+        });
+
         const { error } = await supabase.from("profile_comments").insert({
             profile_user_id: profile?.id || user.id,
             commenter_id: commenterId,
@@ -368,7 +392,10 @@ export function PersonalSpaceContent({
             parent_id: replyTo,
         });
 
-        if (!error) {
+        if (error) {
+            console.error("Comment insert error:", error);
+            alert(`留言失敗: ${error.message}`);
+        } else {
             setNewComment("");
             setReplyTo(null);
             router.refresh();
@@ -419,9 +446,16 @@ export function PersonalSpaceContent({
 
                     {/* 資訊 */}
                     <div className="flex-1">
-                        <h1 className="text-2xl font-bold text-white">
-                            {profile?.full_name || "未設定名稱"}
-                        </h1>
+                        <div className="flex items-baseline gap-2">
+                            <h1 className="text-2xl font-bold text-white">
+                                {profile?.full_name || "未設定名稱"}
+                            </h1>
+                            {publicImage?.nickname && (
+                                <span className="text-sm text-white/40">
+                                    （{publicImage.nickname} {publicImage.approval_rate}%）
+                                </span>
+                            )}
+                        </div>
                         <p className="mt-1 text-sm text-white/60">{user.email}</p>
 
                         {profile?.bio && (
@@ -617,6 +651,25 @@ export function PersonalSpaceContent({
                     <p className="text-center text-white/50">尚未設定願望清單</p>
                 )}
             </section>
+
+            {/* 公眾認知區塊 */}
+            {publicPerceptions.length > 0 && (
+                <section className="glass-card p-6">
+                    <h2 className="mb-4 text-lg font-semibold text-white">👁️ 公眾認知</h2>
+                    <div className="space-y-3">
+                        {publicPerceptions.map((p) => (
+                            <div key={p.id} className="flex items-center justify-between rounded-lg bg-white/5 p-3">
+                                <span className="text-white">&ldquo;{p.content}&rdquo;</span>
+                                <div className="flex items-center gap-4 text-sm">
+                                    <span className="text-green-400">👍 {p.agree_rate}%</span>
+                                    <span className="text-red-400">👎 {p.disagree_rate}%</span>
+                                    <span className="text-white/40">(參與 {p.participation_rate}%)</span>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
+            )}
 
             {/* 留言區 */}
             <section className="glass-card p-6">

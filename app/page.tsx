@@ -136,6 +136,20 @@ export default async function HomePage() {
     .eq("status", "published")
     .order("created_at", { ascending: false });
 
+  // 載入公眾形象名
+  const { data: publicImage } = await supabase
+    .from("public_images")
+    .select("nickname, approval_rate")
+    .eq("user_id", user.id)
+    .single();
+
+  // 載入公眾認知
+  const { data: publicPerceptions } = await supabase
+    .from("public_perceptions")
+    .select("id, content, agree_rate, disagree_rate, participation_rate")
+    .eq("user_id", user.id)
+    .order("sort_order");
+
   return (
     <div className="flex flex-col gap-8">
       {/* 熱門競標區塊 */}
@@ -151,6 +165,8 @@ export default async function HomePage() {
         allEvents={allEvents || []}
         isOwnProfile={true}
         currentUserId={user.id}
+        publicImage={publicImage}
+        publicPerceptions={publicPerceptions || []}
       />
     </div>
   );
