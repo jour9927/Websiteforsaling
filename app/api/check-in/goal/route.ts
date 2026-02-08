@@ -14,12 +14,12 @@ export async function GET() {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 查詢所有配布（限制 100 筆最新的）
+    // 查詢所有配布
     const { data: distributions, error } = await supabase
         .from("distributions")
         .select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny, generation, original_trainer, event_name, distribution_period_start")
-        .order("created_at", { ascending: false })
-        .limit(100);
+        .order("generation", { ascending: true })
+        .order("pokemon_name", { ascending: true });
 
     if (error) {
         return NextResponse.json({ error: "無法載入配布列表" }, { status: 500 });
