@@ -106,22 +106,38 @@ export default async function HomePage() {
     .order("priority", { ascending: false });
 
   // 載入用戶的留言（顯示最近的留言）
-  const { data: comments, error: commentsError } = await supabase
+  // 先查詢基本留言資料，不使用 join
+  const { data: rawComments, error: commentsError } = await supabase
     .from("profile_comments")
-    .select(`
-      *,
-      commenter:commenter_id (id, full_name)
-    `)
+    .select("*")
     .eq("profile_user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50);
 
   // 除錯日誌 - 在 Vercel 日誌中查看
   console.log("[DEBUG] Comments query for user:", user.id);
-  console.log("[DEBUG] Comments result count:", comments?.length ?? 0);
+  console.log("[DEBUG] Raw comments result count:", rawComments?.length ?? 0);
   console.log("[DEBUG] Comments error:", commentsError);
-  if (comments && comments.length > 0) {
-    console.log("[DEBUG] First comment:", JSON.stringify(comments[0]));
+  if (rawComments && rawComments.length > 0) {
+    console.log("[DEBUG] First raw comment:", JSON.stringify(rawComments[0]));
+  }
+
+  // 如果有留言，查詢對應的 commenter profiles
+  let comments = rawComments || [];
+  if (rawComments && rawComments.length > 0) {
+    const commenterIds = [...new Set(rawComments.map(c => c.commenter_id).filter(Boolean))];
+    const { data: profilesData } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", commenterIds);
+
+    // 手動合併 commenter 資料
+    const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+    comments = rawComments.map(comment => ({
+      ...comment,
+      commenter: profilesMap.get(comment.commenter_id) || null
+    }));
+    console.log("[DEBUG] Merged comments count:", comments.length);
   }
 
   // 載入用戶收藏（用於精選展示）
