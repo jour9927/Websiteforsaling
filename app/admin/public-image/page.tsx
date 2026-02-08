@@ -246,7 +246,7 @@ export default function PublicImageAdminPage() {
                                         <div>
                                             <span className="text-white">&ldquo;{p.content}&rdquo;</span>
                                             <span className="ml-4 text-sm text-white/50">
-                                                👍 {p.agree_rate}% 👎 {p.disagree_rate}% (參與 {p.participation_rate}%)
+                                                認同 {p.agree_rate}% 不認同 {p.disagree_rate}% (參與 {p.participation_rate} 人)
                                             </span>
                                         </div>
                                         <button
@@ -272,7 +272,7 @@ export default function PublicImageAdminPage() {
                             />
                             <div className="grid grid-cols-3 gap-4">
                                 <div>
-                                    <label className="mb-1 block text-xs text-white/60">👍 同意 %</label>
+                                    <label className="mb-1 block text-xs text-white/60">認同 %</label>
                                     <input
                                         type="number"
                                         min="0"
@@ -283,7 +283,7 @@ export default function PublicImageAdminPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-xs text-white/60">👎 不同意 %</label>
+                                    <label className="mb-1 block text-xs text-white/60">不認同 %</label>
                                     <input
                                         type="number"
                                         min="0"
@@ -294,7 +294,7 @@ export default function PublicImageAdminPage() {
                                     />
                                 </div>
                                 <div>
-                                    <label className="mb-1 block text-xs text-white/60">參與 %</label>
+                                    <label className="mb-1 block text-xs text-white/60">參與人數</label>
                                     <input
                                         type="number"
                                         min="0"

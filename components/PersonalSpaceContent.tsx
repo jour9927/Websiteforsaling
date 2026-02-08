@@ -452,7 +452,7 @@ export function PersonalSpaceContent({
                             </h1>
                             {publicImage?.nickname && (
                                 <span className="text-sm text-white/40">
-                                    （{publicImage.nickname} {publicImage.approval_rate}%）
+                                    （{publicImage.nickname} {publicImage.approval_rate}%認同）
                                 </span>
                             )}
                         </div>
@@ -661,9 +661,9 @@ export function PersonalSpaceContent({
                             <div key={p.id} className="flex items-center justify-between rounded-lg bg-white/5 p-3">
                                 <span className="text-white">&ldquo;{p.content}&rdquo;</span>
                                 <div className="flex items-center gap-4 text-sm">
-                                    <span className="text-green-400">👍 {p.agree_rate}%</span>
-                                    <span className="text-red-400">👎 {p.disagree_rate}%</span>
-                                    <span className="text-white/40">(參與 {p.participation_rate}%)</span>
+                                    <span className="text-green-400">認同 {p.agree_rate}%</span>
+                                    <span className="text-red-400">不認同 {p.disagree_rate}%</span>
+                                    <span className="text-white/40">(參與 {p.participation_rate} 人)</span>
                                 </div>
                             </div>
                         ))}
