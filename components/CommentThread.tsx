@@ -161,7 +161,7 @@ export default function CommentThread({ comments, profileUserId, currentUserId, 
         } else {
             setNewComment("");
             setReplyTo(null);
-            router.refresh();
+            window.location.reload();
         }
         setIsSubmitting(false);
     };

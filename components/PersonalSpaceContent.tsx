@@ -404,7 +404,8 @@ export function PersonalSpaceContent({
         } else {
             setNewComment("");
             setReplyTo(null);
-            router.refresh();
+            // 強制刷新頁面以顯示新留言
+            window.location.reload();
         }
         setIsSubmitting(false);
     };
@@ -412,7 +413,7 @@ export function PersonalSpaceContent({
     // 刪除留言
     const handleDeleteComment = async (commentId: string) => {
         await supabase.from("profile_comments").delete().eq("id", commentId);
-        router.refresh();
+        window.location.reload();
     };
 
     // 願望清單備註狀態
