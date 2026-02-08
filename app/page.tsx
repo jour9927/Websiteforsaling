@@ -106,21 +106,13 @@ export default async function HomePage() {
     .order("priority", { ascending: false });
 
   // 載入用戶的留言（顯示最近的留言）
-  // 先查詢基本留言資料，不使用 join
-  const { data: rawComments, error: commentsError } = await supabase
+  // 先查詢基本留言資料，不使用 join（避免 Server Component 中的 JOIN 語法問題）
+  const { data: rawComments } = await supabase
     .from("profile_comments")
     .select("*")
     .eq("profile_user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50);
-
-  // 除錯日誌 - 在 Vercel 日誌中查看
-  console.log("[DEBUG] Comments query for user:", user.id);
-  console.log("[DEBUG] Raw comments result count:", rawComments?.length ?? 0);
-  console.log("[DEBUG] Comments error:", commentsError);
-  if (rawComments && rawComments.length > 0) {
-    console.log("[DEBUG] First raw comment:", JSON.stringify(rawComments[0]));
-  }
 
   // 如果有留言，查詢對應的 commenter profiles
   let comments = rawComments || [];
@@ -137,7 +129,6 @@ export default async function HomePage() {
       ...comment,
       commenter: profilesMap.get(comment.commenter_id) || null
     }));
-    console.log("[DEBUG] Merged comments count:", comments.length);
   }
 
   // 載入用戶收藏（用於精選展示）
