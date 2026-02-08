@@ -8,7 +8,7 @@ type Distribution = {
     id: string;
     pokemon_name: string;
     pokemon_name_en?: string;
-    image_url?: string;
+    pokemon_sprite_url?: string;
     is_shiny?: boolean;
     generation?: number;
 };
@@ -236,9 +236,9 @@ export default function CheckInPage() {
                     <div className="mt-3 flex items-center justify-between">
                         {status?.goalDistribution ? (
                             <div className="flex items-center gap-2">
-                                {status.goalDistribution.image_url && (
+                                {status.goalDistribution.pokemon_sprite_url && (
                                     <Image
-                                        src={status.goalDistribution.image_url}
+                                        src={status.goalDistribution.pokemon_sprite_url}
                                         alt={status.goalDistribution.pokemon_name}
                                         width={32}
                                         height={32}
@@ -385,9 +385,9 @@ export default function CheckInPage() {
                                         onClick={() => handleSetGoal(dist.id)}
                                         className="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition text-left"
                                     >
-                                        {dist.image_url && (
+                                        {dist.pokemon_sprite_url && (
                                             <Image
-                                                src={dist.image_url}
+                                                src={dist.pokemon_sprite_url}
                                                 alt={dist.pokemon_name}
                                                 width={40}
                                                 height={40}

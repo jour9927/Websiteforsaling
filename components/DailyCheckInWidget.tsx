@@ -12,7 +12,7 @@ type CheckInStatus = {
     goalDistribution: {
         id: string;
         pokemon_name: string;
-        image_url?: string;
+        pokemon_sprite_url?: string;
         is_shiny?: boolean;
     } | null;
 };
@@ -139,9 +139,9 @@ export function DailyCheckInWidget() {
                 {status.goalDistribution ? (
                     <div className="mt-2 flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                            {status.goalDistribution.image_url && (
+                            {status.goalDistribution.pokemon_sprite_url && (
                                 <img
-                                    src={status.goalDistribution.image_url}
+                                    src={status.goalDistribution.pokemon_sprite_url}
                                     alt={status.goalDistribution.pokemon_name}
                                     className="w-6 h-6"
                                 />

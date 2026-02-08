@@ -66,7 +66,7 @@ export async function GET() {
     if (profile.check_in_goal_distribution_id) {
         const { data: dist } = await supabase
             .from("distributions")
-            .select("id, pokemon_name, pokemon_name_en, image_url, is_shiny")
+            .select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny")
             .eq("id", profile.check_in_goal_distribution_id)
             .single();
         goalDistribution = dist;
@@ -168,7 +168,7 @@ export async function POST() {
         // 查詢獎勵寶可夢資訊
         const { data: dist } = await supabase
             .from("distributions")
-            .select("id, pokemon_name, pokemon_name_en, image_url, is_shiny")
+            .select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny")
             .eq("id", profile.check_in_goal_distribution_id)
             .single();
         rewardDistribution = dist;

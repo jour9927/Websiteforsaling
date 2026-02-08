@@ -17,7 +17,7 @@ export async function GET() {
     // 查詢所有配布（限制 100 筆最新的）
     const { data: distributions, error } = await supabase
         .from("distributions")
-        .select("id, pokemon_name, pokemon_name_en, image_url, is_shiny, generation")
+        .select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny, generation")
         .order("created_at", { ascending: false })
         .limit(100);
 
