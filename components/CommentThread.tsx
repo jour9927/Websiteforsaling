@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
 
 type Comment = {
     id: string;
@@ -133,7 +132,6 @@ function CommentItem({
 }
 
 export default function CommentThread({ comments, profileUserId, currentUserId, isOwnProfile }: Props) {
-    const router = useRouter();
     const [newComment, setNewComment] = useState("");
     const [replyTo, setReplyTo] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
