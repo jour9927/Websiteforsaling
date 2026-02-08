@@ -17,7 +17,7 @@ const primaryLinks = [
   { label: "活動", href: "/events" as Route },
   { label: "競標", href: "/auctions" as Route },
   { label: "配布圖鑑", href: "/pokedex" as Route },
-  { label: "簽到", href: "/check-in" as Route },
+  // { label: "簽到", href: "/check-in" as Route }, // 暫時隱藏，開發中
   // { label: "公告", href: "/announcements" as Route }, // 已併入活動頁
   { label: "管理員平台", href: "/admin" as Route }
 ] as const;
