@@ -89,6 +89,15 @@ export function DailyCheckInWidget() {
 
     const progress = status.milestone > 0 ? (status.streak / status.milestone) * 100 : 0;
 
+    // 🔥 連勝燃燒等級
+    const getStreakFlame = (streak: number) => {
+        if (streak >= 30) return { emoji: "🔥", color: "text-purple-400" };
+        if (streak >= 14) return { emoji: "🔥", color: "text-orange-400" };
+        if (streak >= 7) return { emoji: "🔥", color: "text-amber-400" };
+        return { emoji: "", color: "" };
+    };
+    const flame = getStreakFlame(status.streak);
+
     return (
         <section className="glass-card overflow-hidden">
             <div className="flex items-stretch">
@@ -144,8 +153,9 @@ export function DailyCheckInWidget() {
                     <div>
                         <div className="flex items-center justify-between mb-2">
                             <h3 className="text-sm font-semibold text-white/90">每日簽到</h3>
-                            <span className="text-xs text-white/50">
-                                🔥 {status.streak} 天
+                            <span className={`text-xs ${flame.color || "text-white/50"}`}>
+                                {flame.emoji && <span className="animate-pulse mr-0.5">{flame.emoji}</span>}
+                                {status.streak} 天
                                 {status.debt > 0 && (
                                     <span className="text-red-400 ml-1">(-{status.debt})</span>
                                 )}
@@ -171,8 +181,8 @@ export function DailyCheckInWidget() {
                         onClick={handleCheckIn}
                         disabled={!status.canCheckIn || checking}
                         className={`relative mt-2 w-full py-2 rounded-lg text-sm font-semibold transition-all ${status.canCheckIn
-                                ? "bg-gradient-to-r from-amber-400 to-orange-500 text-black hover:scale-[1.02] active:scale-95"
-                                : "bg-white/10 text-white/40 cursor-not-allowed"
+                            ? "bg-gradient-to-r from-amber-400 to-orange-500 text-black hover:scale-[1.02] active:scale-95"
+                            : "bg-white/10 text-white/40 cursor-not-allowed"
                             }`}
                     >
                         {checking ? "..." : status.canCheckIn ? "👆 立即簽到" : "✓ 今日已簽到"}
@@ -186,8 +196,8 @@ export function DailyCheckInWidget() {
             {/* 訊息提示 */}
             {message && (
                 <div className={`px-4 py-2 text-xs text-center ${message.includes("成功") || message.includes("恭喜")
-                        ? "bg-emerald-500/20 text-emerald-400"
-                        : "bg-red-500/20 text-red-400"
+                    ? "bg-emerald-500/20 text-emerald-400"
+                    : "bg-red-500/20 text-red-400"
                     }`}>
                     {message}
                 </div>

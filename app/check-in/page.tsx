@@ -171,6 +171,15 @@ export default function CheckInPage() {
     const milestone = status?.milestone || 40;
     const progress = milestone > 0 ? (currentStreak / milestone) * 100 : 0;
 
+    // 🔥 連勝燃燒等級
+    const getStreakFlame = (streak: number) => {
+        if (streak >= 30) return { emoji: "🔥", label: "傳說連勝", color: "text-purple-400", bg: "from-purple-500/20", animate: true };
+        if (streak >= 14) return { emoji: "🔥", label: "超級連勝", color: "text-orange-400", bg: "from-orange-500/20", animate: true };
+        if (streak >= 7) return { emoji: "🔥", label: "燃燒中", color: "text-amber-400", bg: "from-amber-500/20", animate: true };
+        return { emoji: "", label: "", color: "", bg: "", animate: false };
+    };
+    const flame = getStreakFlame(currentStreak);
+
     // 篩選配布
     const generations = [...new Set(distributions.map(d => d.generation).filter(Boolean))].sort((a, b) => (a || 0) - (b || 0));
     const filteredDistributions = selectedGen
@@ -191,11 +200,17 @@ export default function CheckInPage() {
             <div className="glass-card overflow-hidden">
                 {/* 頂部統計 */}
                 <div className="grid grid-cols-3 divide-x divide-white/10 border-b border-white/10">
-                    <div className="p-4 text-center">
+                    <div className={`p-4 text-center relative ${flame.animate ? `bg-gradient-to-b ${flame.bg} to-transparent` : ""}`}>
                         <p className="text-xs uppercase tracking-wider text-white/50">連續簽到</p>
-                        <p className="mt-1 text-2xl font-bold text-amber-400">
+                        <p className={`mt-1 text-2xl font-bold ${flame.color || "text-amber-400"}`}>
+                            {flame.animate && (
+                                <span className="animate-pulse mr-1">{flame.emoji}</span>
+                            )}
                             {currentStreak} <span className="text-sm text-white/50">天</span>
                         </p>
+                        {flame.label && (
+                            <p className={`text-[10px] ${flame.color} mt-0.5`}>{flame.label}</p>
+                        )}
                     </div>
                     <div className="p-4 text-center">
                         <p className="text-xs uppercase tracking-wider text-white/50">幸運點數</p>
@@ -389,11 +404,43 @@ export default function CheckInPage() {
                 </div>
             </div>
 
+            {/* ⚠️ 損失預覽警告 */}
+            {!status?.canCheckIn && currentStreak > 0 && (
+                <div className="glass-card p-4 border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-transparent">
+                    <div className="flex items-start gap-3">
+                        <span className="text-xl">⚠️</span>
+                        <div>
+                            <h3 className="text-sm font-semibold text-amber-400">明天記得簽到！</h3>
+                            <p className="text-xs text-white/60 mt-1">
+                                若明天未簽到，將產生 <span className="text-red-400 font-bold">2 天補簽債務</span>，
+                                需額外簽到 2 天才能恢復進度。你目前已連續 <span className="text-amber-400 font-bold">{currentStreak}</span> 天，別讓努力白費！
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 補簽債務警告 */}
+            {(status?.debt || 0) > 0 && (
+                <div className="glass-card p-4 border border-red-500/30 bg-gradient-to-r from-red-500/10 to-transparent">
+                    <div className="flex items-start gap-3">
+                        <span className="text-xl">🚨</span>
+                        <div>
+                            <h3 className="text-sm font-semibold text-red-400">補簽進行中</h3>
+                            <p className="text-xs text-white/60 mt-1">
+                                你有 <span className="text-red-400 font-bold">{status?.debt}</span> 天補簽債務。
+                                需先連續簽到 {status?.debt} 天還清債務後，才能繼續累積連續天數。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* 說明區塊 */}
             <div className="glass-card p-4">
                 <h3 className="text-sm font-semibold text-white/80">📌 簽到規則</h3>
                 <ul className="mt-2 space-y-1 text-xs text-white/60">
-                    <li>• 每日簽到可獲得幸運點數</li>
+                    <li>• 每日簽到可獲得幸運點數（有 10% 機率獲得雙倍！🎰）</li>
                     <li>• 連續簽到天數越多，每日獲得的點數越多（最多 7 點/天）</li>
                     <li>• 連續簽到 {milestone} 天可獲得你設定的寶可夢配布獎勵！</li>
                     <li>• 斷簽一天需要額外簽到兩天才能恢復進度</li>

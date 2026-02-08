@@ -155,7 +155,14 @@ export async function POST() {
     }
 
     // 計算獎勵點數（依連續天數增加，最多 7 點/天）
-    const bonusPoints = Math.min(newStreak, 7);
+    let bonusPoints = Math.min(newStreak, 7);
+
+    // 🎰 10% 機率獲得雙倍點數
+    const isDoubleReward = Math.random() < 0.1;
+    if (isDoubleReward) {
+        bonusPoints *= 2;
+    }
+
     const newFortunePoints = (profile?.fortune_points || 0) + bonusPoints;
 
     // 檢查是否達成里程碑
@@ -223,7 +230,11 @@ export async function POST() {
     } else {
         message += ` 連續 ${newStreak} 天`;
     }
-    message += `，獲得 ${bonusPoints} 幸運點數！`;
+    if (isDoubleReward) {
+        message += `，🎰 幸運雙倍！獲得 ${bonusPoints} 幸運點數！`;
+    } else {
+        message += `，獲得 ${bonusPoints} 幸運點數！`;
+    }
 
     if (milestoneReached && rewardDistribution) {
         message = `🎉 恭喜達成 ${milestone} 天連續簽到！獲得 ${rewardDistribution.pokemon_name}！`;
@@ -237,6 +248,7 @@ export async function POST() {
         debt: newDebt,
         milestoneReached,
         rewardDistribution,
+        isDoubleReward,
         message,
     });
 }
