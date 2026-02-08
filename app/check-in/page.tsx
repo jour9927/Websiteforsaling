@@ -234,35 +234,95 @@ export default function CheckInPage() {
                             )}
                         </div>
                     </div>
+                </div>
 
-                    {/* 目標寶可夢 */}
-                    <div className="mt-3 flex items-center justify-between">
-                        {status?.goalDistribution ? (
-                            <div className="flex items-center gap-2">
-                                {status.goalDistribution.pokemon_sprite_url && (
+                {/* 🌟 目標寶可夢英雄區塊 */}
+                <div className="p-6 border-b border-white/10 bg-gradient-to-b from-amber-500/5 to-transparent">
+                    <div className="flex items-center gap-6">
+                        {/* 寶可夢大圖 + 進度環 */}
+                        <div className="relative shrink-0">
+                            <svg className="w-28 h-28 -rotate-90" viewBox="0 0 100 100">
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r="45"
+                                    fill="none"
+                                    stroke="rgba(255,255,255,0.1)"
+                                    strokeWidth="6"
+                                />
+                                <circle
+                                    cx="50"
+                                    cy="50"
+                                    r="45"
+                                    fill="none"
+                                    stroke="url(#progressGradient)"
+                                    strokeWidth="6"
+                                    strokeLinecap="round"
+                                    strokeDasharray={`${progress * 2.83} 283`}
+                                    className="transition-all duration-500"
+                                />
+                                <defs>
+                                    <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stopColor="#f59e0b" />
+                                        <stop offset="100%" stopColor="#f97316" />
+                                    </linearGradient>
+                                </defs>
+                            </svg>
+                            <div className="absolute inset-0 flex items-center justify-center">
+                                {status?.goalDistribution?.pokemon_sprite_url ? (
                                     <Image
                                         src={status.goalDistribution.pokemon_sprite_url}
                                         alt={status.goalDistribution.pokemon_name}
-                                        width={32}
-                                        height={32}
-                                        className="pixelated"
+                                        width={72}
+                                        height={72}
+                                        className="pixelated drop-shadow-lg"
                                     />
+                                ) : (
+                                    <div className="w-18 h-18 flex items-center justify-center text-4xl text-white/20">
+                                        ?
+                                    </div>
                                 )}
-                                <span className="text-sm text-white/80">
-                                    目標獎勵：<span className="text-amber-400 font-semibold">{status.goalDistribution.pokemon_name}</span>
-                                    {status.goalDistribution.is_shiny && " ✨"}
-                                </span>
                             </div>
-                        ) : (
-                            <span className="text-sm text-white/50">尚未設定目標獎勵</span>
-                        )}
-                        <button
-                            onClick={loadDistributions}
-                            disabled={loadingDist}
-                            className="text-sm text-amber-400 hover:underline disabled:opacity-50"
-                        >
-                            {loadingDist ? "載入中..." : status?.goalDistribution ? "更換" : "選擇獎勵"}
-                        </button>
+                            {/* 閃光效果 */}
+                            {status?.goalDistribution?.is_shiny && (
+                                <span className="absolute -top-1 -right-1 text-lg animate-pulse">✨</span>
+                            )}
+                        </div>
+
+                        {/* 目標資訊 */}
+                        <div className="flex-1 min-w-0">
+                            <p className="text-xs text-amber-400/80 uppercase tracking-wider mb-1">
+                                🎯 40 天目標獎勵
+                            </p>
+                            {status?.goalDistribution ? (
+                                <>
+                                    <h3 className="text-xl font-bold text-white truncate">
+                                        {status.goalDistribution.pokemon_name}
+                                        {status.goalDistribution.is_shiny && " ✨"}
+                                    </h3>
+                                    <p className="text-sm text-white/50 truncate mt-0.5">
+                                        {status.goalDistribution.event_name || status.goalDistribution.original_trainer || "配布寶可夢"}
+                                    </p>
+                                    <p className="text-sm text-white/70 mt-2">
+                                        還差 <span className="text-amber-400 font-bold">{milestone - currentStreak}</span> 天獲得！
+                                    </p>
+                                </>
+                            ) : (
+                                <>
+                                    <h3 className="text-lg text-white/60">尚未設定目標</h3>
+                                    <p className="text-sm text-white/40 mt-1">
+                                        選擇一隻寶可夢作為獎勵目標吧！
+                                    </p>
+                                </>
+                            )}
+                            <button
+                                onClick={loadDistributions}
+                                disabled={loadingDist}
+                                className="mt-3 px-4 py-1.5 rounded-full bg-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/30 transition disabled:opacity-50"
+                            >
+                                {loadingDist ? "載入中..." : status?.goalDistribution ? "更換目標" : "選擇目標"}
+                            </button>
+                        </div>
                     </div>
                 </div>
 
