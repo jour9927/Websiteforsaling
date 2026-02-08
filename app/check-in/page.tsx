@@ -392,6 +392,138 @@ export default function CheckInPage() {
                 </div>
             </div>
 
+            {/* 🎯 英雄區塊：目標寶可夢（最接近達成的層級） */}
+            {tiers && (() => {
+                // 找出第一個有設定目標且未領取的層級
+                const activeTier =
+                    (tiers.tier_12.goalId && !tiers.tier_12.claimedAt) ? { key: "tier_12" as TierKey, tier: tiers.tier_12 } :
+                        (tiers.tier_40.goalId && !tiers.tier_40.claimedAt) ? { key: "tier_40" as TierKey, tier: tiers.tier_40 } :
+                            (tiers.tier_points.goalId && !tiers.tier_points.claimedAt) ? { key: "tier_points" as TierKey, tier: tiers.tier_points } :
+                                null;
+
+                if (!activeTier) return null;
+
+                const goal = goalDistributions[activeTier.tier.goalId!];
+                if (!goal) return null;
+
+                const remaining = activeTier.tier.target - activeTier.tier.progress;
+                const progress = activeTier.tier.target > 0 ? (activeTier.tier.progress / activeTier.tier.target) * 100 : 0;
+
+                // 靜態 class 映射
+                const heroColors: Record<TierKey, { border: string; bg: string; text: string; ring: string }> = {
+                    tier_12: { border: "border-emerald-500/30", bg: "from-emerald-500/10", text: "text-emerald-400", ring: "stroke-emerald-400" },
+                    tier_40: { border: "border-amber-500/30", bg: "from-amber-500/10", text: "text-amber-400", ring: "stroke-amber-400" },
+                    tier_points: { border: "border-purple-500/30", bg: "from-purple-500/10", text: "text-purple-400", ring: "stroke-purple-400" }
+                };
+                const hc = heroColors[activeTier.key];
+
+                return (
+                    <div className={`glass-card p-6 border ${hc.border} bg-gradient-to-b ${hc.bg} to-transparent`}>
+                        <div className="flex items-center gap-6">
+                            {/* 大圓圈進度環 + 寶可夢圖 */}
+                            <div className="relative shrink-0">
+                                <svg className="w-24 h-24 -rotate-90" viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="42" fill="none" stroke="rgba(255,255,255,0.1)" strokeWidth="8" />
+                                    <circle
+                                        cx="50" cy="50" r="42" fill="none"
+                                        strokeWidth="8" strokeLinecap="round"
+                                        strokeDasharray={`${progress * 2.64} 264`}
+                                        className={`${hc.ring} transition-all duration-500`}
+                                    />
+                                </svg>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                    {goal.pokemon_sprite_url && (
+                                        <div className="relative">
+                                            <Image
+                                                src={goal.pokemon_sprite_url}
+                                                alt={goal.pokemon_name}
+                                                width={56}
+                                                height={56}
+                                                className={`pixelated ${goal.is_shiny ? "animate-pulse" : ""}`}
+                                            />
+                                            {goal.is_shiny && (
+                                                <span className="absolute -top-1 -right-1 text-lg animate-pulse">✨</span>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* 右側資訊 */}
+                            <div className="flex-1 min-w-0">
+                                <p className={`text-xs ${hc.text} font-medium`}>{activeTier.tier.name}</p>
+                                <h3 className="text-lg font-bold text-white truncate">
+                                    {goal.pokemon_name}
+                                    {goal.is_shiny && " ✨"}
+                                </h3>
+                                <p className="text-xs text-white/50 mt-1">
+                                    {goal.event_name || "配布寶可夢"}
+                                </p>
+                                <p className={`text-sm mt-2 ${hc.text} font-semibold`}>
+                                    還差 {remaining} {activeTier.key === "tier_points" ? "點" : "天"} 獲得！
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* 每週獎勵 1-7 天 */}
+            <div className="glass-card overflow-hidden">
+                <div className="p-4 border-b border-white/10">
+                    <h3 className="text-sm font-semibold text-white/80">🎯 每週獎勵</h3>
+                    <p className="text-xs text-white/50 mt-0.5">連續簽到越久，每日獲得的點數越多</p>
+                </div>
+                <div className="p-4">
+                    <div className="grid grid-cols-7 gap-2">
+                        {[1, 2, 3, 4, 5, 6, 7].map((day) => (
+                            <div
+                                key={day}
+                                className={`flex h-10 w-full flex-col items-center justify-center rounded-lg text-xs ${day <= (currentStreak % 7 || (currentStreak > 0 ? 7 : 0))
+                                    ? "bg-amber-500/20 text-amber-400"
+                                    : "bg-white/5 text-white/30"
+                                    }`}
+                            >
+                                <span className="font-bold">{day}</span>
+                                <span className="text-[10px]">點</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* ⚠️ 損失預覽警告 */}
+            {!status?.canCheckIn && currentStreak > 0 && (
+                <div className="glass-card p-4 border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-transparent">
+                    <div className="flex items-start gap-3">
+                        <span className="text-xl">⚠️</span>
+                        <div>
+                            <h3 className="text-sm font-semibold text-amber-400">明天記得簽到！</h3>
+                            <p className="text-xs text-white/60 mt-1">
+                                若明天未簽到，將產生 <span className="text-red-400 font-bold">2 天補簽債務</span>，
+                                需額外簽到 2 天才能恢復進度。你目前已連續 <span className="text-amber-400 font-bold">{currentStreak}</span> 天，別讓努力白費！
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* 補簽債務警告 */}
+            {(status?.debt || 0) > 0 && (
+                <div className="glass-card p-4 border border-red-500/30 bg-gradient-to-r from-red-500/10 to-transparent">
+                    <div className="flex items-start gap-3">
+                        <span className="text-xl">🚨</span>
+                        <div>
+                            <h3 className="text-sm font-semibold text-red-400">補簽進行中</h3>
+                            <p className="text-xs text-white/60 mt-1">
+                                你有 <span className="text-red-400 font-bold">{status?.debt}</span> 天補簽債務。
+                                需先連續簽到 {status?.debt} 天還清債務後，才能繼續累積連續天數。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* 三層級獎勵卡片 */}
             <div className="space-y-4">
                 <h2 className="text-lg font-semibold text-white/80">🎁 獎勵進度</h2>
