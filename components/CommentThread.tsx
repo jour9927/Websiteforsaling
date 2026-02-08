@@ -61,13 +61,12 @@ function CommentItem({
     depth?: number;
     onReply: (parentId: string) => void;
 }) {
-    const router = useRouter();
     const isVirtual = comment.is_virtual || !comment.commenter;
     const canDelete = !isVirtual && (currentUserId === comment.commenter?.id || isOwnProfile);
 
     const handleDelete = async () => {
         await supabase.from("profile_comments").delete().eq("id", comment.id);
-        router.refresh();
+        window.location.reload();
     };
 
     return (
