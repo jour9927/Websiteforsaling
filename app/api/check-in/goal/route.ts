@@ -14,10 +14,11 @@ export async function GET() {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 查詢所有配布
+    // 查詢世代 8、9 的配布（目前政策只開放這兩個世代）
     const { data: distributions, error } = await supabase
         .from("distributions")
         .select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny, generation, original_trainer, event_name, distribution_period_start")
+        .in("generation", [8, 9])
         .order("generation", { ascending: true })
         .order("pokemon_name", { ascending: true });
 
