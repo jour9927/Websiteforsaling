@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PersonalSpaceContent } from "@/components/PersonalSpaceContent";
 import Link from "next/link";
 import Image from "next/image";
+import { SocialStats } from "@/components/SocialStats";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,8 @@ function isUUID(str: string): boolean {
 }
 
 // 虛擬用戶完整頁面元件（與真實用戶一樣豐富）
-function VirtualUserPage({ profile, featuredEvents }: {
+function VirtualUserPage({ profile, virtualId, featuredEvents }: {
+    virtualId: string;
     profile: {
         display_name: string;
         member_since: string;
@@ -28,6 +30,8 @@ function VirtualUserPage({ profile, featuredEvents }: {
         total_value?: number;
         total_views?: number;
         today_views?: number;
+        popularity_score?: number;
+        followers_count?: number;
     };
     featuredEvents: Array<{
         id: string;
@@ -111,6 +115,15 @@ function VirtualUserPage({ profile, featuredEvents }: {
                                     <p className="text-xs text-white/50 mt-1">✨ 今日訪問</p>
                                 </div>
                             </div>
+                        </div>
+
+                        {/* 社交統計與互動按鈕 */}
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                            <SocialStats
+                                virtualId={virtualId}
+                                initialFollowers={profile.followers_count || 0}
+                                initialPopularity={profile.popularity_score || 0}
+                            />
                         </div>
                     </div>
                 </div>
@@ -256,7 +269,7 @@ export default async function UserProfilePage({ params }: Props) {
                 .order("created_at", { ascending: false })
                 .limit(10);
 
-            return <VirtualUserPage profile={virtualProfile} featuredEvents={events || []} />;
+            return <VirtualUserPage virtualId={idOrUsername} profile={virtualProfile} featuredEvents={events || []} />;
         }
     }
 
