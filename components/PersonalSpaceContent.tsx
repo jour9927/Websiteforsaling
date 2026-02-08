@@ -374,8 +374,16 @@ export function PersonalSpaceContent({
 
     // 提交留言
     const handleSubmitComment = async () => {
-        const commenterId = currentUserId || user.id;
-        if (!newComment.trim() || !commenterId) return;
+        // 直接從 Supabase session 獲取當前登入用戶 ID，確保 RLS 政策通過
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const commenterId = authUser?.id;
+
+        if (!newComment.trim() || !commenterId) {
+            if (!commenterId) {
+                alert("請先登入才能留言");
+            }
+            return;
+        }
         setIsSubmitting(true);
 
         // 檢查 replyTo 是否為有效 UUID（虛擬留言 ID 格式是 virtual-comment-xxx，不是 UUID）
@@ -387,8 +395,6 @@ export function PersonalSpaceContent({
             commenter_id: commenterId,
             content: newComment.trim(),
             parent_id: parentId,
-            original_replyTo: replyTo,
-            isValidUUID,
         });
 
         const { error } = await supabase.from("profile_comments").insert({
