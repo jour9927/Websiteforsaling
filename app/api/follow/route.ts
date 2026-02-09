@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { createServerSupabaseClient } from "@/lib/auth";
 
 // GET: 獲取關注狀態和統計
 export async function GET(request: Request) {
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = createServerSupabaseClient();
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get("userId");
     const virtualId = searchParams.get("virtualId");
@@ -83,7 +82,7 @@ export async function GET(request: Request) {
 
 // POST: 關注或取消關注
 export async function POST(request: Request) {
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = createServerSupabaseClient();
 
     // 驗證登入
     const { data: { user } } = await supabase.auth.getUser();

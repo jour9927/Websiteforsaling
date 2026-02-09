@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
-import { cookies } from "next/headers";
+import { createServerSupabaseClient } from "@/lib/auth";
 
 // POST: 管理員更新人氣值
 export async function POST(request: Request) {
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = createServerSupabaseClient();
 
     // 驗證管理員權限
     const { data: { user } } = await supabase.auth.getUser();
