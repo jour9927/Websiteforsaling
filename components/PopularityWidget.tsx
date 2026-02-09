@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { Route } from "next";
 
 type RankingUser = {
     id: string;
@@ -62,7 +63,7 @@ export function PopularityWidget() {
                     return (
                         <Link
                             key={user.id}
-                            href={userLink}
+                            href={userLink as Route}
                             className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/5 transition"
                         >
                             <span className="text-lg">{medals[idx]}</span>
