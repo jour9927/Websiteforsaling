@@ -181,18 +181,16 @@ export async function POST(request: Request) {
 
     // 更新人氣值
     if (userId) {
-        await supabase.rpc("increment_popularity", { user_id: userId }).catch(async () => {
-            // 手動 +1
-            const { data: current } = await supabase
-                .from("profiles")
-                .select("popularity_score")
-                .eq("id", userId)
-                .single();
-            await supabase
-                .from("profiles")
-                .update({ popularity_score: (current?.popularity_score || 0) + 1 })
-                .eq("id", userId);
-        });
+        // 直接查詢並 +1
+        const { data: current } = await supabase
+            .from("profiles")
+            .select("popularity_score")
+            .eq("id", userId)
+            .single();
+        await supabase
+            .from("profiles")
+            .update({ popularity_score: (current?.popularity_score || 0) + 1 })
+            .eq("id", userId);
     } else {
         const { data: current } = await supabase
             .from("virtual_profiles")
