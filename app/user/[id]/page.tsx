@@ -200,13 +200,13 @@ function VirtualUserPage({ profile, virtualId, featuredEvents }: {
                 )}
             </section>
 
-            {/* 留言區 */}
-            <section className="glass-card p-6">
+            {/* 留言區 - 隱私模式 */}
+            <section className="glass-card p-6 relative overflow-hidden">
                 <h2 className="mb-4 text-lg font-semibold text-white">💬 留言區</h2>
 
-                {/* 留言列表 */}
-                <div className="space-y-3">
-                    {fakeComments.map((comment) => (
+                {/* 模糊的假留言背景 */}
+                <div className="space-y-3 blur-sm select-none pointer-events-none">
+                    {fakeComments.slice(0, 2).map((comment) => (
                         <div key={comment.id} className="flex gap-3 rounded-lg bg-white/5 p-3">
                             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-sm font-bold text-white">
                                 {comment.name.slice(0, 1).toUpperCase()}
@@ -226,8 +226,14 @@ function VirtualUserPage({ profile, virtualId, featuredEvents }: {
                     ))}
                 </div>
 
-                {/* 提示訊息 */}
-                <p className="mt-4 text-center text-xs text-white/40">此會員尚未開放留言功能</p>
+                {/* 隱私遮罩 */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-slate-900/95 via-slate-900/90 to-slate-900/80 backdrop-blur-[2px]">
+                    <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/10 mb-4">
+                        <span className="text-3xl">🔒</span>
+                    </div>
+                    <p className="text-lg font-medium text-white">對方已開啟隱私模式</p>
+                    <p className="mt-1 text-sm text-white/50">留言區僅對好友開放</p>
+                </div>
             </section>
 
             {/* 返回連結 */}
