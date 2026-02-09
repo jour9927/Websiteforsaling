@@ -109,12 +109,6 @@ export function FollowListModal({
                                                 <p className="text-xs text-white/50">@{user.username}</p>
                                             )}
                                         </div>
-                                        {/* Virtual badge */}
-                                        {user.isVirtual && (
-                                            <span className="text-xs text-white/40 px-2 py-0.5 bg-white/5 rounded">
-                                                虛擬
-                                            </span>
-                                        )}
                                     </Link>
                                 );
                             })}
