@@ -2,7 +2,7 @@ import { createServerSupabaseClient } from "@/lib/auth";
 import Link from "next/link";
 import { PersonalSpaceContent } from "@/components/PersonalSpaceContent";
 import AuctionCard from "@/components/AuctionCard";
-import { PopularityWidget } from "@/components/PopularityWidget";
+import { PopularityWidgetToggle } from "@/components/PopularityWidgetToggle";
 
 // 每次請求都重新執行，確保競標數據是最新的
 export const dynamic = "force-dynamic";
@@ -167,8 +167,8 @@ export default async function HomePage() {
       {/* 熱門競標區塊 */}
       <HotAuctionsSection />
 
-      {/* 人氣排行榜小組件 */}
-      <PopularityWidget />
+      {/* 人氣排行榜小組件（可開關） */}
+      <PopularityWidgetToggle />
 
       {/* 個人空間內容 */}
       <PersonalSpaceContent
