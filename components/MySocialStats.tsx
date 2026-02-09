@@ -37,34 +37,42 @@ export function MySocialStats({ userId }: MySocialStatsProps) {
 
     if (loading) {
         return (
-            <div className="flex gap-3 animate-pulse">
-                <div className="h-14 w-20 rounded-lg bg-white/10"></div>
-                <div className="h-14 w-20 rounded-lg bg-white/10"></div>
-                <div className="h-14 w-20 rounded-lg bg-white/10"></div>
+            <div className="grid grid-cols-3 gap-4 animate-pulse">
+                <div className="h-20 rounded-xl bg-white/5"></div>
+                <div className="h-20 rounded-xl bg-white/5"></div>
+                <div className="h-20 rounded-xl bg-white/5"></div>
             </div>
         );
     }
 
     return (
         <>
-            <div className="flex flex-wrap gap-3">
+            <div className="grid grid-cols-3 gap-4">
+                {/* 被關注 */}
                 <button
                     onClick={() => setModalType("followers")}
-                    className="rounded-lg bg-white/10 px-4 py-2 text-center hover:bg-white/20 transition cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500/20 to-cyan-500/10 p-4 text-center transition hover:from-blue-500/30 hover:to-cyan-500/20 hover:scale-[1.02]"
                 >
-                    <p className="text-xl font-bold text-white">{stats.followers_count}</p>
-                    <p className="text-xs text-white/50">被關注</p>
+                    <div className="absolute inset-0 bg-gradient-to-t from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition"></div>
+                    <p className="text-2xl font-bold text-white">{stats.followers_count}</p>
+                    <p className="text-xs text-white/60 mt-1">被關注</p>
                 </button>
+
+                {/* 已關注 */}
                 <button
                     onClick={() => setModalType("following")}
-                    className="rounded-lg bg-white/10 px-4 py-2 text-center hover:bg-white/20 transition cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-500/20 to-pink-500/10 p-4 text-center transition hover:from-purple-500/30 hover:to-pink-500/20 hover:scale-[1.02]"
                 >
-                    <p className="text-xl font-bold text-white">{stats.following_count}</p>
-                    <p className="text-xs text-white/50">已關注</p>
+                    <div className="absolute inset-0 bg-gradient-to-t from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition"></div>
+                    <p className="text-2xl font-bold text-white">{stats.following_count}</p>
+                    <p className="text-xs text-white/60 mt-1">已關注</p>
                 </button>
-                <div className="rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20 px-4 py-2 text-center">
-                    <p className="text-xl font-bold text-amber-400">🔥 {stats.popularity_score}</p>
-                    <p className="text-xs text-amber-400/70">人氣值</p>
+
+                {/* 人氣值 */}
+                <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-amber-500/20 to-orange-500/10 p-4 text-center">
+                    <div className="absolute top-2 right-2 text-2xl opacity-20">🔥</div>
+                    <p className="text-2xl font-bold text-amber-400">{stats.popularity_score}</p>
+                    <p className="text-xs text-amber-400/60 mt-1">人氣值</p>
                 </div>
             </div>
 
@@ -78,3 +86,4 @@ export function MySocialStats({ userId }: MySocialStatsProps) {
         </>
     );
 }
+
