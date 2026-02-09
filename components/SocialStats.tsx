@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { FollowListModal } from "./FollowListModal";
 
 type SocialStatsProps = {
     userId?: string;
@@ -31,6 +32,9 @@ export function SocialStats({
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
+
+    // Modal 狀態
+    const [modalType, setModalType] = useState<"followers" | "following" | null>(null);
 
     const loadData = useCallback(async () => {
         try {
@@ -162,66 +166,85 @@ export function SocialStats({
     }
 
     return (
-        <div className="space-y-4">
-            {/* 統計數字 */}
-            <div className="flex flex-wrap gap-3">
-                <div className="rounded-lg bg-white/10 px-3 py-2 text-center">
-                    <p className="text-lg font-bold text-white">{stats.followers_count}</p>
-                    <p className="text-xs text-white/50">被關注</p>
-                </div>
-                {!virtualId && (
-                    <div className="rounded-lg bg-white/10 px-3 py-2 text-center">
-                        <p className="text-lg font-bold text-white">{stats.following_count}</p>
-                        <p className="text-xs text-white/50">已關注</p>
-                    </div>
-                )}
-                <div className="rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20 px-3 py-2 text-center">
-                    <p className="text-lg font-bold text-amber-400">🔥 {stats.popularity_score}</p>
-                    <p className="text-xs text-amber-400/70">人氣值</p>
-                </div>
-            </div>
-
-            {/* 操作按鈕（非自己的頁面才顯示） */}
-            {!isOwnProfile && (
-                <div className="flex gap-2">
+        <>
+            <div className="space-y-4">
+                {/* 統計數字 - 可點擊 */}
+                <div className="flex flex-wrap gap-3">
                     <button
-                        onClick={handleFollow}
-                        disabled={actionLoading || !stats.isLoggedIn}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition ${stats.isFollowing
+                        onClick={() => setModalType("followers")}
+                        className="rounded-lg bg-white/10 px-3 py-2 text-center hover:bg-white/20 transition cursor-pointer"
+                    >
+                        <p className="text-lg font-bold text-white">{stats.followers_count}</p>
+                        <p className="text-xs text-white/50">被關注</p>
+                    </button>
+                    {!virtualId && (
+                        <button
+                            onClick={() => setModalType("following")}
+                            className="rounded-lg bg-white/10 px-3 py-2 text-center hover:bg-white/20 transition cursor-pointer"
+                        >
+                            <p className="text-lg font-bold text-white">{stats.following_count}</p>
+                            <p className="text-xs text-white/50">已關注</p>
+                        </button>
+                    )}
+                    <div className="rounded-lg bg-gradient-to-br from-amber-500/20 to-orange-500/20 px-3 py-2 text-center">
+                        <p className="text-lg font-bold text-amber-400">🔥 {stats.popularity_score}</p>
+                        <p className="text-xs text-amber-400/70">人氣值</p>
+                    </div>
+                </div>
+
+                {/* 操作按鈕（非自己的頁面才顯示） */}
+                {!isOwnProfile && (
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleFollow}
+                            disabled={actionLoading || !stats.isLoggedIn}
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition ${stats.isFollowing
                                 ? "bg-white/10 text-white hover:bg-red-500/20 hover:text-red-400"
                                 : "bg-blue-500 text-white hover:bg-blue-600"
-                            } disabled:opacity-50`}
-                    >
-                        {actionLoading ? "..." : stats.isFollowing ? "取消關注" : "+ 關注"}
-                    </button>
+                                } disabled:opacity-50`}
+                        >
+                            {actionLoading ? "..." : stats.isFollowing ? "取消關注" : "+ 關注"}
+                        </button>
 
-                    <button
-                        onClick={handleVote}
-                        disabled={actionLoading || !stats.isLoggedIn || voteStatus.hasVotedThisWeek || voteStatus.remainingQuota <= 0}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition ${voteStatus.hasVotedThisWeek
+                        <button
+                            onClick={handleVote}
+                            disabled={actionLoading || !stats.isLoggedIn || voteStatus.hasVotedThisWeek || voteStatus.remainingQuota <= 0}
+                            className={`px-4 py-2 rounded-full text-sm font-medium transition ${voteStatus.hasVotedThisWeek
                                 ? "bg-white/5 text-white/40 cursor-not-allowed"
                                 : "bg-gradient-to-r from-amber-500 to-orange-500 text-black hover:opacity-90"
-                            } disabled:opacity-50`}
-                        title={`每週可給同一人投 1 次，本月剩餘 ${voteStatus.remainingQuota} 次`}
-                    >
-                        {voteStatus.hasVotedThisWeek ? "本週已投票" : "🔥 +1 人氣"}
-                    </button>
-                </div>
-            )}
+                                } disabled:opacity-50`}
+                            title={`每週可給同一人投 1 次，本月剩餘 ${voteStatus.remainingQuota} 次`}
+                        >
+                            {voteStatus.hasVotedThisWeek ? "本週已投票" : "🔥 +1 人氣"}
+                        </button>
+                    </div>
+                )}
 
-            {/* 投票說明 */}
-            {!isOwnProfile && stats.isLoggedIn && (
-                <p className="text-xs text-white/40">
-                    💡 每週可給同一人投 1 次，每月共 4 次額度（剩餘 {voteStatus.remainingQuota} 次）
-                </p>
-            )}
+                {/* 投票說明 */}
+                {!isOwnProfile && stats.isLoggedIn && (
+                    <p className="text-xs text-white/40">
+                        💡 每週可給同一人投 1 次，每月共 4 次額度（剩餘 {voteStatus.remainingQuota} 次）
+                    </p>
+                )}
 
-            {/* 訊息提示 */}
-            {message && (
-                <p className={`text-sm ${message.includes("失敗") || message.includes("登入") ? "text-red-400" : "text-emerald-400"}`}>
-                    {message}
-                </p>
-            )}
-        </div>
+                {/* 訊息提示 */}
+                {message && (
+                    <p className={`text-sm ${message.includes("失敗") || message.includes("登入") ? "text-red-400" : "text-emerald-400"}`}>
+                        {message}
+                    </p>
+                )}
+            </div>
+
+            {/* 關注列表 Modal */}
+            <FollowListModal
+                isOpen={modalType !== null}
+                onClose={() => setModalType(null)}
+                userId={userId}
+                virtualId={virtualId}
+                type={modalType || "followers"}
+                title={modalType === "followers" ? "關注者" : "已關注"}
+            />
+        </>
     );
 }
+
