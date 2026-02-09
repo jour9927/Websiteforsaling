@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { Route } from "next";
 
 type RankingUser = {
     id: string;
@@ -75,7 +76,7 @@ export default function RankingsPage() {
                         return (
                             <Link
                                 key={user.id}
-                                href={userLink}
+                                href={userLink as Route}
                                 className={`glass-card p-4 text-center border ${badge.border} bg-gradient-to-b ${badge.bg} hover:scale-105 transition`}
                             >
                                 <div className="text-3xl mb-2">{badge.emoji}</div>
@@ -111,7 +112,7 @@ export default function RankingsPage() {
                         return (
                             <Link
                                 key={user.id}
-                                href={userLink}
+                                href={userLink as Route}
                                 className="flex items-center gap-4 p-4 hover:bg-white/5 transition"
                             >
                                 {/* 排名 */}
