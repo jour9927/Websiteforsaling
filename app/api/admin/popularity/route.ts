@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/auth";
 
-// POST: 管理員更新人氣值
+// POST: 管理員更新人氣值或被關注數
 export async function POST(request: Request) {
     const supabase = createServerSupabaseClient();
 
@@ -23,10 +23,19 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { userId, virtualId, score } = body;
+    const { userId, virtualId, score, followers } = body;
 
-    if (score === undefined || score < 0) {
-        return NextResponse.json({ error: "無效的分數" }, { status: 400 });
+    // 構建更新對象
+    const updates: Record<string, number> = {};
+    if (score !== undefined && score >= 0) {
+        updates.popularity_score = score;
+    }
+    if (followers !== undefined && followers >= 0) {
+        updates.followers_count = followers;
+    }
+
+    if (Object.keys(updates).length === 0) {
+        return NextResponse.json({ error: "沒有要更新的資料" }, { status: 400 });
     }
 
     try {
@@ -34,7 +43,7 @@ export async function POST(request: Request) {
             // 更新真實用戶
             const { error } = await supabase
                 .from("profiles")
-                .update({ popularity_score: score })
+                .update(updates)
                 .eq("id", userId);
 
             if (error) throw error;
@@ -42,7 +51,7 @@ export async function POST(request: Request) {
             // 更新虛擬用戶
             const { error } = await supabase
                 .from("virtual_profiles")
-                .update({ popularity_score: score })
+                .update(updates)
                 .eq("id", virtualId);
 
             if (error) throw error;
@@ -52,10 +61,11 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
             success: true,
-            message: "人氣值更新成功"
+            message: "更新成功"
         });
     } catch (error) {
-        console.error("Update popularity error:", error);
+        console.error("Update social data error:", error);
         return NextResponse.json({ error: "更新失敗" }, { status: 500 });
     }
 }
+

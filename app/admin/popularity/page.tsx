@@ -12,10 +12,13 @@ type UserRanking = {
     isVirtual: boolean;
 };
 
+type EditMode = "score" | "followers" | null;
+
 export default function AdminPopularityPage() {
     const [rankings, setRankings] = useState<UserRanking[]>([]);
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [editMode, setEditMode] = useState<EditMode>(null);
     const [editValue, setEditValue] = useState("");
     const [saving, setSaving] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
@@ -39,38 +42,53 @@ export default function AdminPopularityPage() {
         loadRankings();
     }, [loadRankings]);
 
-    const handleEdit = (user: UserRanking) => {
+    const handleEdit = (user: UserRanking, mode: EditMode) => {
         setEditingId(user.id);
-        setEditValue(String(user.score));
+        setEditMode(mode);
+        setEditValue(String(mode === "score" ? user.score : user.followers));
     };
 
     const handleSave = async (user: UserRanking) => {
-        const newScore = parseInt(editValue);
-        if (isNaN(newScore) || newScore < 0) {
+        const newValue = parseInt(editValue);
+        if (isNaN(newValue) || newValue < 0) {
             setMessage("請輸入有效的數字");
             return;
         }
 
         setSaving(true);
         try {
+            const body: Record<string, unknown> = {
+                userId: user.isVirtual ? null : user.id,
+                virtualId: user.isVirtual ? user.id : null,
+            };
+            if (editMode === "score") {
+                body.score = newValue;
+            } else {
+                body.followers = newValue;
+            }
+
             const res = await fetch("/api/admin/popularity", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    userId: user.isVirtual ? null : user.id,
-                    virtualId: user.isVirtual ? user.id : null,
-                    score: newScore
-                })
+                body: JSON.stringify(body)
             });
 
             const data = await res.json();
             if (data.success) {
                 setRankings(prev =>
-                    prev.map(u => u.id === user.id ? { ...u, score: newScore } : u)
-                        .sort((a, b) => b.score - a.score)
+                    prev.map(u => {
+                        if (u.id === user.id) {
+                            return {
+                                ...u,
+                                ...(editMode === "score" ? { score: newValue } : { followers: newValue })
+                            };
+                        }
+                        return u;
+                    }).sort((a, b) => b.score - a.score)
                 );
                 setMessage("更新成功！");
                 setEditingId(null);
+                setEditMode(null);
             } else {
                 setMessage(data.error || "更新失敗");
             }
@@ -84,6 +102,7 @@ export default function AdminPopularityPage() {
 
     const handleCancel = () => {
         setEditingId(null);
+        setEditMode(null);
         setEditValue("");
     };
 
@@ -96,7 +115,7 @@ export default function AdminPopularityPage() {
         return (
             <section className="space-y-6">
                 <header>
-                    <h1 className="text-2xl font-semibold text-white/90">人氣值管理</h1>
+                    <h1 className="text-2xl font-semibold text-white/90">社交數據管理</h1>
                 </header>
                 <div className="glass-card p-8 text-center">
                     <div className="animate-pulse text-white/60">載入中...</div>
@@ -109,9 +128,9 @@ export default function AdminPopularityPage() {
         <section className="space-y-6">
             <header className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-semibold text-white/90">人氣值管理</h1>
+                    <h1 className="text-2xl font-semibold text-white/90">社交數據管理</h1>
                     <p className="mt-1 text-sm text-white/60">
-                        調整用戶人氣值分數，影響排行榜排名
+                        調整用戶人氣值與被關注數，影響排行榜排名
                     </p>
                 </div>
                 <Link
@@ -147,7 +166,7 @@ export default function AdminPopularityPage() {
                             <th className="p-4">排名</th>
                             <th className="p-4">用戶</th>
                             <th className="p-4">類型</th>
-                            <th className="p-4">關注者</th>
+                            <th className="p-4">被關注數</th>
                             <th className="p-4">人氣值</th>
                             <th className="p-4">操作</th>
                         </tr>
@@ -157,8 +176,8 @@ export default function AdminPopularityPage() {
                             <tr key={user.id} className="hover:bg-white/5">
                                 <td className="p-4">
                                     <span className={`inline-flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${idx < 3
-                                            ? "bg-gradient-to-br from-amber-400 to-orange-500 text-black"
-                                            : "bg-white/10 text-white/60"
+                                        ? "bg-gradient-to-br from-amber-400 to-orange-500 text-black"
+                                        : "bg-white/10 text-white/60"
                                         }`}>
                                         {idx + 1}
                                     </span>
@@ -178,15 +197,33 @@ export default function AdminPopularityPage() {
                                 </td>
                                 <td className="p-4">
                                     <span className={`text-xs px-2 py-1 rounded-full ${user.isVirtual
-                                            ? "bg-purple-500/20 text-purple-400"
-                                            : "bg-blue-500/20 text-blue-400"
+                                        ? "bg-purple-500/20 text-purple-400"
+                                        : "bg-blue-500/20 text-blue-400"
                                         }`}>
                                         {user.isVirtual ? "虛擬" : "真實"}
                                     </span>
                                 </td>
-                                <td className="p-4 text-white/70">{user.followers}</td>
                                 <td className="p-4">
-                                    {editingId === user.id ? (
+                                    {editingId === user.id && editMode === "followers" ? (
+                                        <input
+                                            type="number"
+                                            value={editValue}
+                                            onChange={(e) => setEditValue(e.target.value)}
+                                            className="w-20 px-2 py-1 rounded bg-white/10 border border-blue-500/50 text-blue-400 text-center focus:outline-none"
+                                            autoFocus
+                                        />
+                                    ) : (
+                                        <button
+                                            onClick={() => handleEdit(user, "followers")}
+                                            className="text-white/70 hover:text-blue-400 transition"
+                                            title="點擊編輯"
+                                        >
+                                            {user.followers}
+                                        </button>
+                                    )}
+                                </td>
+                                <td className="p-4">
+                                    {editingId === user.id && editMode === "score" ? (
                                         <input
                                             type="number"
                                             value={editValue}
@@ -195,9 +232,13 @@ export default function AdminPopularityPage() {
                                             autoFocus
                                         />
                                     ) : (
-                                        <span className="text-lg font-bold text-amber-400">
+                                        <button
+                                            onClick={() => handleEdit(user, "score")}
+                                            className="text-lg font-bold text-amber-400 hover:text-amber-300 transition"
+                                            title="點擊編輯"
+                                        >
                                             🔥 {user.score}
-                                        </span>
+                                        </button>
                                     )}
                                 </td>
                                 <td className="p-4">
@@ -218,12 +259,7 @@ export default function AdminPopularityPage() {
                                             </button>
                                         </div>
                                     ) : (
-                                        <button
-                                            onClick={() => handleEdit(user)}
-                                            className="px-3 py-1 rounded bg-white/10 text-white/70 text-sm hover:bg-white/20"
-                                        >
-                                            編輯
-                                        </button>
+                                        <span className="text-xs text-white/40">點擊數字編輯</span>
                                     )}
                                 </td>
                             </tr>
@@ -240,3 +276,4 @@ export default function AdminPopularityPage() {
         </section>
     );
 }
+
