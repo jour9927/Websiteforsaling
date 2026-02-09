@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PersonalSpaceContent } from "@/components/PersonalSpaceContent";
 import AuctionCard from "@/components/AuctionCard";
 import { PopularityWidgetToggle } from "@/components/PopularityWidgetToggle";
+import { MySocialStats } from "@/components/MySocialStats";
 
 // 每次請求都重新執行，確保競標數據是最新的
 export const dynamic = "force-dynamic";
@@ -169,6 +170,12 @@ export default async function HomePage() {
 
       {/* 人氣排行榜小組件（可開關） */}
       <PopularityWidgetToggle />
+
+      {/* 我的社交統計 */}
+      <div className="glass-card p-4">
+        <h3 className="text-sm font-medium text-white/60 mb-3">📊 我的社交數據</h3>
+        <MySocialStats userId={user.id} />
+      </div>
 
       {/* 個人空間內容 */}
       <PersonalSpaceContent
