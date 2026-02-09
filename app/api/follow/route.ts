@@ -106,28 +106,72 @@ export async function POST(request: Request) {
         if (action === "unfollow") {
             // 取消關注
             if (userId) {
-                await supabase
+                const { error } = await supabase
                     .from("follows")
                     .delete()
                     .eq("follower_id", user.id)
                     .eq("followed_user_id", userId);
 
-                // 更新計數
-                await supabase.rpc("decrement_follow_count", {
-                    follower: user.id,
-                    followed: userId
-                }).catch(() => {
-                    // 手動更新
-                    supabase.from("profiles").update({
-                        following_count: supabase.rpc("greatest", { a: 0, b: "following_count - 1" })
-                    }).eq("id", user.id);
-                });
+                if (!error) {
+                    // 更新計數（簡化版：不使用 RPC）
+                    // 減少 follower 的 following_count
+                    const { data: myProfile } = await supabase
+                        .from("profiles")
+                        .select("following_count")
+                        .eq("id", user.id)
+                        .single();
+                    if (myProfile) {
+                        await supabase
+                            .from("profiles")
+                            .update({ following_count: Math.max(0, (myProfile.following_count || 0) - 1) })
+                            .eq("id", user.id);
+                    }
+                    // 減少被關注者的 followers_count
+                    const { data: theirProfile } = await supabase
+                        .from("profiles")
+                        .select("followers_count")
+                        .eq("id", userId)
+                        .single();
+                    if (theirProfile) {
+                        await supabase
+                            .from("profiles")
+                            .update({ followers_count: Math.max(0, (theirProfile.followers_count || 0) - 1) })
+                            .eq("id", userId);
+                    }
+                }
             } else {
-                await supabase
+                const { error } = await supabase
                     .from("follows")
                     .delete()
                     .eq("follower_id", user.id)
                     .eq("followed_virtual_id", virtualId);
+
+                if (!error) {
+                    // 減少自己的 following_count
+                    const { data: myProfile } = await supabase
+                        .from("profiles")
+                        .select("following_count")
+                        .eq("id", user.id)
+                        .single();
+                    if (myProfile) {
+                        await supabase
+                            .from("profiles")
+                            .update({ following_count: Math.max(0, (myProfile.following_count || 0) - 1) })
+                            .eq("id", user.id);
+                    }
+                    // 減少虛擬用戶的 followers_count
+                    const { data: vProfile } = await supabase
+                        .from("virtual_profiles")
+                        .select("followers_count")
+                        .eq("id", virtualId)
+                        .single();
+                    if (vProfile) {
+                        await supabase
+                            .from("virtual_profiles")
+                            .update({ followers_count: Math.max(0, (vProfile.followers_count || 0) - 1) })
+                            .eq("id", virtualId);
+                    }
+                }
             }
 
             return NextResponse.json({ success: true, action: "unfollowed" });
@@ -148,26 +192,45 @@ export async function POST(request: Request) {
                 throw error;
             }
 
-            // 更新計數 - 真實用戶
+            // 更新計數 - 增加 following_count
+            const { data: myProfile } = await supabase
+                .from("profiles")
+                .select("following_count")
+                .eq("id", user.id)
+                .single();
+            if (myProfile) {
+                await supabase
+                    .from("profiles")
+                    .update({ following_count: (myProfile.following_count || 0) + 1 })
+                    .eq("id", user.id);
+            }
+
             if (userId) {
-                await supabase
+                // 增加真實用戶的 followers_count
+                const { data: theirProfile } = await supabase
                     .from("profiles")
-                    .update({ following_count: supabase.rpc("increment") as unknown as number })
-                    .eq("id", user.id);
-                await supabase
-                    .from("profiles")
-                    .update({ followers_count: supabase.rpc("increment") as unknown as number })
-                    .eq("id", userId);
+                    .select("followers_count")
+                    .eq("id", userId)
+                    .single();
+                if (theirProfile) {
+                    await supabase
+                        .from("profiles")
+                        .update({ followers_count: (theirProfile.followers_count || 0) + 1 })
+                        .eq("id", userId);
+                }
             } else {
-                // 虛擬用戶只更新 followers_count
-                await supabase
-                    .from("profiles")
-                    .update({ following_count: supabase.rpc("increment") as unknown as number })
-                    .eq("id", user.id);
-                await supabase
+                // 增加虛擬用戶的 followers_count
+                const { data: vProfile } = await supabase
                     .from("virtual_profiles")
-                    .update({ followers_count: supabase.rpc("increment") as unknown as number })
-                    .eq("id", virtualId);
+                    .select("followers_count")
+                    .eq("id", virtualId)
+                    .single();
+                if (vProfile) {
+                    await supabase
+                        .from("virtual_profiles")
+                        .update({ followers_count: (vProfile.followers_count || 0) + 1 })
+                        .eq("id", virtualId);
+                }
             }
 
             return NextResponse.json({ success: true, action: "followed" });
@@ -177,3 +240,4 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "操作失敗" }, { status: 500 });
     }
 }
+
