@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { PopularityWidget } from "./PopularityWidget";
+import { MaintenanceOverlay } from "./MaintenanceOverlay";
+
+// 維護模式開關
+const MAINTENANCE_MODE = true;
 
 export function PopularityWidgetToggle() {
     const [isVisible, setIsVisible] = useState(false);
@@ -43,8 +47,23 @@ export function PopularityWidgetToggle() {
                 </button>
             </div>
 
-            {/* 人氣小組件 */}
-            {isVisible && <PopularityWidget />}
+            {/* 人氣小組件 - 帶維護遮罩 */}
+            {isVisible && (
+                <div className="relative overflow-hidden">
+                    {MAINTENANCE_MODE && (
+                        <div className="absolute inset-0 z-10 glass-card">
+                            <MaintenanceOverlay
+                                title="維護中"
+                                message="人氣排行榜暫時關閉"
+                            />
+                        </div>
+                    )}
+                    <div className={MAINTENANCE_MODE ? "blur-sm pointer-events-none select-none" : ""}>
+                        <PopularityWidget />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
