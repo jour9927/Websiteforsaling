@@ -3,11 +3,10 @@
 import { useState, useEffect } from "react";
 import { PopularityWidget } from "./PopularityWidget";
 import { MaintenanceOverlay } from "./MaintenanceOverlay";
-
-// 維護模式開關
-const MAINTENANCE_MODE = true;
+import { useMaintenanceMode } from "./MaintenanceContext";
 
 export function PopularityWidgetToggle() {
+    const { maintenanceMode: MAINTENANCE_MODE } = useMaintenanceMode();
     const [isVisible, setIsVisible] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
 

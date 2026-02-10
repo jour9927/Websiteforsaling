@@ -3,15 +3,14 @@
 import { useState, useEffect } from "react";
 import { FollowListModal } from "./FollowListModal";
 import { MaintenanceOverlay } from "./MaintenanceOverlay";
-
-// 維護模式開關
-const MAINTENANCE_MODE = true;
+import { useMaintenanceMode } from "./MaintenanceContext";
 
 type MySocialStatsProps = {
     userId: string;
 };
 
 export function MySocialStats({ userId }: MySocialStatsProps) {
+    const { maintenanceMode: MAINTENANCE_MODE } = useMaintenanceMode();
     const [stats, setStats] = useState({
         followers_count: 0,
         following_count: 0,

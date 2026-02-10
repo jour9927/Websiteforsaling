@@ -24,9 +24,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { DailyCheckInWidget } from "@/components/DailyCheckInWidget";
 import { MaintenanceOverlay } from "@/components/MaintenanceOverlay";
-
-// 維護模式開關 - 留言區
-const COMMENTS_MAINTENANCE_MODE = true;
+import { useMaintenanceMode } from "@/components/MaintenanceContext";
 
 type Event = {
     id: string;
@@ -202,6 +200,7 @@ export function PersonalSpaceContent({
     publicImage,
     publicPerceptions = [],
 }: PersonalSpaceContentProps) {
+    const { maintenanceMode: COMMENTS_MAINTENANCE_MODE } = useMaintenanceMode();
     const router = useRouter();
     const [newComment, setNewComment] = useState("");
     const [replyTo, setReplyTo] = useState<string | null>(null);

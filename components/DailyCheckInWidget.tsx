@@ -3,9 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { MaintenanceOverlay } from "./MaintenanceOverlay";
-
-// 維護模式開關
-const MAINTENANCE_MODE = true;
+import { useMaintenanceMode } from "./MaintenanceContext";
 
 type CheckInStatus = {
     canCheckIn: boolean;
@@ -22,6 +20,7 @@ type CheckInStatus = {
 };
 
 export function DailyCheckInWidget() {
+    const { maintenanceMode: MAINTENANCE_MODE } = useMaintenanceMode();
     const [status, setStatus] = useState<CheckInStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [checking, setChecking] = useState(false);

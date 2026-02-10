@@ -4,6 +4,8 @@ import { PersonalSpaceContent } from "@/components/PersonalSpaceContent";
 import AuctionCard from "@/components/AuctionCard";
 import { PopularityWidgetToggle } from "@/components/PopularityWidgetToggle";
 import { MySocialStats } from "@/components/MySocialStats";
+import { MaintenanceProvider } from "@/components/MaintenanceContext";
+import { MaintenanceToggle } from "@/components/MaintenanceToggle";
 
 // 每次請求都重新執行，確保競標數據是最新的
 export const dynamic = "force-dynamic";
@@ -163,34 +165,41 @@ export default async function HomePage() {
     .eq("user_id", user.id)
     .order("sort_order");
 
+  const isAdmin = profile?.role === 'admin';
+
   return (
-    <div className="flex flex-col gap-8">
-      {/* 熱門競標區塊 */}
-      <HotAuctionsSection />
+    <MaintenanceProvider isAdmin={isAdmin}>
+      <div className="flex flex-col gap-8">
+        {/* 管理員維護過罩開關 */}
+        <MaintenanceToggle />
 
-      {/* 人氣排行榜小組件（可開關） */}
-      <PopularityWidgetToggle />
+        {/* 熱門競標區塊 */}
+        <HotAuctionsSection />
 
-      {/* 我的社交統計 */}
-      <div className="glass-card p-4">
-        <h3 className="text-sm font-medium text-white/60 mb-3">📊 我的社交數據</h3>
-        <MySocialStats userId={user.id} />
+        {/* 人氣排行榜小組件（可開關） */}
+        <PopularityWidgetToggle />
+
+        {/* 我的社交統計 */}
+        <div className="glass-card p-4">
+          <h3 className="text-sm font-medium text-white/60 mb-3">📊 我的社交數據</h3>
+          <MySocialStats userId={user.id} />
+        </div>
+
+        {/* 個人空間內容 */}
+        <PersonalSpaceContent
+          user={user}
+          profile={profile}
+          wishlists={wishlists || []}
+          comments={comments || []}
+          userItems={userItems || []}
+          allEvents={allEvents || []}
+          isOwnProfile={true}
+          currentUserId={user.id}
+          publicImage={publicImage}
+          publicPerceptions={publicPerceptions || []}
+        />
       </div>
-
-      {/* 個人空間內容 */}
-      <PersonalSpaceContent
-        user={user}
-        profile={profile}
-        wishlists={wishlists || []}
-        comments={comments || []}
-        userItems={userItems || []}
-        allEvents={allEvents || []}
-        isOwnProfile={true}
-        currentUserId={user.id}
-        publicImage={publicImage}
-        publicPerceptions={publicPerceptions || []}
-      />
-    </div>
+    </MaintenanceProvider>
   );
 }
 
