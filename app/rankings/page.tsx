@@ -4,9 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Route } from "next";
 import { MaintenanceOverlay } from "@/components/MaintenanceOverlay";
-
-// 維護模式開關
-const MAINTENANCE_MODE = true;
+import { useMaintenanceMode } from "@/components/MaintenanceContext";
 
 type RankingUser = {
     id: string;
@@ -19,6 +17,7 @@ type RankingUser = {
 };
 
 export default function RankingsPage() {
+    const { maintenanceMode: MAINTENANCE_MODE } = useMaintenanceMode();
     const [rankings, setRankings] = useState<RankingUser[]>([]);
     const [loading, setLoading] = useState(true);
 

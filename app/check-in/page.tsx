@@ -3,10 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { MemberOnlyBlock } from "@/components/MemberOnlyBlock";
 import { MaintenanceOverlay } from "@/components/MaintenanceOverlay";
+import { useMaintenanceMode } from "@/components/MaintenanceContext";
 import Image from "next/image";
-
-// 維護模式開關
-const MAINTENANCE_MODE = true;
 
 type Distribution = {
     id: string;
@@ -51,6 +49,7 @@ type CheckInStatus = {
 type TierKey = "tier_12" | "tier_40" | "tier_points";
 
 export default function CheckInPage() {
+    const { maintenanceMode: MAINTENANCE_MODE } = useMaintenanceMode();
     const [status, setStatus] = useState<CheckInStatus | null>(null);
     const [tiers, setTiers] = useState<TiersData | null>(null);
     const [goalDistributions, setGoalDistributions] = useState<Record<string, Distribution>>({});
