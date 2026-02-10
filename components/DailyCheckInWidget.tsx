@@ -165,7 +165,7 @@ export function DailyCheckInWidget() {
                     <div className="flex-1 p-4 flex flex-col justify-between">
                         <div>
                             <div className="flex items-center justify-between mb-2">
-                                <h3 className="text-sm font-semibold text-white/90">每日簽到</h3>
+                                <Link href="/check-in" className="text-sm font-semibold text-white/90 hover:text-amber-400 transition">每日簽到 →</Link>
                                 <span className={`text-xs ${flame.color || "text-white/50"}`}>
                                     {flame.emoji && <span className="animate-pulse mr-0.5">{flame.emoji}</span>}
                                     {status.streak} 天
