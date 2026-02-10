@@ -124,7 +124,7 @@ export default function EeveeDayPage() {
             {/* 活動狀態 */}
             {!status.isActive && !status.hasEnded && (
                 <div className="glass-card p-4 text-center border border-blue-500/30">
-                    <p className="text-white/70">🕐 活動將於 <span className="text-blue-400 font-bold">{status.startDate}</span> 開始</p>
+                    <p className="text-white/70">🕐 活動將於 <span className="text-blue-400 font-bold">{status.startDate.slice(0, 10)}</span> 開始</p>
                 </div>
             )}
             {status.hasEnded && (
@@ -148,8 +148,8 @@ export default function EeveeDayPage() {
                         <div
                             key={i}
                             className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl transition-all duration-300 ${i < status.stamps
-                                    ? "bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/30 scale-105"
-                                    : "bg-white/10 border border-white/20"
+                                ? "bg-gradient-to-br from-amber-400 to-orange-500 shadow-lg shadow-amber-500/30 scale-105"
+                                : "bg-white/10 border border-white/20"
                                 }`}
                         >
                             {i < status.stamps ? "⭐" : <span className="text-white/20 text-lg">{i + 1}</span>}
@@ -272,8 +272,8 @@ export default function EeveeDayPage() {
             {/* 通知訊息 */}
             {message && (
                 <div className={`glass-card p-4 text-center text-sm ${message.includes("恭喜") || message.includes("成功")
-                        ? "text-emerald-400 border border-emerald-500/30"
-                        : "text-red-400 border border-red-500/30"
+                    ? "text-emerald-400 border border-emerald-500/30"
+                    : "text-red-400 border border-red-500/30"
                     }`}>
                     {message}
                 </div>
@@ -283,7 +283,7 @@ export default function EeveeDayPage() {
             <div className="glass-card p-4">
                 <h3 className="text-sm font-semibold text-white/80 mb-2">📌 活動規則</h3>
                 <ul className="space-y-1 text-xs text-white/60">
-                    <li>• 活動期間：{EEVEE_DAY_CONFIG.startDate} ~ {EEVEE_DAY_CONFIG.endDate}</li>
+                    <li>• 活動期間：{EEVEE_DAY_CONFIG.startDate.slice(0, 10)} ~ {EEVEE_DAY_CONFIG.endDate.slice(0, 10)}</li>
                     <li>• 每日可嘗試 <span className="text-amber-400">{EEVEE_DAY_CONFIG.dailyAttempts}</span> 次答題</li>
                     <li>• 每次 {EEVEE_DAY_CONFIG.questionsPerQuiz} 題，每題限時 {EEVEE_DAY_CONFIG.timePerQuestion} 秒</li>
                     <li>• 答對 <span className="text-amber-400">{EEVEE_DAY_CONFIG.passingScore}</span> 題以上即可集 1 點</li>
@@ -312,7 +312,7 @@ function EventBanner() {
                             限時集點活動 — 答題集點，獲得珍貴配布！
                         </p>
                         <p className="text-xs text-white/40 mt-1">
-                            📅 {EEVEE_DAY_CONFIG.startDate} ~ {EEVEE_DAY_CONFIG.endDate}
+                            📅 {EEVEE_DAY_CONFIG.startDate.slice(0, 10)} ~ {EEVEE_DAY_CONFIG.endDate.slice(0, 10)}
                         </p>
                     </div>
                 </div>

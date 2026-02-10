@@ -18,7 +18,7 @@ export async function GET() {
     // 活動時間
     const now = new Date();
     const start = new Date(EEVEE_DAY_CONFIG.startDate);
-    const end = new Date(EEVEE_DAY_CONFIG.endDate + "T23:59:59");
+    const end = new Date(EEVEE_DAY_CONFIG.endDate);
     const isActive = now >= start && now <= end;
     const hasEnded = now > end;
 

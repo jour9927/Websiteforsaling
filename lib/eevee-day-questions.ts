@@ -726,8 +726,8 @@ export const QUESTIONS: Question[] = [
 // 活動設定
 export const EEVEE_DAY_CONFIG = {
     eventName: "伊布寶可夢 Day 限時集點",
-    startDate: "2026-02-11",
-    endDate: "2026-02-28",
+    startDate: "2026-02-11T00:00:00+08:00",
+    endDate: "2026-02-28T23:59:59+08:00",
     dailyAttempts: 2,
     questionsPerQuiz: 10,
     timePerQuestion: 15, // 秒

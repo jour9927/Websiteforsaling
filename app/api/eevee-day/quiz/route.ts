@@ -18,7 +18,7 @@ export async function GET() {
     // 檢查活動期間
     const now = new Date();
     const start = new Date(EEVEE_DAY_CONFIG.startDate);
-    const end = new Date(EEVEE_DAY_CONFIG.endDate + "T23:59:59");
+    const end = new Date(EEVEE_DAY_CONFIG.endDate);
     if (now < start || now > end) {
         return NextResponse.json({ error: "活動尚未開始或已結束" }, { status: 400 });
     }
@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     // 檢查活動期間
     const now = new Date();
     const start = new Date(EEVEE_DAY_CONFIG.startDate);
-    const end = new Date(EEVEE_DAY_CONFIG.endDate + "T23:59:59");
+    const end = new Date(EEVEE_DAY_CONFIG.endDate);
     if (now < start || now > end) {
         return NextResponse.json({ error: "活動尚未開始或已結束" }, { status: 400 });
     }
