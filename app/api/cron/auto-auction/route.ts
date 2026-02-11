@@ -2,15 +2,19 @@ import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
 // 競標預設參數
-const AUCTION_DEFAULTS = {
+const AUCTION_CONFIG = {
     starting_price: 100,
     min_increment: 100,
-    duration_hours: 24,
+    duration_minutes: 10,
     generation: 9,
+    // 每日時段：台灣時間 07:00 ~ 22:00
+    start_hour: 7,   // 台灣時間
+    end_hour: 22,     // 台灣時間
+    interval_minutes: 10,
 };
 
 export async function GET(request: NextRequest) {
-    // 驗證 cron secret（防止惡意觸發）
+    // 驗證 cron secret
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
 
@@ -24,120 +28,97 @@ export async function GET(request: NextRequest) {
     );
 
     try {
+        // ============================================
+        // 1. 結標昨天所有過期的競標
+        // ============================================
         const now = new Date();
 
-        // ============================================
-        // 1. 結標已過期的競標
-        // ============================================
-        const { data: expiredAuctions, error: expiredError } = await supabase
+        const { data: expiredAuctions } = await supabase
             .from("auctions")
             .update({ status: "ended" })
             .eq("status", "active")
             .lt("end_time", now.toISOString())
-            .select("id, title");
-
-        if (expiredError) {
-            console.error("結標過期競標失敗:", expiredError);
-        }
+            .select("id");
 
         // ============================================
-        // 2. 查詢第 9 世代配布（排除近 30 天已用過的）
+        // 2. 查詢第 9 世代所有可用配布
         // ============================================
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-        // 取得近 30 天已用過的 distribution_id
-        const { data: recentAuctions } = await supabase
-            .from("auctions")
-            .select("distribution_id")
-            .gte("created_at", thirtyDaysAgo.toISOString())
-            .not("distribution_id", "is", null);
-
-        const usedIds = (recentAuctions || [])
-            .map(a => a.distribution_id)
-            .filter(Boolean);
-
-        // 查詢第 9 世代可用配布
-        let query = supabase
+        const { data: distributions, error: distError } = await supabase
             .from("distributions")
             .select("id, pokemon_name, pokemon_name_en, pokemon_dex_number, pokemon_sprite_url, image_url, is_shiny, original_trainer, level")
-            .eq("generation", AUCTION_DEFAULTS.generation);
+            .eq("generation", AUCTION_CONFIG.generation);
 
-        // 排除已用過的
-        if (usedIds.length > 0) {
-            query = query.not("id", "in", `(${usedIds.join(",")})`);
-        }
-
-        const { data: availableDistributions, error: distError } = await query;
-
-        if (distError) {
-            throw new Error(`查詢配布失敗: ${distError.message}`);
-        }
-
-        if (!availableDistributions || availableDistributions.length === 0) {
+        if (distError) throw new Error(`查詢配布失敗: ${distError.message}`);
+        if (!distributions || distributions.length === 0) {
             return NextResponse.json({
-                success: true,
-                message: "沒有可用的第 9 世代配布（可能都用過了），今天跳過。",
-                expired: expiredAuctions?.length || 0,
-                newAuction: null,
+                success: false,
+                message: "沒有第 9 世代的配布資料",
             });
         }
 
         // ============================================
-        // 3. 偽隨機選擇（基於日期的確定性隨機）
+        // 3. 計算今日所有競標時段
         // ============================================
-        const dateStr = now.toISOString().slice(0, 10); // "2026-02-11"
-        const seed = hashCode(dateStr);
-        const index = Math.abs(seed) % availableDistributions.length;
-        const selected = availableDistributions[index];
+        // 取得今天台灣時間的 00:00
+        const todayTW = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Taipei" }));
+        const todayDateStr = `${todayTW.getFullYear()}-${String(todayTW.getMonth() + 1).padStart(2, "0")}-${String(todayTW.getDate()).padStart(2, "0")}`;
+
+        const slots: { start: Date; end: Date }[] = [];
+
+        for (let hour = AUCTION_CONFIG.start_hour; hour < AUCTION_CONFIG.end_hour; hour++) {
+            for (let min = 0; min < 60; min += AUCTION_CONFIG.interval_minutes) {
+                // 台灣時間轉 UTC（-8 小時）
+                const startUTC = new Date(`${todayDateStr}T${String(hour).padStart(2, "0")}:${String(min).padStart(2, "0")}:00+08:00`);
+                const endUTC = new Date(startUTC.getTime() + AUCTION_CONFIG.duration_minutes * 60 * 1000);
+                slots.push({ start: startUTC, end: endUTC });
+            }
+        }
 
         // ============================================
-        // 4. 建立新競標
+        // 4. 偽隨機選擇寶可夢（基於日期 + 場次 seed）
         // ============================================
-        const endTime = new Date(now);
-        endTime.setHours(endTime.getHours() + AUCTION_DEFAULTS.duration_hours);
+        const auctions = slots.map((slot, index) => {
+            const seed = hashCode(`${todayDateStr}-${index}`);
+            const distIndex = Math.abs(seed) % distributions.length;
+            const selected = distributions[distIndex];
 
-        const shinyPrefix = selected.is_shiny ? "✨ 異色 " : "";
-        const title = `${shinyPrefix}${selected.pokemon_name}${selected.pokemon_name_en ? ` (${selected.pokemon_name_en})` : ""}`;
+            const shinyPrefix = selected.is_shiny ? "✨ " : "";
+            const title = `${shinyPrefix}${selected.pokemon_name}${selected.pokemon_name_en ? ` (${selected.pokemon_name_en})` : ""}`;
 
-        const description = [
-            `🎯 每日自動競標 — 第 ${AUCTION_DEFAULTS.generation} 世代配布`,
-            selected.original_trainer ? `訓練家：${selected.original_trainer}` : null,
-            selected.level ? `等級：Lv.${selected.level}` : null,
-            `⏰ 競標將於 ${endTime.toLocaleString("zh-TW", { timeZone: "Asia/Taipei" })} 結束`,
-        ].filter(Boolean).join("\n");
-
-        const { data: newAuction, error: insertError } = await supabase
-            .from("auctions")
-            .insert({
+            return {
                 distribution_id: selected.id,
                 title,
-                description,
+                description: `🎯 每日自動競標 #${index + 1}`,
                 image_url: selected.pokemon_sprite_url || selected.image_url,
-                starting_price: AUCTION_DEFAULTS.starting_price,
-                min_increment: AUCTION_DEFAULTS.min_increment,
+                starting_price: AUCTION_CONFIG.starting_price,
+                min_increment: AUCTION_CONFIG.min_increment,
                 current_price: 0,
-                start_time: now.toISOString(),
-                end_time: endTime.toISOString(),
+                start_time: slot.start.toISOString(),
+                end_time: slot.end.toISOString(),
                 status: "active",
-            })
-            .select("id, title")
-            .single();
+                bid_count: 0,
+            };
+        });
+
+        // ============================================
+        // 5. 批次插入所有競標
+        // ============================================
+        const { data: insertedAuctions, error: insertError } = await supabase
+            .from("auctions")
+            .insert(auctions)
+            .select("id");
 
         if (insertError) {
-            throw new Error(`建立競標失敗: ${insertError.message}`);
+            throw new Error(`批次建立競標失敗: ${insertError.message}`);
         }
 
         return NextResponse.json({
             success: true,
-            message: `自動競標已建立: ${title}`,
+            message: `已建立 ${auctions.length} 場自動競標（${todayDateStr} 07:00~22:00）`,
             expired: expiredAuctions?.length || 0,
-            newAuction: {
-                id: newAuction.id,
-                title: newAuction.title,
-                pokemon: selected.pokemon_name,
-                endTime: endTime.toISOString(),
-            },
+            created: insertedAuctions?.length || 0,
+            totalSlots: slots.length,
+            sampleTitles: auctions.slice(0, 3).map(a => a.title),
             timestamp: now.toISOString(),
         });
 
@@ -150,7 +131,7 @@ export async function GET(request: NextRequest) {
     }
 }
 
-// 確定性 hash（同一天產生相同數字）
+// 確定性 hash
 function hashCode(str: string): number {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
