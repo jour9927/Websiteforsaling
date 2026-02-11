@@ -148,7 +148,11 @@ export default function QuizPage() {
     if (loading) {
         return (
             <section className="glass-card p-8 text-center">
-                <div className="text-4xl mb-3 animate-bounce">🦊</div>
+                <img
+                    src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png"
+                    alt="伊布"
+                    className="w-16 h-16 mx-auto mb-3 animate-bounce drop-shadow-lg"
+                />
                 <div className="animate-pulse text-white/60">準備題目中...</div>
             </section>
         );
@@ -206,8 +210,8 @@ export default function QuizPage() {
                             <div
                                 key={i}
                                 className={`w-full aspect-square rounded-lg flex items-center justify-center text-sm font-bold ${r.correct
-                                        ? "bg-emerald-500/20 text-emerald-400"
-                                        : "bg-red-500/20 text-red-400"
+                                    ? "bg-emerald-500/20 text-emerald-400"
+                                    : "bg-red-500/20 text-red-400"
                                     }`}
                             >
                                 {r.correct ? "✓" : "✗"}
@@ -270,10 +274,10 @@ export default function QuizPage() {
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                     <div
                         className={`h-full rounded-full transition-all duration-1000 ${timeLeft <= 5
-                                ? "bg-red-500"
-                                : timeLeft <= 10
-                                    ? "bg-amber-500"
-                                    : "bg-emerald-500"
+                            ? "bg-red-500"
+                            : timeLeft <= 10
+                                ? "bg-amber-500"
+                                : "bg-emerald-500"
                             }`}
                         style={{ width: `${timePercent}%` }}
                     />
@@ -309,8 +313,8 @@ export default function QuizPage() {
                         >
                             <div className="flex items-center gap-3">
                                 <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${showFeedback && idx === selectedOption
-                                        ? "bg-amber-500 text-black"
-                                        : "bg-white/10 text-white/60"
+                                    ? "bg-amber-500 text-black"
+                                    : "bg-white/10 text-white/60"
                                     }`}>
                                     {String.fromCharCode(65 + idx)}
                                 </span>

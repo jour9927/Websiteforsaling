@@ -55,9 +55,13 @@ export function EeveeDayWidget() {
     return (
         <Link href="/eevee-day" className="block group">
             <div className="glass-card p-4 border border-amber-500/20 hover:border-amber-400/40 transition-all duration-300 relative overflow-hidden">
-                {/* 背景裝飾 */}
-                <div className="absolute top-0 right-0 w-24 h-24 opacity-10 pointer-events-none text-6xl flex items-center justify-center">
-                    🦊
+                {/* 背景裝飾 — 伊布圖片 */}
+                <div className="absolute -top-2 -right-2 w-20 h-20 opacity-15 pointer-events-none">
+                    <img
+                        src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png"
+                        alt=""
+                        className="w-full h-full object-contain"
+                    />
                 </div>
 
                 {/* 標題列 */}

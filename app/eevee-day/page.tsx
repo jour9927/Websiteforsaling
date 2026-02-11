@@ -303,7 +303,13 @@ function EventBanner() {
             <div className="relative p-6 bg-gradient-to-r from-amber-500/20 via-orange-500/10 to-purple-500/20">
                 <div className="absolute top-2 right-3 text-4xl opacity-20 select-none">🌟</div>
                 <div className="flex items-center gap-4">
-                    <div className="text-5xl">🦊</div>
+                    <Image
+                        src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png"
+                        alt="伊布"
+                        width={72}
+                        height={72}
+                        className="drop-shadow-lg"
+                    />
                     <div>
                         <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">
                             伊布寶可夢 Day
