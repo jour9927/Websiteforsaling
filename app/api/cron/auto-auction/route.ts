@@ -41,6 +41,20 @@ export async function GET(request: NextRequest) {
             .select("id");
 
         // ============================================
+        // 1.5 清理 30 天前沒人出價的競標（節省空間）
+        // ============================================
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+        const { data: deletedAuctions } = await supabase
+            .from("auctions")
+            .delete()
+            .eq("status", "ended")
+            .eq("bid_count", 0)
+            .lt("end_time", thirtyDaysAgo.toISOString())
+            .select("id");
+
+        // ============================================
         // 2. 查詢第 9 世代所有可用配布
         // ============================================
         const { data: distributions, error: distError } = await supabase
@@ -116,6 +130,7 @@ export async function GET(request: NextRequest) {
             success: true,
             message: `已建立 ${auctions.length} 場自動競標（${todayDateStr} 07:00~22:00）`,
             expired: expiredAuctions?.length || 0,
+            cleaned: deletedAuctions?.length || 0,
             created: insertedAuctions?.length || 0,
             totalSlots: slots.length,
             sampleTitles: auctions.slice(0, 3).map(a => a.title),
