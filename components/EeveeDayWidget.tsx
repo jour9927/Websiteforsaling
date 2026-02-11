@@ -75,7 +75,7 @@ export function EeveeDayWidget() {
                         伊布 Day 集點
                     </h3>
                     {status.isActive && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 animate-pulse">
                             限時{daysLeft}天
                         </span>
                     )}
