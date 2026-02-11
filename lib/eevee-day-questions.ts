@@ -734,6 +734,6 @@ export const EEVEE_DAY_CONFIG = {
     passingScore: 7, // 答對 7 題算通過
     stampsRequired: 7, // 集滿 7 點可領取配布
     // 可選配布的篩選條件
-    allowedPokemon: ["伊布", "比克提尼", "達克萊伊"],
+    allowedPokemon: ["伊布", "蒂安希", "比克提尼"],
     allowedGenerations: [8, 9],
 };
