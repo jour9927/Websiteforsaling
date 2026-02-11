@@ -19,6 +19,7 @@ export const adminNavItems = [
   { href: "/admin/messages" as Route, label: "會員訊息", icon: "✉️" },
   { href: "/admin/virtual-comments" as Route, label: "水軍留言", icon: "🤖" },
   { href: "/admin/public-image" as Route, label: "公眾形象", icon: "🎭" },
+  { href: "/admin/eevee-day" as Route, label: "伊步集點日", icon: "🎯" },
 ] as const;
 
 const baseLinkClasses = "flex items-center justify-between rounded-xl px-4 py-2 text-sm transition";
