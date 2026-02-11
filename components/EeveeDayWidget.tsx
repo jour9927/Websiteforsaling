@@ -73,15 +73,10 @@ export function EeveeDayWidget() {
                     <h3 className="text-sm font-semibold text-amber-300 flex items-center gap-1.5">
                         <span className="text-base">🎯</span>
                         伊布 Day 集點
-                        {status.isActive && (
-                            <span className="text-[10px] font-normal text-white/40">
-                                · 限時{daysLeft}天
-                            </span>
-                        )}
                     </h3>
                     {status.isActive && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
-                            進行中
+                            限時{daysLeft}天
                         </span>
                     )}
                     {status.hasEnded && (
