@@ -727,12 +727,12 @@ export const QUESTIONS: Question[] = [
 export const EEVEE_DAY_CONFIG = {
     eventName: "伊布寶可夢 Day 限時集點",
     startDate: "2026-02-11T00:00:00+08:00",
-    endDate: "2026-02-20T23:59:59+08:00",
+    endDate: "2026-02-24T23:59:59+08:00",
     dailyAttempts: 1,
     questionsPerQuiz: 10,
     timePerQuestion: 15, // 秒
     passingScore: 7, // 答對 7 題算通過
-    stampsRequired: 5, // 集滿 5 點可領取配布
+    stampsRequired: 7, // 集滿 7 點可領取配布
     // 可選配布的篩選條件
     allowedPokemon: ["伊布", "比克提尼", "達克萊伊"],
     allowedGenerations: [8, 9],
