@@ -7,14 +7,17 @@ export default async function AuctionsPage() {
     const supabase = createServerSupabaseClient();
 
     // 取得所有進行中和已結束的競標
+    const now = new Date().toISOString();
     const { data: auctions } = await supabase
         .from('auctions')
         .select('*, distributions(pokemon_name, pokemon_name_en, image_url)')
         .in('status', ['active', 'ended'])
-        .order('created_at', { ascending: false });
+        .order('end_time', { ascending: true });
 
-    const activeAuctions = auctions?.filter(a => a.status === 'active') || [];
-    const endedAuctions = auctions?.filter(a => a.status === 'ended') || [];
+    // 只顯示「已開始」的 active 競標（start_time <= now）
+    const activeAuctions = auctions?.filter(a => a.status === 'active' && a.start_time <= now) || [];
+    const endedAuctions = auctions?.filter(a => a.status === 'ended')
+        .sort((a, b) => new Date(b.end_time).getTime() - new Date(a.end_time).getTime()) || [];
 
     return (
         <div className="flex flex-col gap-8">
