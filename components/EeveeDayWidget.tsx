@@ -10,6 +10,7 @@ type EeveeDayStatus = {
     stampsRequired: number;
     remainingAttempts: number;
     dailyAttempts: number;
+    endDate: string;
     reward: {
         distributions: {
             pokemon_name: string;
@@ -52,6 +53,10 @@ export function EeveeDayWidget() {
     const progress = Math.min(status.stamps / status.stampsRequired, 1);
     const completed = status.stamps >= status.stampsRequired;
 
+    // 計算剩餘天數
+    const daysLeft = Math.max(0, Math.ceil((new Date(status.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+    const isUrgent = daysLeft <= 3;
+
     return (
         <Link href="/eevee-day" className="block group">
             <div className="glass-card p-4 border border-amber-500/20 hover:border-amber-400/40 transition-all duration-300 relative overflow-hidden">
@@ -71,8 +76,11 @@ export function EeveeDayWidget() {
                         伊布 Day 集點
                     </h3>
                     {status.isActive && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30">
-                            進行中
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border ${isUrgent
+                                ? "bg-red-500/20 text-red-400 border-red-500/30 animate-pulse"
+                                : "bg-green-500/20 text-green-400 border-green-500/30"
+                            }`}>
+                            ⏰ 剩餘 {daysLeft} 天
                         </span>
                     )}
                     {status.hasEnded && (
