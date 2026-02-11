@@ -13,6 +13,30 @@ const AUCTION_CONFIG = {
     interval_minutes: 10,
 };
 
+// 隨機競標描述池
+const AUCTION_DESCRIPTIONS = [
+    "🔥 手快有手慢無！",
+    "⚡ 閃電戰！限時搶標",
+    "💎 稀有配布，不容錯過",
+    "🎲 今日幸運寶可夢",
+    "✨ 錯過再等明天！",
+    "🏆 訓練家的榮耀之戰",
+    "🎯 精準出手，一擊必殺",
+    "🌟 誰能成為最後贏家？",
+    "💰 超值配布限時釋出",
+    "🔔 新鮮上架，快來搶！",
+    "⏰ 倒數計時！把握機會",
+    "🎪 驚喜拍賣開始啦",
+    "🗡️ 勇者限定！敢來挑戰嗎",
+    "🎁 今日份的驚喜配布",
+    "🌈 命運的轉盤開始旋轉",
+    "👑 王者爭奪戰",
+    "🚀 火速開標！手腳要快",
+    "🎭 神秘寶可夢現身",
+    "💫 每一次出價都是命運",
+    "🔮 你的寶可夢在等你",
+];
+
 export async function GET(request: NextRequest) {
     // 驗證 cron secret
     const authHeader = request.headers.get("authorization");
@@ -99,10 +123,13 @@ export async function GET(request: NextRequest) {
             const shinyPrefix = selected.is_shiny ? "✨ " : "";
             const title = `${shinyPrefix}${selected.pokemon_name}${selected.pokemon_name_en ? ` (${selected.pokemon_name_en})` : ""}`;
 
+            const descSeed = hashCode(`${todayDateStr}-desc-${index}`);
+            const descIndex = Math.abs(descSeed) % AUCTION_DESCRIPTIONS.length;
+
             return {
                 distribution_id: selected.id,
                 title,
-                description: `🎯 每日自動競標 #${index + 1}`,
+                description: AUCTION_DESCRIPTIONS[descIndex],
                 image_url: selected.pokemon_sprite_url || selected.image_url,
                 starting_price: AUCTION_CONFIG.starting_price,
                 min_increment: AUCTION_CONFIG.min_increment,
