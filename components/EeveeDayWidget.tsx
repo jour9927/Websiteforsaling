@@ -69,7 +69,7 @@ export function EeveeDayWidget() {
                 </div>
 
                 {/* 標題列 */}
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 mb-3">
                     <h3 className="text-sm font-semibold text-amber-300 flex items-center gap-1.5">
                         <span className="text-base">🎯</span>
                         伊布 Day 集點
