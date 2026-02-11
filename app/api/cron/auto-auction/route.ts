@@ -41,17 +41,17 @@ export async function GET(request: NextRequest) {
             .select("id");
 
         // ============================================
-        // 1.5 清理 30 天前沒人出價的競標（節省空間）
+        // 1.5 清理 180 天前沒人出價的競標（節省空間）
         // ============================================
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const cleanupCutoff = new Date();
+        cleanupCutoff.setDate(cleanupCutoff.getDate() - 180);
 
         const { data: deletedAuctions } = await supabase
             .from("auctions")
             .delete()
             .eq("status", "ended")
             .eq("bid_count", 0)
-            .lt("end_time", thirtyDaysAgo.toISOString())
+            .lt("end_time", cleanupCutoff.toISOString())
             .select("id");
 
         // ============================================
