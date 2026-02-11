@@ -13,13 +13,18 @@ export const dynamic = "force-dynamic";
 async function HotAuctionsSection() {
   const supabase = createServerSupabaseClient();
 
-  const { data: auctions } = await supabase
+  const now = new Date().toISOString();
+
+  const { data: allActive } = await supabase
     .from('auctions')
     .select('*, distributions(pokemon_name, pokemon_name_en, pokemon_sprite_url)')
     .eq('status', 'active')
-    .order('created_at', { ascending: false })
+    .lte('start_time', now)
+    .gt('end_time', now)
+    .order('end_time', { ascending: true })
     .limit(4);
 
+  const auctions = allActive;
   if (!auctions || auctions.length === 0) return null;
 
   return (
