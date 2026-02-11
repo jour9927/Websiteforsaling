@@ -3,7 +3,6 @@ import Link from "next/link";
 import { PersonalSpaceContent } from "@/components/PersonalSpaceContent";
 import AuctionCard from "@/components/AuctionCard";
 import { PopularityWidgetToggle } from "@/components/PopularityWidgetToggle";
-import { MySocialStats } from "@/components/MySocialStats";
 import { MaintenanceToggle } from "@/components/MaintenanceToggle";
 import { EeveeDayWidget } from "@/components/EeveeDayWidget";
 
@@ -178,12 +177,6 @@ export default async function HomePage() {
 
       {/* 人氣排行榜小組件（可開關） */}
       <PopularityWidgetToggle />
-
-      {/* 我的社交統計 */}
-      <div className="glass-card p-4">
-        <h3 className="text-sm font-medium text-white/60 mb-3">📊 我的社交數據</h3>
-        <MySocialStats userId={user.id} />
-      </div>
 
       {/* 個人空間內容 */}
       <PersonalSpaceContent

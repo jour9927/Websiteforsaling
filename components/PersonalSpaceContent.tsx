@@ -25,6 +25,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { DailyCheckInWidget } from "@/components/DailyCheckInWidget";
 import { MaintenanceOverlay } from "@/components/MaintenanceOverlay";
 import { useMaintenanceMode } from "@/components/MaintenanceContext";
+import { MySocialStats } from "@/components/MySocialStats";
 
 type Event = {
     id: string;
@@ -508,6 +509,13 @@ export function PersonalSpaceContent({
                                 </span>
                             </div>
                         </div>
+
+                        {/* 社交數據 */}
+                        {isOwnProfile && (
+                            <div className="mt-4">
+                                <MySocialStats userId={user.id} />
+                            </div>
+                        )}
 
                         {/* 公開 ID 和分享 */}
                         {isOwnProfile && (
