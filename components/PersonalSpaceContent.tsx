@@ -454,6 +454,14 @@ export function PersonalSpaceContent({
 
     return (
         <div className="space-y-8">
+            {/* 社交數據 */}
+            {isOwnProfile && (
+                <section className="glass-card p-4">
+                    <h3 className="text-sm font-medium text-white/60 mb-3">📊 我的社交數據</h3>
+                    <MySocialStats userId={user.id} />
+                </section>
+            )}
+
             {/* 個人資料卡 */}
             <section className="glass-card p-6">
                 <div className="flex flex-col gap-6 md:flex-row md:items-start">
@@ -509,13 +517,6 @@ export function PersonalSpaceContent({
                                 </span>
                             </div>
                         </div>
-
-                        {/* 社交數據 */}
-                        {isOwnProfile && (
-                            <div className="mt-4">
-                                <MySocialStats userId={user.id} />
-                            </div>
-                        )}
 
                         {/* 公開 ID 和分享 */}
                         {isOwnProfile && (
