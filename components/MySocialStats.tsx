@@ -51,13 +51,16 @@ export function MySocialStats({ userId }: MySocialStatsProps) {
     return (
         <>
             <div className="relative overflow-hidden rounded-xl">
-                {/* 維護遮罩 */}
+                {/* 維護遮罩（緊湊版） */}
                 {MAINTENANCE_MODE && (
-                    <div className="absolute inset-0 z-10">
-                        <MaintenanceOverlay
-                            title="維護中"
-                            message="社交數據暫時不予開放"
-                        />
+                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-t from-slate-900/98 via-slate-900/95 to-slate-900/90 backdrop-blur-[3px] rounded-xl">
+                        <div className="flex items-center gap-3">
+                            <span className="text-2xl animate-pulse">🔧</span>
+                            <div>
+                                <p className="text-sm font-semibold text-white">維護中</p>
+                                <p className="text-xs text-white/50">社交數據暫時不予開放</p>
+                            </div>
+                        </div>
                     </div>
                 )}
                 <div className={MAINTENANCE_MODE ? "blur-sm pointer-events-none select-none" : ""}>
