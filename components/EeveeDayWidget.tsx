@@ -55,7 +55,6 @@ export function EeveeDayWidget() {
 
     // 計算剩餘天數
     const daysLeft = Math.max(0, Math.ceil((new Date(status.endDate).getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
-    const isUrgent = daysLeft <= 3;
 
     return (
         <Link href="/eevee-day" className="block group">
