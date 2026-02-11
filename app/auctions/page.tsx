@@ -6,18 +6,27 @@ export const dynamic = 'force-dynamic';
 export default async function AuctionsPage() {
     const supabase = createServerSupabaseClient();
 
-    // 取得所有進行中和已結束的競標
     const now = new Date().toISOString();
     const { data: auctions } = await supabase
         .from('auctions')
         .select('*, distributions(pokemon_name, pokemon_name_en, image_url)')
         .in('status', ['active', 'ended'])
-        .order('end_time', { ascending: true });
+        .order('start_time', { ascending: true });
 
-    // 只顯示「已開始」的 active 競標（start_time <= now）
-    const activeAuctions = auctions?.filter(a => a.status === 'active' && a.start_time <= now) || [];
-    const endedAuctions = auctions?.filter(a => a.status === 'ended')
-        .sort((a, b) => new Date(b.end_time).getTime() - new Date(a.end_time).getTime()) || [];
+    // 正在進行：start_time <= now AND end_time > now AND status = active
+    const activeAuctions = auctions?.filter(a =>
+        a.status === 'active' && a.start_time <= now && a.end_time > now
+    ) || [];
+
+    // 即將開始：start_time > now AND status = active（下一場）
+    const upcomingAuction = auctions?.find(a =>
+        a.status === 'active' && a.start_time > now
+    );
+
+    // 已結束：status = ended，或 status = active 但 end_time 已過
+    const endedAuctions = auctions?.filter(a =>
+        a.status === 'ended' || (a.status === 'active' && a.end_time <= now)
+    ).sort((a, b) => new Date(b.end_time).getTime() - new Date(a.end_time).getTime()) || [];
 
     return (
         <div className="flex flex-col gap-8">
@@ -37,7 +46,11 @@ export default async function AuctionsPage() {
 
                 {activeAuctions.length === 0 ? (
                     <div className="glass-card p-8 text-center text-white/60">
-                        目前沒有進行中的競標，請稍後再來查看！
+                        {upcomingAuction ? (
+                            <p>下一場競標將於 {new Date(upcomingAuction.start_time).toLocaleTimeString("zh-TW", { timeZone: "Asia/Taipei", hour: "2-digit", minute: "2-digit" })} 開始：<strong className="text-amber-400">{upcomingAuction.title}</strong></p>
+                        ) : (
+                            <p>目前沒有進行中的競標，請稍後再來查看！</p>
+                        )}
                     </div>
                 ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
