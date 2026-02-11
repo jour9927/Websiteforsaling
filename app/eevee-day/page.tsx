@@ -288,7 +288,7 @@ export default function EeveeDayPage() {
                     <li>• 每次 {EEVEE_DAY_CONFIG.questionsPerQuiz} 題，每題限時 {EEVEE_DAY_CONFIG.timePerQuestion} 秒</li>
                     <li>• 答對 <span className="text-amber-400">{EEVEE_DAY_CONFIG.passingScore}</span> 題以上即可集 1 點</li>
                     <li>• 集滿 <span className="text-amber-400">{EEVEE_DAY_CONFIG.stampsRequired}</span> 點可選擇一隻配布寶可夢獎勵</li>
-                    <li>• 可選：伊布、比克提尼、達克萊伊（第 8-9 世代）</li>
+                    <li>• 可選：伊布、比克提尼、達克萊伊</li>
                     <li>• ⚠️ 獎勵選定後<span className="text-red-400">無法更改</span>，如需更改請私訊管理員</li>
                 </ul>
             </div>
