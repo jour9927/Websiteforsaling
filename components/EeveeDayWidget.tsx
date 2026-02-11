@@ -72,7 +72,7 @@ export function EeveeDayWidget() {
                 <div className="flex items-center gap-2 mb-3">
                     <h3 className="text-sm font-semibold text-amber-300 flex items-center gap-1.5">
                         <span className="text-base">🎯</span>
-                        伊布 Day 集點
+                        伊步集點日
                     </h3>
                     {status.isActive && (
                         <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 animate-pulse">

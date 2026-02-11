@@ -104,7 +104,7 @@ export default function EeveeDayPage() {
                 <EventBanner />
                 <MemberOnlyBlock
                     title="會員專屬活動"
-                    description="登入後即可參與伊布寶可夢 Day 集點活動"
+                    description="登入後即可參與伊步集點日活動"
                     itemCount={3}
                 />
             </section>
@@ -312,7 +312,7 @@ function EventBanner() {
                     />
                     <div>
                         <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">
-                            伊布寶可夢 Day
+                            伊步集點日
                         </h1>
                         <p className="text-sm text-white/60 mt-0.5">
                             限時集點活動 — 答題集點，獲得珍貴配布！

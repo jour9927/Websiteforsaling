@@ -87,7 +87,7 @@ export async function POST(request: Request) {
             {
                 user_id: user.id,
                 distribution_id: distributionId,
-                notes: "伊布寶可夢 Day 集點活動獎勵",
+                notes: "伊步集點日活動獎勵",
             },
             { onConflict: "user_id,distribution_id" }
         );
