@@ -5,6 +5,7 @@ import AuctionCard from "@/components/AuctionCard";
 import { PopularityWidgetToggle } from "@/components/PopularityWidgetToggle";
 import { MySocialStats } from "@/components/MySocialStats";
 import { MaintenanceToggle } from "@/components/MaintenanceToggle";
+import { EeveeDayWidget } from "@/components/EeveeDayWidget";
 
 // 每次請求都重新執行，確保競標數據是最新的
 export const dynamic = "force-dynamic";
@@ -171,6 +172,9 @@ export default async function HomePage() {
 
       {/* 熱門競標區塊 */}
       <HotAuctionsSection />
+
+      {/* 伊布 Day 活動小組件 */}
+      <EeveeDayWidget />
 
       {/* 人氣排行榜小組件（可開關） */}
       <PopularityWidgetToggle />
