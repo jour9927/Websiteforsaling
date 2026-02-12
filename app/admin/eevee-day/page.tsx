@@ -3,17 +3,28 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
-type StampRecord = {
+type StampRow = {
     id: string;
     user_id: string;
+    earned_at: string;
+};
+
+type ProfileInfo = {
+    id: string;
+    full_name: string | null;
+    email: string;
+};
+
+type AggregatedStamp = {
+    user_id: string;
     stamp_count: number;
-    profiles: { full_name: string | null; email: string } | null;
+    profile: ProfileInfo | null;
 };
 
 type RewardRecord = {
     id: string;
     user_id: string;
-    created_at: string;
+    selected_at: string;
     distributions: { pokemon_name: string; pokemon_sprite_url: string | null } | null;
     profiles: { full_name: string | null; email: string } | null;
 };
@@ -23,12 +34,12 @@ type QuizAttempt = {
     user_id: string;
     score: number;
     passed: boolean;
-    created_at: string;
+    attempted_at: string;
     profiles: { full_name: string | null; email: string } | null;
 };
 
 export default function AdminEeveeDayPage() {
-    const [stamps, setStamps] = useState<StampRecord[]>([]);
+    const [stamps, setStamps] = useState<AggregatedStamp[]>([]);
     const [rewards, setRewards] = useState<RewardRecord[]>([]);
     const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
     const [loading, setLoading] = useState(true);
@@ -40,25 +51,60 @@ export default function AdminEeveeDayPage() {
 
     const loadData = async () => {
         try {
-            const [stampsRes, rewardsRes, attemptsRes] = await Promise.all([
-                supabase
-                    .from("eevee_day_stamps")
-                    .select("*, profiles(full_name, email)")
-                    .order("stamp_count", { ascending: false }),
-                supabase
-                    .from("eevee_day_rewards")
-                    .select("*, distributions(pokemon_name, pokemon_sprite_url), profiles(full_name, email)")
-                    .order("created_at", { ascending: false }),
-                supabase
-                    .from("eevee_day_quiz_attempts")
-                    .select("*, profiles(full_name, email)")
-                    .order("created_at", { ascending: false })
-                    .limit(50),
-            ]);
+            // 1. 取得所有 stamps（每筆代表一個集點）
+            const { data: rawStamps } = await supabase
+                .from("eevee_day_stamps")
+                .select("id, user_id, earned_at")
+                .order("earned_at", { ascending: false });
 
-            setStamps((stampsRes.data as StampRecord[]) || []);
-            setRewards((rewardsRes.data as RewardRecord[]) || []);
-            setAttempts((attemptsRes.data as QuizAttempt[]) || []);
+            // 2. 聚合 stamps by user_id
+            const stampMap = new Map<string, { count: number }>();
+            (rawStamps || []).forEach((s: StampRow) => {
+                const existing = stampMap.get(s.user_id);
+                if (existing) {
+                    existing.count++;
+                } else {
+                    stampMap.set(s.user_id, { count: 1 });
+                }
+            });
+
+            // 3. 查詢涉及的 user profiles
+            const userIds = [...stampMap.keys()];
+            let profilesMap = new Map<string, ProfileInfo>();
+            if (userIds.length > 0) {
+                const { data: profilesData } = await supabase
+                    .from("profiles")
+                    .select("id, full_name, email")
+                    .in("id", userIds);
+                profilesMap = new Map(
+                    (profilesData || []).map((p: ProfileInfo) => [p.id, p])
+                );
+            }
+
+            // 4. 組裝聚合結果
+            const aggregated: AggregatedStamp[] = userIds.map((uid) => ({
+                user_id: uid,
+                stamp_count: stampMap.get(uid)!.count,
+                profile: profilesMap.get(uid) || null,
+            }));
+            aggregated.sort((a, b) => b.stamp_count - a.stamp_count);
+            setStamps(aggregated);
+
+            // 5. 取得 rewards
+            const { data: rewardsData } = await supabase
+                .from("eevee_day_rewards")
+                .select("*, distributions(pokemon_name, pokemon_sprite_url), profiles(full_name, email)")
+                .order("selected_at", { ascending: false });
+            setRewards((rewardsData as RewardRecord[]) || []);
+
+            // 6. 取得 quiz attempts
+            const { data: attemptsData } = await supabase
+                .from("eevee_day_quiz_attempts")
+                .select("*, profiles(full_name, email)")
+                .order("attempted_at", { ascending: false })
+                .limit(50);
+            setAttempts((attemptsData as QuizAttempt[]) || []);
+
         } catch (err) {
             console.error("載入活動數據失敗:", err);
         } finally {
@@ -168,11 +214,11 @@ export default function AdminEeveeDayPage() {
                                 </thead>
                                 <tbody className="divide-y divide-white/10">
                                     {stamps.map((s) => (
-                                        <tr key={s.id}>
+                                        <tr key={s.user_id}>
                                             <td className="px-4 py-3">
                                                 <div>
-                                                    <p className="font-medium text-white/90">{s.profiles?.full_name || "(未設定)"}</p>
-                                                    <p className="text-xs text-white/50">{s.profiles?.email}</p>
+                                                    <p className="font-medium text-white/90">{s.profile?.full_name || "(未設定)"}</p>
+                                                    <p className="text-xs text-white/50">{s.profile?.email}</p>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 font-bold text-amber-400">{s.stamp_count}/7</td>
@@ -244,7 +290,7 @@ export default function AdminEeveeDayPage() {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 text-white/60">
-                                                {new Date(r.created_at).toLocaleString("zh-TW")}
+                                                {new Date(r.selected_at).toLocaleString("zh-TW")}
                                             </td>
                                         </tr>
                                     ))}
@@ -294,7 +340,7 @@ export default function AdminEeveeDayPage() {
                                                 )}
                                             </td>
                                             <td className="px-4 py-3 text-white/60">
-                                                {new Date(a.created_at).toLocaleString("zh-TW")}
+                                                {new Date(a.attempted_at).toLocaleString("zh-TW")}
                                             </td>
                                         </tr>
                                     ))}
