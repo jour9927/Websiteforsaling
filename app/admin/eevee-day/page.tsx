@@ -1,32 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-
-type StampRow = {
-    id: string;
-    user_id: string;
-    earned_at: string;
-};
-
-type ProfileInfo = {
-    id: string;
-    full_name: string | null;
-    email: string;
-};
 
 type AggregatedStamp = {
     user_id: string;
     stamp_count: number;
-    profile: ProfileInfo | null;
+    profile: { full_name: string | null; email: string } | null;
 };
 
 type RewardRecord = {
     id: string;
     user_id: string;
     selected_at: string;
-    distributions: { pokemon_name: string; pokemon_sprite_url: string | null } | null;
-    profiles: { full_name: string | null; email: string } | null;
+    distribution: { pokemon_name: string; pokemon_sprite_url: string | null } | null;
+    profile: { full_name: string | null; email: string } | null;
 };
 
 type QuizAttempt = {
@@ -35,7 +22,7 @@ type QuizAttempt = {
     score: number;
     passed: boolean;
     attempted_at: string;
-    profiles: { full_name: string | null; email: string } | null;
+    profile: { full_name: string | null; email: string } | null;
 };
 
 export default function AdminEeveeDayPage() {
@@ -43,6 +30,7 @@ export default function AdminEeveeDayPage() {
     const [rewards, setRewards] = useState<RewardRecord[]>([]);
     const [attempts, setAttempts] = useState<QuizAttempt[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
     const [tab, setTab] = useState<"overview" | "stamps" | "rewards" | "attempts">("overview");
 
     useEffect(() => {
@@ -50,63 +38,21 @@ export default function AdminEeveeDayPage() {
     }, []);
 
     const loadData = async () => {
+        setError(null);
         try {
-            // 1. 取得所有 stamps（每筆代表一個集點）
-            const { data: rawStamps } = await supabase
-                .from("eevee_day_stamps")
-                .select("id, user_id, earned_at")
-                .order("earned_at", { ascending: false });
-
-            // 2. 聚合 stamps by user_id
-            const stampMap = new Map<string, { count: number }>();
-            (rawStamps || []).forEach((s: StampRow) => {
-                const existing = stampMap.get(s.user_id);
-                if (existing) {
-                    existing.count++;
-                } else {
-                    stampMap.set(s.user_id, { count: 1 });
-                }
-            });
-
-            // 3. 查詢涉及的 user profiles
-            const userIds = [...stampMap.keys()];
-            let profilesMap = new Map<string, ProfileInfo>();
-            if (userIds.length > 0) {
-                const { data: profilesData } = await supabase
-                    .from("profiles")
-                    .select("id, full_name, email")
-                    .in("id", userIds);
-                profilesMap = new Map(
-                    (profilesData || []).map((p: ProfileInfo) => [p.id, p])
-                );
+            const res = await fetch("/api/admin/eevee-day");
+            if (!res.ok) {
+                const errData = await res.json();
+                setError(errData.error || "載入失敗");
+                return;
             }
-
-            // 4. 組裝聚合結果
-            const aggregated: AggregatedStamp[] = userIds.map((uid) => ({
-                user_id: uid,
-                stamp_count: stampMap.get(uid)!.count,
-                profile: profilesMap.get(uid) || null,
-            }));
-            aggregated.sort((a, b) => b.stamp_count - a.stamp_count);
-            setStamps(aggregated);
-
-            // 5. 取得 rewards
-            const { data: rewardsData } = await supabase
-                .from("eevee_day_rewards")
-                .select("*, distributions(pokemon_name, pokemon_sprite_url), profiles(full_name, email)")
-                .order("selected_at", { ascending: false });
-            setRewards((rewardsData as RewardRecord[]) || []);
-
-            // 6. 取得 quiz attempts
-            const { data: attemptsData } = await supabase
-                .from("eevee_day_quiz_attempts")
-                .select("*, profiles(full_name, email)")
-                .order("attempted_at", { ascending: false })
-                .limit(50);
-            setAttempts((attemptsData as QuizAttempt[]) || []);
-
+            const data = await res.json();
+            setStamps(data.stamps || []);
+            setRewards(data.rewards || []);
+            setAttempts(data.attempts || []);
         } catch (err) {
             console.error("載入活動數據失敗:", err);
+            setError("載入活動數據失敗");
         } finally {
             setLoading(false);
         }
@@ -131,6 +77,17 @@ export default function AdminEeveeDayPage() {
                     <h1 className="text-2xl font-semibold text-white/90">🎯 伊步集點日管理</h1>
                 </header>
                 <div className="text-center text-white/60 py-12">載入中...</div>
+            </section>
+        );
+    }
+
+    if (error) {
+        return (
+            <section className="space-y-8">
+                <header>
+                    <h1 className="text-2xl font-semibold text-white/90">🎯 伊步集點日管理</h1>
+                </header>
+                <div className="text-center text-red-400 py-12">❌ {error}</div>
             </section>
         );
     }
@@ -271,21 +228,21 @@ export default function AdminEeveeDayPage() {
                                         <tr key={r.id}>
                                             <td className="px-4 py-3">
                                                 <div>
-                                                    <p className="font-medium text-white/90">{r.profiles?.full_name || "(未設定)"}</p>
-                                                    <p className="text-xs text-white/50">{r.profiles?.email}</p>
+                                                    <p className="font-medium text-white/90">{r.profile?.full_name || "(未設定)"}</p>
+                                                    <p className="text-xs text-white/50">{r.profile?.email}</p>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center gap-2">
-                                                    {r.distributions?.pokemon_sprite_url && (
+                                                    {r.distribution?.pokemon_sprite_url && (
                                                         <img
-                                                            src={r.distributions.pokemon_sprite_url}
+                                                            src={r.distribution.pokemon_sprite_url}
                                                             alt=""
                                                             className="w-8 h-8 object-contain"
                                                         />
                                                     )}
                                                     <span className="font-medium text-amber-400">
-                                                        {r.distributions?.pokemon_name || "未知"}
+                                                        {r.distribution?.pokemon_name || "未知"}
                                                     </span>
                                                 </div>
                                             </td>
@@ -323,8 +280,8 @@ export default function AdminEeveeDayPage() {
                                         <tr key={a.id}>
                                             <td className="px-4 py-3">
                                                 <div>
-                                                    <p className="font-medium text-white/90">{a.profiles?.full_name || "(未設定)"}</p>
-                                                    <p className="text-xs text-white/50">{a.profiles?.email}</p>
+                                                    <p className="font-medium text-white/90">{a.profile?.full_name || "(未設定)"}</p>
+                                                    <p className="text-xs text-white/50">{a.profile?.email}</p>
                                                 </div>
                                             </td>
                                             <td className="px-4 py-3 font-bold">{a.score}/10</td>
