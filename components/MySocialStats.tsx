@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { FollowListModal } from "./FollowListModal";
-import { MaintenanceOverlay } from "./MaintenanceOverlay";
+
 import { useMaintenanceMode } from "./MaintenanceContext";
 
 type MySocialStatsProps = {
