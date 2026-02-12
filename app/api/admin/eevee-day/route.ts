@@ -60,7 +60,7 @@ export async function GET() {
     rawRewards.forEach((r: { user_id: string }) => allUserIds.add(r.user_id));
 
     // 5. 查詢 profiles
-    let profilesMap = new Map<string, { full_name: string | null; email: string }>();
+    const profilesMap = new Map<string, { full_name: string | null; email: string }>();
     if (allUserIds.size > 0) {
         const { data: profilesData } = await adminClient
             .from("profiles")
@@ -75,7 +75,7 @@ export async function GET() {
     const distributionIds = rawRewards
         .map((r: { distribution_id: string }) => r.distribution_id)
         .filter(Boolean);
-    let distributionsMap = new Map<string, { pokemon_name: string; pokemon_sprite_url: string | null }>();
+    const distributionsMap = new Map<string, { pokemon_name: string; pokemon_sprite_url: string | null }>();
     if (distributionIds.length > 0) {
         const { data: distData } = await adminClient
             .from("distributions")
