@@ -7,17 +7,17 @@ export const dynamic = 'force-dynamic';
 
 export default async function AnnouncementsPage() {
   const supabase = createServerSupabaseClient();
-  
+
   // 檢查用戶登入狀態
   const { data: { user } } = await supabase.auth.getUser();
   const isLoggedIn = !!user;
-  
+
   // 從 Supabase 載入已發布的公告
   const { data: announcements } = await supabase
     .from('announcements')
     .select('*')
     .eq('status', 'published')
-    .order('created_at', { ascending: false });
+    .order('published_at', { ascending: false });
 
   const getStatusDisplay = (status: string) => {
     switch (status) {
@@ -35,10 +35,10 @@ export default async function AnnouncementsPage() {
         <h1 className="mt-2 text-3xl font-semibold text-white">最新活動公告</h1>
         <p className="mt-3 text-sm text-white/70">掌握活動最新消息、緊急通知與系統公告。</p>
       </header>
-      
+
       {!isLoggedIn ? (
-        <MemberOnlyBlock 
-          title="公告內容僅限會員查看" 
+        <MemberOnlyBlock
+          title="公告內容僅限會員查看"
           description="登入以查看最新活動公告、重要通知與獨家訊息"
           itemCount={5}
         />
@@ -58,8 +58,8 @@ export default async function AnnouncementsPage() {
                 </span>
               </div>
               <p className="mt-4 text-sm text-white/75 whitespace-pre-wrap">
-                {notice.content.length > 200 
-                  ? notice.content.substring(0, 200) + '...' 
+                {notice.content.length > 200
+                  ? notice.content.substring(0, 200) + '...'
                   : notice.content}
               </p>
               <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-sky-200">

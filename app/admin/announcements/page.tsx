@@ -15,6 +15,7 @@ interface Announcement {
 
 export default function AdminAnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [readCounts, setReadCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -27,7 +28,20 @@ export default function AdminAnnouncementsPage() {
 
   useEffect(() => {
     loadAnnouncements();
+    loadReadCounts();
   }, []);
+
+  const loadReadCounts = async () => {
+    try {
+      const res = await fetch("/api/admin/announcements/reads");
+      if (res.ok) {
+        const data = await res.json();
+        setReadCounts(data);
+      }
+    } catch {
+      // 靜默失敗
+    }
+  };
 
   const loadAnnouncements = async () => {
     try {
@@ -218,6 +232,7 @@ export default function AdminAnnouncementsPage() {
                 <tr>
                   <th className="px-4 py-3">公告</th>
                   <th className="px-4 py-3">發布時間</th>
+                  <th className="px-4 py-3">👀 已讀</th>
                   <th className="px-4 py-3">操作</th>
                 </tr>
               </thead>
@@ -227,6 +242,11 @@ export default function AdminAnnouncementsPage() {
                     <td className="px-4 py-4 font-medium text-white/90">{item.title}</td>
                     <td className="px-4 py-4 text-white/70">
                       {item.published_at ? new Date(item.published_at).toLocaleString('zh-TW') : '-'}
+                    </td>
+                    <td className="px-4 py-4">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 px-3 py-1 text-xs font-medium text-blue-300">
+                        👀 {readCounts[item.id] || 0}
+                      </span>
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex gap-2 text-xs">

@@ -25,6 +25,7 @@ export default function GlobalAnnouncementOverlay() {
             const { data, error } = await supabase
                 .from("announcements")
                 .select("id, title, content, image_url, published_at")
+                .eq("status", "published")
                 .not("published_at", "is", null)
                 .order("published_at", { ascending: false })
                 .limit(1)
@@ -47,8 +48,14 @@ export default function GlobalAnnouncementOverlay() {
     const handleDismiss = () => {
         if (!announcement) return;
         setFadeOut(true);
-        // 記住已讀
+        // 記住已讀（localStorage）
         localStorage.setItem(`announcement_dismissed_${announcement.id}`, "true");
+        // 記錄已讀到資料庫
+        fetch("/api/announcements/read", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ announcement_id: announcement.id }),
+        }).catch(() => { });
         setTimeout(() => {
             setVisible(false);
             setAnnouncement(null);
@@ -59,9 +66,8 @@ export default function GlobalAnnouncementOverlay() {
 
     return (
         <div
-            className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 transition-all duration-300 ${
-                fadeOut ? "opacity-0" : "opacity-100"
-            }`}
+            className={`fixed inset-0 z-[9999] flex items-center justify-center p-4 transition-all duration-300 ${fadeOut ? "opacity-0" : "opacity-100"
+                }`}
         >
             {/* 半透明背景 */}
             <div
@@ -71,9 +77,8 @@ export default function GlobalAnnouncementOverlay() {
 
             {/* 公告卡片 */}
             <div
-                className={`relative w-full max-w-lg transform transition-all duration-300 ${
-                    fadeOut ? "scale-95 opacity-0" : "scale-100 opacity-100"
-                }`}
+                className={`relative w-full max-w-lg transform transition-all duration-300 ${fadeOut ? "scale-95 opacity-0" : "scale-100 opacity-100"
+                    }`}
             >
                 <div className="rounded-2xl border border-white/20 bg-gradient-to-b from-slate-800/95 to-slate-900/95 shadow-2xl overflow-hidden">
                     {/* 關閉按鈕 */}

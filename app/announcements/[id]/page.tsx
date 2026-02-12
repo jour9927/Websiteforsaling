@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Route } from "next";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/auth";
+import { AnnouncementReadTracker } from "@/components/AnnouncementReadTracker";
 
 export const dynamic = 'force-dynamic';
 
@@ -34,6 +35,7 @@ export default async function AnnouncementDetailPage({ params }: AnnouncementPag
 
   return (
     <article className="glass-card space-y-6 p-8">
+      <AnnouncementReadTracker announcementId={params.id} />
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <p className="text-xs text-white/50">
