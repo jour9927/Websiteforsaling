@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createServerSupabaseClient, createAdminSupabaseClient } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,9 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: "announcement_id required" }, { status: 400 });
     }
 
-    const { data } = await supabase
+    // 用 admin client 查詢（繞過 RLS）
+    const adminClient = createAdminSupabaseClient();
+    const { data } = await adminClient
         .from("announcement_reads")
         .select("id")
         .eq("announcement_id", announcementId)

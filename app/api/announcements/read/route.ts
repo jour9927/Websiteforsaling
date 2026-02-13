@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createServerSupabaseClient, createAdminSupabaseClient } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 // POST: 記錄公告已讀
 export async function POST(request: Request) {
+    // 用 server client 驗證用戶身份
     const supabase = createServerSupabaseClient();
     const {
         data: { user },
@@ -21,8 +22,9 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: "announcement_id is required" }, { status: 400 });
         }
 
-        // upsert：如果已存在則忽略（不更新 read_at）
-        const { error } = await supabase
+        // 用 admin client 寫入（繞過 RLS）
+        const adminClient = createAdminSupabaseClient();
+        const { error } = await adminClient
             .from("announcement_reads")
             .upsert(
                 { announcement_id, user_id: user.id },
