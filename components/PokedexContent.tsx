@@ -72,8 +72,15 @@ export default function PokedexContent({
         const isPositive = (Math.abs(hash) % 100) < 55;
         // 漲跌幅度：點數的 0.5% ~ 8%
         const pct = ((Math.abs(hash >> 8) % 750) + 50) / 10000;
-        const value = Math.round(points * pct);
-        return { value, isPositive };
+        const value = points * pct;
+        // 小數點：保留兩位
+        const rounded = Math.round(value * 100) / 100;
+        return { value: rounded, isPositive };
+    }
+
+    // 判斷是否為伊布家族（含所有進化型）
+    function isEeveeFamily(name: string): boolean {
+        return name.includes('伊布');
     }
 
     // 格式化點數（加小數點）
@@ -331,23 +338,36 @@ export default function PokedexContent({
 
                             {/* 配布點數 */}
                             {dist.points ? (() => {
+                                // 伊布家族遮罩
+                                if (isEeveeFamily(dist.pokemon_name)) {
+                                    return (
+                                        <div className="mt-1.5">
+                                            <p className="text-center text-[10px] px-1.5 py-1 rounded-full bg-red-500/15 text-red-400/80 font-medium leading-tight">
+                                                ⚠️ 價格波動巨大
+                                                <br />
+                                                <span className="text-[9px] text-red-400/50">（暫不顯示）</span>
+                                            </p>
+                                        </div>
+                                    );
+                                }
                                 const fluct = getFluctuation(dist.id, dist.points);
                                 return (
                                     <div className="mt-1.5 space-y-0.5">
                                         <p className="text-center text-xs font-medium">
-                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${dist.points >= 350000 ? 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-300' :
-                                                    dist.points >= 120000 ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 text-purple-300' :
-                                                        dist.points >= 50000 ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 text-blue-300' :
-                                                            dist.points >= 10000 ? 'bg-gradient-to-r from-emerald-500/30 to-green-500/30 text-emerald-300' :
-                                                                dist.points >= 5000 ? 'bg-gradient-to-r from-teal-500/30 to-cyan-500/30 text-teal-300' :
-                                                                    'bg-white/10 text-white/50'
+                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${dist.points >= 900000 ? 'bg-gradient-to-r from-red-500/30 to-orange-500/30 text-red-300' :
+                                                    dist.points >= 350000 ? 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-300' :
+                                                        dist.points >= 120000 ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 text-purple-300' :
+                                                            dist.points >= 50000 ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 text-blue-300' :
+                                                                dist.points >= 10000 ? 'bg-gradient-to-r from-emerald-500/30 to-green-500/30 text-emerald-300' :
+                                                                    dist.points >= 5000 ? 'bg-gradient-to-r from-teal-500/30 to-cyan-500/30 text-teal-300' :
+                                                                        'bg-white/10 text-white/50'
                                                 }`}>
                                                 💎 {formatPoints(dist.points)}
                                             </span>
                                         </p>
                                         <p className="text-center text-[10px] font-mono">
                                             <span className={fluct.isPositive ? 'text-green-400' : 'text-red-400'}>
-                                                {fluct.isPositive ? '+' : '-'}{fluct.value.toLocaleString()}
+                                                {fluct.isPositive ? '+' : '-'}{fluct.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </p>
                                     </div>
