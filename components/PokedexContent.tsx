@@ -23,6 +23,7 @@ interface Distribution {
     region?: string;
     is_shiny?: boolean;
     special_move?: string;
+    points?: number;
 }
 
 interface PokedexContentProps {
@@ -304,10 +305,22 @@ export default function PokedexContent({
                                 </span>
                             </div>
 
-                            {/* 點數（預留） */}
-                            <p className="text-center text-xs text-white/20 mt-1">
-                                —
-                            </p>
+                            {/* 配布點數 */}
+                            {dist.points ? (
+                                <p className="text-center text-xs mt-1.5 font-medium">
+                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${dist.points >= 350000 ? 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-300' :
+                                            dist.points >= 120000 ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 text-purple-300' :
+                                                dist.points >= 50000 ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 text-blue-300' :
+                                                    dist.points >= 10000 ? 'bg-gradient-to-r from-emerald-500/30 to-green-500/30 text-emerald-300' :
+                                                        dist.points >= 5000 ? 'bg-gradient-to-r from-teal-500/30 to-cyan-500/30 text-teal-300' :
+                                                            'bg-white/10 text-white/50'
+                                        }`}>
+                                        💎 {dist.points.toLocaleString()}
+                                    </span>
+                                </p>
+                            ) : (
+                                <p className="text-center text-xs text-white/20 mt-1">—</p>
+                            )}
                         </div>
                     );
                 })}
