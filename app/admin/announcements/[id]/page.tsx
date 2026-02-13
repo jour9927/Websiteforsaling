@@ -25,6 +25,7 @@ export default function AdminAnnouncementEditPage({ params }: AdminAnnouncementE
   const [announcement, setAnnouncement] = useState<Announcement | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [formData, setFormData] = useState({
@@ -68,6 +69,46 @@ export default function AdminAnnouncementEditPage({ params }: AdminAnnouncementE
 
     loadAnnouncement();
   }, [params.id]);
+
+  // 圖片上傳
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError("圖片大小不能超過 5MB");
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      setError("請上傳圖片檔案");
+      return;
+    }
+
+    setUploading(true);
+    setError("");
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `announcement-images/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('events')
+        .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+      if (uploadError) throw new Error(`上傳失敗: ${uploadError.message}`);
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('events')
+        .getPublicUrl(filePath);
+
+      setFormData({ ...formData, image_url: publicUrl });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '圖片上傳失敗');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   // 儲存公告
   const handleSubmit = async (e: React.FormEvent) => {
@@ -211,15 +252,32 @@ export default function AdminAnnouncementEditPage({ params }: AdminAnnouncementE
         </label>
 
         <label className="flex flex-col gap-2 text-xs text-white/70 md:col-span-2">
-          圖片網址（選填）
+          公告圖片
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            disabled={uploading}
+            className="rounded-xl border border-dashed border-white/20 bg-white/5 px-4 py-4 text-sm text-white file:mr-4 file:rounded-full file:border-0 file:bg-white/20 file:px-4 file:py-2 file:text-sm file:text-white hover:file:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
+          />
+          {uploading && <p className="text-xs text-white/60">上傳中...</p>}
           <input
             value={formData.image_url}
             onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-            className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
-            placeholder="貼上圖片網址 (https://...)"
+            className="rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+            placeholder="或貼上圖片網址 (https://...)"
           />
           {formData.image_url && (
-            <img src={formData.image_url} alt="預覽" className="mt-2 h-32 rounded-lg object-cover" />
+            <div className="mt-1 flex items-center gap-3">
+              <img src={formData.image_url} alt="預覽" className="h-24 rounded-lg object-cover" />
+              <button
+                type="button"
+                onClick={() => setFormData({ ...formData, image_url: "" })}
+                className="text-xs text-red-300 hover:text-red-200"
+              >
+                移除圖片
+              </button>
+            </div>
           )}
         </label>
 
