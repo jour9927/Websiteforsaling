@@ -60,6 +60,30 @@ export default function PokedexContent({
     const [showCollectedOnly, setShowCollectedOnly] = useState(false);
     const [isToggling, setIsToggling] = useState<string | null>(null);
 
+    // 根據 ID 和日期產生穩定的隨機漲跌幅（每天變化一次）
+    function getFluctuation(id: string, points: number): { value: number; isPositive: boolean } {
+        const today = new Date().toISOString().slice(0, 10);
+        const seed = id + today;
+        let hash = 0;
+        for (let i = 0; i < seed.length; i++) {
+            hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
+        }
+        // 漲跌方向：大約 55% 機率上漲
+        const isPositive = (Math.abs(hash) % 100) < 55;
+        // 漲跌幅度：點數的 0.5% ~ 8%
+        const pct = ((Math.abs(hash >> 8) % 750) + 50) / 10000;
+        const value = Math.round(points * pct);
+        return { value, isPositive };
+    }
+
+    // 格式化點數（加小數點）
+    function formatPoints(points: number): string {
+        // 加上小數點模擬精準感
+        const decimal = (points % 100) / 100;
+        const display = points + decimal;
+        return display.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
     // 過濾配布
     const filteredDistributions = distributions.filter((dist) => {
         if (selectedGen && dist.generation !== selectedGen) return false;
@@ -306,19 +330,29 @@ export default function PokedexContent({
                             </div>
 
                             {/* 配布點數 */}
-                            {dist.points ? (
-                                <p className="text-center text-xs mt-1.5 font-medium">
-                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${dist.points >= 350000 ? 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-300' :
-                                            dist.points >= 120000 ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 text-purple-300' :
-                                                dist.points >= 50000 ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 text-blue-300' :
-                                                    dist.points >= 10000 ? 'bg-gradient-to-r from-emerald-500/30 to-green-500/30 text-emerald-300' :
-                                                        dist.points >= 5000 ? 'bg-gradient-to-r from-teal-500/30 to-cyan-500/30 text-teal-300' :
-                                                            'bg-white/10 text-white/50'
-                                        }`}>
-                                        💎 {dist.points.toLocaleString()}
-                                    </span>
-                                </p>
-                            ) : (
+                            {dist.points ? (() => {
+                                const fluct = getFluctuation(dist.id, dist.points);
+                                return (
+                                    <div className="mt-1.5 space-y-0.5">
+                                        <p className="text-center text-xs font-medium">
+                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${dist.points >= 350000 ? 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-300' :
+                                                    dist.points >= 120000 ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 text-purple-300' :
+                                                        dist.points >= 50000 ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 text-blue-300' :
+                                                            dist.points >= 10000 ? 'bg-gradient-to-r from-emerald-500/30 to-green-500/30 text-emerald-300' :
+                                                                dist.points >= 5000 ? 'bg-gradient-to-r from-teal-500/30 to-cyan-500/30 text-teal-300' :
+                                                                    'bg-white/10 text-white/50'
+                                                }`}>
+                                                💎 {formatPoints(dist.points)}
+                                            </span>
+                                        </p>
+                                        <p className="text-center text-[10px] font-mono">
+                                            <span className={fluct.isPositive ? 'text-green-400' : 'text-red-400'}>
+                                                {fluct.isPositive ? '+' : '-'}{fluct.value.toLocaleString()}
+                                            </span>
+                                        </p>
+                                    </div>
+                                );
+                            })() : (
                                 <p className="text-center text-xs text-white/20 mt-1">—</p>
                             )}
                         </div>
