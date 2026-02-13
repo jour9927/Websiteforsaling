@@ -59,6 +59,7 @@ export default function PokedexContent({
     const [searchQuery, setSearchQuery] = useState("");
     const [showCollectedOnly, setShowCollectedOnly] = useState(false);
     const [isToggling, setIsToggling] = useState<string | null>(null);
+    const [showDisclaimer, setShowDisclaimer] = useState(true);
 
     // 根據 ID 和日期產生穩定的隨機漲跌幅（每天變化一次）
     function getFluctuation(id: string, points: number): { value: number; isPositive: boolean } {
@@ -141,6 +142,52 @@ export default function PokedexContent({
 
     return (
         <div className="space-y-6">
+            {/* 配布圖鑑免責聲明彈窗 */}
+            {showDisclaimer && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4" style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+                    <div className="relative w-full max-w-md rounded-2xl border border-white/10 bg-gradient-to-b from-slate-800/95 to-slate-900/95 p-6 shadow-2xl">
+                        {/* 頂部圖標 */}
+                        <div className="flex justify-center mb-4">
+                            <div className="w-14 h-14 rounded-full bg-amber-500/20 flex items-center justify-center">
+                                <span className="text-3xl">📋</span>
+                            </div>
+                        </div>
+
+                        {/* 標題 */}
+                        <h2 className="text-center text-lg font-bold text-white mb-4">配布圖鑑 — 資料說明</h2>
+
+                        {/* 內容 */}
+                        <div className="space-y-3 text-sm leading-relaxed">
+                            <div className="rounded-xl bg-amber-500/10 border border-amber-500/20 p-3">
+                                <p className="text-amber-300 font-medium mb-1">⚠️ 資料範圍說明</p>
+                                <ul className="text-white/70 space-y-1.5 list-disc list-inside">
+                                    <li>並非所有寶可夢配布都列在其中</li>
+                                    <li>以<span className="text-amber-300 font-medium">即時交易</span>而出現在系統中的為主</li>
+                                    <li>僅提供<span className="text-amber-300 font-medium">五天內有過至少十筆交易</span>以上的寶可夢配布資料</li>
+                                    <li>如欲查詢五天之外的配布之個別點數，請洽管理員</li>
+                                </ul>
+                            </div>
+
+                            <div className="rounded-xl bg-blue-500/10 border border-blue-500/20 p-3">
+                                <p className="text-blue-300 font-medium mb-1">ℹ️ 免責聲明</p>
+                                <p className="text-white/70">
+                                    資訊整理為系統自動整理，難免有誤，敬請見諒。
+                                    <br />
+                                    相關問題歡迎致電管理員。
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* 確認按鈕 */}
+                        <button
+                            onClick={() => setShowDisclaimer(false)}
+                            className="mt-5 w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm hover:from-amber-400 hover:to-orange-400 transition-all shadow-lg shadow-amber-500/25 active:scale-[0.98]"
+                        >
+                            我知道了
+                        </button>
+                    </div>
+                </div>
+            )}
             {/* 標題區 */}
             <section className="glass-card p-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -355,12 +402,12 @@ export default function PokedexContent({
                                     <div className="mt-1.5 space-y-0.5">
                                         <p className="text-center text-xs font-medium">
                                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${dist.points >= 900000 ? 'bg-gradient-to-r from-red-500/30 to-orange-500/30 text-red-300' :
-                                                    dist.points >= 350000 ? 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-300' :
-                                                        dist.points >= 120000 ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 text-purple-300' :
-                                                            dist.points >= 50000 ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 text-blue-300' :
-                                                                dist.points >= 10000 ? 'bg-gradient-to-r from-emerald-500/30 to-green-500/30 text-emerald-300' :
-                                                                    dist.points >= 5000 ? 'bg-gradient-to-r from-teal-500/30 to-cyan-500/30 text-teal-300' :
-                                                                        'bg-white/10 text-white/50'
+                                                dist.points >= 350000 ? 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-300' :
+                                                    dist.points >= 120000 ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 text-purple-300' :
+                                                        dist.points >= 50000 ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 text-blue-300' :
+                                                            dist.points >= 10000 ? 'bg-gradient-to-r from-emerald-500/30 to-green-500/30 text-emerald-300' :
+                                                                dist.points >= 5000 ? 'bg-gradient-to-r from-teal-500/30 to-cyan-500/30 text-teal-300' :
+                                                                    'bg-white/10 text-white/50'
                                                 }`}>
                                                 💎 {formatPoints(dist.points)}
                                             </span>
