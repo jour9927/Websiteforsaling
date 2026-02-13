@@ -36,7 +36,7 @@ export default function AdminAnnouncementsPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ title: "", content: "" });
+  const [formData, setFormData] = useState({ title: "", content: "", published_at: "" });
 
   useEffect(() => {
     loadAll();
@@ -71,7 +71,7 @@ export default function AdminAnnouncementsPage() {
     }
   };
 
-  // 建立公告（立即發布，show_popup + show_in_list 預設 true）
+  // 建立公告
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -85,11 +85,14 @@ export default function AdminAnnouncementsPage() {
       const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
       if (profile?.role !== "admin") throw new Error("只有管理員可以建立公告");
 
+      // 判斷：有排程且為未來時間 → scheduled，否則 → published
+      const isScheduled = formData.published_at && new Date(formData.published_at) > new Date();
+
       const { error } = await supabase.from("announcements").insert([{
         title: formData.title,
         content: formData.content,
-        status: "published",
-        published_at: new Date().toISOString(),
+        status: isScheduled ? "scheduled" : "published",
+        published_at: formData.published_at ? new Date(formData.published_at).toISOString() : new Date().toISOString(),
         show_popup: true,
         show_in_list: true,
         created_by: user.id,
@@ -97,8 +100,8 @@ export default function AdminAnnouncementsPage() {
 
       if (error) throw new Error(`建立失敗: ${error.message}`);
 
-      setSuccess("公告已發布！");
-      setFormData({ title: "", content: "" });
+      setSuccess(isScheduled ? "公告已排程！" : "公告已發布！");
+      setFormData({ title: "", content: "", published_at: "" });
       loadAll();
     } catch (err) {
       setError(err instanceof Error ? err.message : "建立失敗");
@@ -204,12 +207,21 @@ export default function AdminAnnouncementsPage() {
               placeholder="輸入公告內容"
             />
           </label>
+          <label className="flex flex-col gap-2 text-xs text-white/70">
+            發布排程（留空 = 立即發布）
+            <input
+              type="datetime-local"
+              value={formData.published_at}
+              onChange={(e) => setFormData({ ...formData, published_at: e.target.value })}
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
+            />
+          </label>
           <button
             type="submit"
             disabled={saving}
             className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-2.5 text-sm font-semibold text-white transition hover:from-amber-600 hover:to-orange-600 disabled:opacity-50"
           >
-            {saving ? "建立中..." : "🚀 立即發布"}
+            {saving ? "建立中..." : formData.published_at && new Date(formData.published_at) > new Date() ? "⏰ 排程發布" : "🚀 立即發布"}
           </button>
         </form>
       </article>
@@ -247,8 +259,8 @@ export default function AdminAnnouncementsPage() {
                       <button
                         onClick={() => handleToggle(item.id, "show_in_list", item.show_in_list)}
                         className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${item.show_in_list
-                            ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                            : "bg-white/10 text-white/40 hover:bg-white/15"
+                          ? "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                          : "bg-white/10 text-white/40 hover:bg-white/15"
                           }`}
                         title={item.show_in_list ? "列表：顯示中" : "列表：已隱藏"}
                       >
@@ -259,8 +271,8 @@ export default function AdminAnnouncementsPage() {
                       <button
                         onClick={() => handleToggle(item.id, "show_popup", item.show_popup)}
                         className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${item.show_popup
-                            ? "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
-                            : "bg-white/10 text-white/40 hover:bg-white/15"
+                          ? "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
+                          : "bg-white/10 text-white/40 hover:bg-white/15"
                           }`}
                         title={item.show_popup ? "彈窗：顯示中" : "彈窗：已關閉"}
                       >
