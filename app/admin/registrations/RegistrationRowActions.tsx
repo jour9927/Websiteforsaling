@@ -9,7 +9,7 @@ type RegistrationRowActionsProps = {
   currentStatus: string;
 };
 
-type ActionState = "confirm" | "cancel";
+type ActionState = "confirm" | "cancel" | "revert";
 
 export default function RegistrationRowActions({
   registrationId,
@@ -21,9 +21,11 @@ export default function RegistrationRowActions({
   const router = useRouter();
 
   const isPending = currentStatus === "pending";
+  const isConfirmed = currentStatus === "confirmed";
+  const isCancelled = currentStatus === "cancelled";
 
   const submitStatus = async (
-    status: "confirmed" | "cancelled",
+    status: "confirmed" | "cancelled" | "pending",
     action: ActionState,
     successMessage: string
   ) => {
@@ -56,36 +58,71 @@ export default function RegistrationRowActions({
   };
 
   const handleApprove = () =>
-    submitStatus("confirmed", "confirm", "已批准此報名，參與紀錄將同步更新。");
+    submitStatus("confirmed", "confirm", "已批准此報名。");
   const handleReject = () =>
-    submitStatus("cancelled", "cancel", "已拒絕此報名，會員將收到取消通知。");
-
-  if (!isPending) {
-    return (
-      <p className="text-[11px] text-white/40">只有待確認的報名可進行審核</p>
-    );
-  }
+    submitStatus("cancelled", "cancel", "已拒絕此報名。");
+  const handleRevert = () =>
+    submitStatus("pending", "revert", "已撤回，恢復為待確認。");
 
   return (
     <div className="space-y-1 text-[11px]">
       <p className="text-white/50">狀態: {getStatusLabel(currentStatus)}</p>
       <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          onClick={handleApprove}
-          disabled={loadingAction === "confirm"}
-          className="inline-flex items-center rounded-xl bg-emerald-500/80 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loadingAction === "confirm" ? "批准中…" : "批准"}
-        </button>
-        <button
-          type="button"
-          onClick={handleReject}
-          disabled={loadingAction === "cancel"}
-          className="inline-flex items-center rounded-xl bg-rose-500/80 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loadingAction === "cancel" ? "取消中…" : "拒絕"}
-        </button>
+        {/* 待確認 → 批准 / 拒絕 */}
+        {isPending && (
+          <>
+            <button
+              type="button"
+              onClick={handleApprove}
+              disabled={loadingAction === "confirm"}
+              className="inline-flex items-center rounded-xl bg-emerald-500/80 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loadingAction === "confirm" ? "批准中…" : "批准"}
+            </button>
+            <button
+              type="button"
+              onClick={handleReject}
+              disabled={loadingAction === "cancel"}
+              className="inline-flex items-center rounded-xl bg-rose-500/80 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loadingAction === "cancel" ? "取消中…" : "拒絕"}
+            </button>
+          </>
+        )}
+
+        {/* 已批准 → 撤回 / 取消 */}
+        {isConfirmed && (
+          <>
+            <button
+              type="button"
+              onClick={handleRevert}
+              disabled={loadingAction === "revert"}
+              className="inline-flex items-center rounded-xl bg-amber-500/80 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loadingAction === "revert" ? "撤回中…" : "🔄 撤回"}
+            </button>
+            <button
+              type="button"
+              onClick={handleReject}
+              disabled={loadingAction === "cancel"}
+              className="inline-flex items-center rounded-xl bg-rose-500/80 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loadingAction === "cancel" ? "取消中…" : "❌ 取消"}
+            </button>
+          </>
+        )}
+
+        {/* 已拒絕 → 重新審核 */}
+        {isCancelled && (
+          <button
+            type="button"
+            onClick={handleRevert}
+            disabled={loadingAction === "revert"}
+            className="inline-flex items-center rounded-xl bg-amber-500/80 px-3 py-1 text-[11px] font-semibold text-white transition hover:bg-amber-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {loadingAction === "revert" ? "處理中…" : "🔄 重新審核"}
+          </button>
+        )}
       </div>
       {feedback && <p className="text-emerald-300">{feedback}</p>}
       {error && <p className="text-rose-300">{error}</p>}

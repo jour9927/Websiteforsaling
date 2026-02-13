@@ -3,7 +3,7 @@ import { createServerSupabaseClient, createAdminSupabaseClient } from "@/lib/aut
 
 export const dynamic = "force-dynamic";
 
-const ALLOWED_STATUSES = ["confirmed", "cancelled"] as const;
+const ALLOWED_STATUSES = ["confirmed", "cancelled", "pending"] as const;
 type AllowedStatus = (typeof ALLOWED_STATUSES)[number];
 
 type RouteContext = {
@@ -56,7 +56,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     if (error) {
       console.error("Registration update error:", error);
-      return NextResponse.json({ 
+      return NextResponse.json({
         error: `更新失敗: ${error.message}`,
         hint: "請確認 SUPABASE_SERVICE_ROLE_KEY 環境變數已在 Vercel 中設置"
       }, { status: 500 });
@@ -69,7 +69,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ registration: data });
   } catch (err) {
     console.error("Unexpected error:", err);
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: err instanceof Error ? err.message : "未知錯誤",
       hint: "請檢查伺服器日誌"
     }, { status: 500 });
