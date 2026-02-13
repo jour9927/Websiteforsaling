@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 
 export default async function EventPage({ params }: EventPageProps) {
   const supabase = createServerSupabaseClient();
-  
+
   // 載入活動資料
   const { data: event, error } = await supabase
     .from('events')
@@ -71,7 +71,8 @@ export default async function EventPage({ params }: EventPageProps) {
   }
 
   const remainingSlots = event.max_participants ? event.max_participants - totalRegistrationCount : null;
-  const isFull = event.max_participants && totalRegistrationCount >= event.max_participants;
+  const isOverCapacity = event.max_participants && totalRegistrationCount > event.max_participants;
+  const isFull = event.max_participants && totalRegistrationCount >= event.max_participants && !isOverCapacity;
   const isEnded = new Date(event.end_date) < new Date();
   const drawHref = `/events/${params.id}/draw` as Route;
 
@@ -81,34 +82,38 @@ export default async function EventPage({ params }: EventPageProps) {
         <Link href="/events" className="text-sm text-slate-200/80 hover:text-white">
           ← 返回活動列表
         </Link>
-        
+
         {/* 活動狀態標籤 */}
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-            event.status === 'published' && !isEnded
+          <span className={`rounded-full px-3 py-1 text-xs font-medium ${event.status === 'published' && !isEnded
               ? 'bg-green-500/20 text-green-200'
               : event.status === 'draft'
-              ? 'bg-gray-500/20 text-gray-200'
-              : 'bg-red-500/20 text-red-200'
-          }`}>
+                ? 'bg-gray-500/20 text-gray-200'
+                : 'bg-red-500/20 text-red-200'
+            }`}>
             {event.status === 'published' && !isEnded ? '進行中' : isEnded ? '已結束' : '草稿'}
           </span>
-          
+
           {event.organizer_category === 'vip' && (
             <span className="rounded-full bg-yellow-500/20 px-3 py-1 text-xs font-medium text-yellow-200">
               ⭐ 大佬主辦
             </span>
           )}
-          
+
           {isFull && (
             <span className="rounded-full bg-red-500/20 px-3 py-1 text-xs font-medium text-red-200">
               已額滿
             </span>
           )}
+          {isOverCapacity && (
+            <span className="rounded-full bg-amber-500/20 px-3 py-1 text-xs font-medium text-amber-200">
+              🎉 本次活動特別加開名額
+            </span>
+          )}
         </div>
 
         <h1 className="mt-4 text-3xl font-semibold">{event.title}</h1>
-        
+
         {/* 價格顯示 - 醒目位置 */}
         <div className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500/20 to-purple-500/20 px-4 py-2 border border-white/20">
           <span className="text-2xl">💰</span>
@@ -119,7 +124,7 @@ export default async function EventPage({ params }: EventPageProps) {
             </p>
           </div>
         </div>
-        
+
         {/* 活動資訊 */}
         <div className="mt-4 grid gap-3 text-sm text-slate-200/80 md:grid-cols-2">
           <div className="flex items-center gap-2">
@@ -138,7 +143,12 @@ export default async function EventPage({ params }: EventPageProps) {
           )}
           <div className="flex items-center gap-2">
             <span className="text-white/60">👥 名額:</span>
-            <span>{event.max_participants || '不限'}</span>
+            <span>
+              {event.max_participants || '不限'}
+              {isOverCapacity && (
+                <span className="ml-1 text-amber-300">（已加開至 {totalRegistrationCount} 人）</span>
+              )}
+            </span>
           </div>
         </div>
 
@@ -161,8 +171,8 @@ export default async function EventPage({ params }: EventPageProps) {
 
           {event.image_url && (
             <article className="glass-card overflow-hidden p-0">
-              <img 
-                src={event.image_url} 
+              <img
+                src={event.image_url}
                 alt={event.title}
                 className="h-64 w-full object-cover"
               />
@@ -186,16 +196,21 @@ export default async function EventPage({ params }: EventPageProps) {
                 目前 {pendingOnline} 筆報名仍待確認，通過核可後才會列入參與紀錄。
               </p>
             )}
-            {remainingSlots !== null && (
+            {remainingSlots !== null && !isOverCapacity && (
               <p className="mt-1 text-xs text-slate-200/60">
                 剩餘名額: {remainingSlots > 0 ? remainingSlots : 0}
+              </p>
+            )}
+            {isOverCapacity && (
+              <p className="mt-1 text-xs text-amber-300/80">
+                🎉 本次活動特別加開名額，歡迎報名！
               </p>
             )}
           </div>
 
           {/* 報名按鈕 */}
           {!user ? (
-            <Link 
+            <Link
               href={`/login?redirect=/events/${params.id}`}
               className="rounded-xl bg-white/20 px-4 py-3 text-center text-sm font-semibold text-white/90 transition hover:bg-white/30"
             >
@@ -209,7 +224,7 @@ export default async function EventPage({ params }: EventPageProps) {
                   狀態: {userRegistration.status === 'confirmed' ? '已確認' : '待確認'}
                 </p>
               </div>
-              <Link 
+              <Link
                 href="/history"
                 className="block rounded-xl border border-white/30 px-4 py-3 text-center text-sm font-semibold text-white/90 transition hover:bg-white/5"
               >
@@ -220,7 +235,7 @@ export default async function EventPage({ params }: EventPageProps) {
             <div className="rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-center text-sm text-white/60">
               活動已結束
             </div>
-          ) : isFull ? (
+          ) : isFull && !isOverCapacity ? (
             <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm text-red-200">
               名額已滿
             </div>
@@ -230,8 +245,8 @@ export default async function EventPage({ params }: EventPageProps) {
 
           {/* 抽選按鈕 */}
           {user && userRegistration && (
-            <Link 
-              href={drawHref} 
+            <Link
+              href={drawHref}
               className="rounded-xl border border-white/30 px-4 py-3 text-center text-sm font-semibold text-white/90 transition hover:bg-white/10"
             >
               🎲 前往抽選
