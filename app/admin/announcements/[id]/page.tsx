@@ -10,6 +10,7 @@ interface Announcement {
   id: string;
   title: string;
   content: string;
+  image_url: string | null;
   status: string;
   published_at: string | null;
   created_at: string;
@@ -29,6 +30,7 @@ export default function AdminAnnouncementEditPage({ params }: AdminAnnouncementE
   const [formData, setFormData] = useState({
     title: "",
     content: "",
+    image_url: "",
     status: "draft",
     published_at: ""
   });
@@ -53,6 +55,7 @@ export default function AdminAnnouncementEditPage({ params }: AdminAnnouncementE
         setFormData({
           title: data.title,
           content: data.content,
+          image_url: data.image_url || "",
           status: data.status || "draft",
           published_at: data.published_at ? new Date(data.published_at).toISOString().slice(0, 16) : ""
         });
@@ -79,6 +82,7 @@ export default function AdminAnnouncementEditPage({ params }: AdminAnnouncementE
         .update({
           title: formData.title,
           content: formData.content,
+          image_url: formData.image_url || null,
           status: formData.status,
           published_at: formData.published_at || null
         })
@@ -204,6 +208,19 @@ export default function AdminAnnouncementEditPage({ params }: AdminAnnouncementE
             rows={8}
             className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
           />
+        </label>
+
+        <label className="flex flex-col gap-2 text-xs text-white/70 md:col-span-2">
+          圖片網址（選填）
+          <input
+            value={formData.image_url}
+            onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+            className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+            placeholder="貼上圖片網址 (https://...)"
+          />
+          {formData.image_url && (
+            <img src={formData.image_url} alt="預覽" className="mt-2 h-32 rounded-lg object-cover" />
+          )}
         </label>
 
         <div className="flex gap-3 md:col-span-2">

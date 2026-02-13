@@ -36,7 +36,7 @@ export default function AdminAnnouncementsPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ title: "", content: "", published_at: "" });
+  const [formData, setFormData] = useState({ title: "", content: "", published_at: "", image_url: "" });
 
   useEffect(() => {
     loadAll();
@@ -102,6 +102,7 @@ export default function AdminAnnouncementsPage() {
       const { error } = await supabase.from("announcements").insert([{
         title: formData.title,
         content: formData.content,
+        image_url: formData.image_url || null,
         status,
         published_at: publishedAt,
         show_popup: !asDraft,
@@ -113,7 +114,7 @@ export default function AdminAnnouncementsPage() {
 
       const msgs: Record<string, string> = { draft: "已存為草稿！", scheduled: "公告已排程！", published: "公告已發布！" };
       setSuccess(msgs[status]);
-      setFormData({ title: "", content: "", published_at: "" });
+      setFormData({ title: "", content: "", published_at: "", image_url: "" });
       loadAll();
     } catch (err) {
       setError(err instanceof Error ? err.message : "建立失敗");
@@ -227,6 +228,18 @@ export default function AdminAnnouncementsPage() {
               onChange={(e) => setFormData({ ...formData, published_at: e.target.value })}
               className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
             />
+          </label>
+          <label className="flex flex-col gap-2 text-xs text-white/70">
+            圖片網址（選填）
+            <input
+              value={formData.image_url}
+              onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+              placeholder="貼上圖片網址 (https://...)"
+            />
+            {formData.image_url && (
+              <img src={formData.image_url} alt="預覽" className="mt-2 h-32 rounded-lg object-cover" />
+            )}
           </label>
           <div className="flex gap-3">
             <button
