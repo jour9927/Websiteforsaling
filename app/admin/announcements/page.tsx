@@ -72,7 +72,7 @@ export default function AdminAnnouncementsPage() {
   };
 
   // 建立公告
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, asDraft = false) => {
     e.preventDefault();
     setError("");
     setSuccess("");
@@ -85,22 +85,34 @@ export default function AdminAnnouncementsPage() {
       const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
       if (profile?.role !== "admin") throw new Error("只有管理員可以建立公告");
 
-      // 判斷：有排程且為未來時間 → scheduled，否則 → published
-      const isScheduled = formData.published_at && new Date(formData.published_at) > new Date();
+      // 判斷狀態
+      let status = "published";
+      let publishedAt: string | null = new Date().toISOString();
+
+      if (asDraft) {
+        status = "draft";
+        publishedAt = null;
+      } else if (formData.published_at && new Date(formData.published_at) > new Date()) {
+        status = "scheduled";
+        publishedAt = new Date(formData.published_at).toISOString();
+      } else if (formData.published_at) {
+        publishedAt = new Date(formData.published_at).toISOString();
+      }
 
       const { error } = await supabase.from("announcements").insert([{
         title: formData.title,
         content: formData.content,
-        status: isScheduled ? "scheduled" : "published",
-        published_at: formData.published_at ? new Date(formData.published_at).toISOString() : new Date().toISOString(),
-        show_popup: true,
-        show_in_list: true,
+        status,
+        published_at: publishedAt,
+        show_popup: !asDraft,
+        show_in_list: !asDraft,
         created_by: user.id,
       }]).select();
 
       if (error) throw new Error(`建立失敗: ${error.message}`);
 
-      setSuccess(isScheduled ? "公告已排程！" : "公告已發布！");
+      const msgs: Record<string, string> = { draft: "已存為草稿！", scheduled: "公告已排程！", published: "公告已發布！" };
+      setSuccess(msgs[status]);
       setFormData({ title: "", content: "", published_at: "" });
       loadAll();
     } catch (err) {
@@ -216,13 +228,23 @@ export default function AdminAnnouncementsPage() {
               className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
             />
           </label>
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-2.5 text-sm font-semibold text-white transition hover:from-amber-600 hover:to-orange-600 disabled:opacity-50"
-          >
-            {saving ? "建立中..." : formData.published_at && new Date(formData.published_at) > new Date() ? "⏰ 排程發布" : "🚀 立即發布"}
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-2.5 text-sm font-semibold text-white transition hover:from-amber-600 hover:to-orange-600 disabled:opacity-50"
+            >
+              {saving ? "建立中..." : formData.published_at && new Date(formData.published_at) > new Date() ? "⏰ 排程發布" : "🚀 立即發布"}
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={(e) => handleSubmit(e, true)}
+              className="rounded-xl border border-white/20 px-6 py-2.5 text-sm font-medium text-white/70 transition hover:bg-white/10 disabled:opacity-50"
+            >
+              📝 存為草稿
+            </button>
+          </div>
         </form>
       </article>
 
