@@ -17,6 +17,7 @@ export default async function AnnouncementsPage() {
     .from('announcements')
     .select('*')
     .eq('status', 'published')
+    .eq('show_in_list', true)
     .order('published_at', { ascending: false });
 
   const getStatusDisplay = (status: string) => {

@@ -22,10 +22,12 @@ export default function GlobalAnnouncementOverlay() {
 
     const loadLatestAnnouncement = async () => {
         try {
+            // 查詢最新的、已發布且啟用彈窗的公告
             const { data, error } = await supabase
                 .from("announcements")
                 .select("id, title, content, image_url, published_at")
                 .eq("status", "published")
+                .eq("show_popup", true)
                 .not("published_at", "is", null)
                 .order("published_at", { ascending: false })
                 .limit(1)
@@ -33,12 +35,14 @@ export default function GlobalAnnouncementOverlay() {
 
             if (error || !data) return;
 
-            // 檢查 localStorage 是否已讀過
-            const dismissedKey = `announcement_dismissed_${data.id}`;
-            if (localStorage.getItem(dismissedKey)) return;
+            // 向伺服器確認是否已讀（不再依賴 localStorage）
+            const readRes = await fetch(`/api/announcements/read-status?announcement_id=${data.id}`);
+            if (readRes.ok) {
+                const { read } = await readRes.json();
+                if (read) return; // 已讀過，不再彈出
+            }
 
             setAnnouncement(data);
-            // 延遲顯示（讓頁面先載入）
             setTimeout(() => setVisible(true), 300);
         } catch {
             // 靜默失敗
@@ -48,8 +52,6 @@ export default function GlobalAnnouncementOverlay() {
     const handleDismiss = () => {
         if (!announcement) return;
         setFadeOut(true);
-        // 記住已讀（localStorage）
-        localStorage.setItem(`announcement_dismissed_${announcement.id}`, "true");
         // 記錄已讀到資料庫
         fetch("/api/announcements/read", {
             method: "POST",
