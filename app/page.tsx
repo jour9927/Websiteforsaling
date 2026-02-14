@@ -148,6 +148,20 @@ export default async function HomePage() {
     `)
     .eq("user_id", user.id);
 
+  // 載入配布圖鑑收藏（user_distributions + distributions.points）
+  const { data: userDistributions } = await supabase
+    .from("user_distributions")
+    .select("distribution_id, distributions(points)")
+    .eq("user_id", user.id);
+
+  const distributionStats = {
+    count: userDistributions?.length || 0,
+    totalPoints: userDistributions?.reduce((sum, ud) => {
+      const dist = Array.isArray(ud.distributions) ? ud.distributions[0] : ud.distributions;
+      return sum + ((dist as { points?: number })?.points || 0);
+    }, 0) || 0,
+  };
+
   // 載入所有可願望的活動
   const { data: allEvents } = await supabase
     .from("events")
@@ -195,6 +209,7 @@ export default async function HomePage() {
         currentUserId={user.id}
         publicImage={publicImage}
         publicPerceptions={publicPerceptions || []}
+        distributionStats={distributionStats}
       />
     </div>
   );

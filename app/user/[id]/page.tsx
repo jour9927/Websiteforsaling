@@ -370,6 +370,20 @@ export default async function UserProfilePage({ params }: Props) {
     `)
         .eq("user_id", userId);
 
+    // 載入配布圖鑑收藏
+    const { data: userDistributions } = await supabase
+        .from("user_distributions")
+        .select("distribution_id, distributions(points)")
+        .eq("user_id", userId);
+
+    const distributionStats = {
+        count: userDistributions?.length || 0,
+        totalPoints: userDistributions?.reduce((sum, ud) => {
+            const dist = Array.isArray(ud.distributions) ? ud.distributions[0] : ud.distributions;
+            return sum + ((dist as { points?: number })?.points || 0);
+        }, 0) || 0,
+    };
+
     // 載入所有可願望的活動（如果是自己的頁面才需要）
     const { data: allEvents } = await supabase
         .from("events")
@@ -409,6 +423,7 @@ export default async function UserProfilePage({ params }: Props) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (recentVisitors?.map((v: any) => v.visitor).filter(Boolean) || []) as any
             }
+            distributionStats={distributionStats}
         />
     );
 }

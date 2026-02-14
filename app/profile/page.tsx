@@ -46,13 +46,28 @@ export default async function ProfilePage() {
   );
 
   // 計算統計數據
-  const totalItems = userItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
-  const totalValue =
+  const itemCount = userItems?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  const itemValue =
     userItems?.reduce((sum, item) => {
       const eventData = Array.isArray(item.events) ? item.events[0] : item.events;
       const value = eventData?.estimated_value || 0;
       return sum + value * item.quantity;
     }, 0) || 0;
+
+  // 載入配布圖鑑收藏
+  const { data: userDistributions } = await supabase
+    .from("user_distributions")
+    .select("distribution_id, distributions(points)")
+    .eq("user_id", user.id);
+
+  const distCount = userDistributions?.length || 0;
+  const distPoints = userDistributions?.reduce((sum, ud) => {
+    const dist = Array.isArray(ud.distributions) ? ud.distributions[0] : ud.distributions;
+    return sum + ((dist as { points?: number })?.points || 0);
+  }, 0) || 0;
+
+  const totalItems = itemCount + distCount;
+  const totalValue = itemValue + distPoints;
   const collectionTotal = events?.length || 0;
   const collectionOwned = [...ownedEventIds].filter((id) =>
     events?.some((e) => e.id === id)

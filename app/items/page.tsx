@@ -67,11 +67,26 @@ export default async function ItemsPage() {
   }));
 
   // 計算資產統計
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
-  const totalValue = items.reduce((sum, item) => {
+  const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
+  const itemValue = items.reduce((sum, item) => {
     const eventValue = item.event?.estimated_value || 0;
     return sum + eventValue * item.quantity;
   }, 0);
+
+  // 載入配布圖鑑收藏
+  const { data: userDistributions } = await supabase
+    .from("user_distributions")
+    .select("distribution_id, distributions(points)")
+    .eq("user_id", user.id);
+
+  const distCount = userDistributions?.length || 0;
+  const distPoints = userDistributions?.reduce((sum, ud) => {
+    const dist = Array.isArray(ud.distributions) ? ud.distributions[0] : ud.distributions;
+    return sum + ((dist as { points?: number })?.points || 0);
+  }, 0) || 0;
+
+  const totalItems = itemCount + distCount;
+  const totalValue = itemValue + distPoints;
 
   return (
     <section className="space-y-6">

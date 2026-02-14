@@ -186,6 +186,7 @@ type PersonalSpaceContentProps = {
     recentVisitors?: Visitor[];
     publicImage?: PublicImage | null;
     publicPerceptions?: PublicPerception[];
+    distributionStats?: { count: number; totalPoints: number };
 };
 
 export function PersonalSpaceContent({
@@ -200,6 +201,7 @@ export function PersonalSpaceContent({
     recentVisitors = [],
     publicImage,
     publicPerceptions = [],
+    distributionStats,
 }: PersonalSpaceContentProps) {
     const { maintenanceMode: COMMENTS_MAINTENANCE_MODE } = useMaintenanceMode();
     const router = useRouter();
@@ -367,12 +369,14 @@ export function PersonalSpaceContent({
         return game ? `${game} (${year})` : `${year}年`;
     };
 
-    // 計算統計資料
-    const totalItems = userItems.reduce((sum, item) => sum + item.quantity, 0);
-    const totalValue = userItems.reduce((sum, item) => {
+    // 計算統計資料（user_items + 配布圖鑑收藏合併）
+    const itemCount = userItems.reduce((sum, item) => sum + item.quantity, 0);
+    const itemValue = userItems.reduce((sum, item) => {
         const event = Array.isArray(item.events) ? item.events[0] : item.events;
         return sum + (event?.estimated_value || 0) * item.quantity;
     }, 0);
+    const totalItems = itemCount + (distributionStats?.count || 0);
+    const totalValue = itemValue + (distributionStats?.totalPoints || 0);
 
     // 取得精選展示的收藏
     const featuredItems = userItems.slice(0, 10);
