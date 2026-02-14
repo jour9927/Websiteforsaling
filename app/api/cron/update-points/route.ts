@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 // 世代點數範圍
 const GEN_RANGES: Record<number, { min: number; max: number }> = {
-    3: { min: 350000, max: 1050000 },
+    3: { min: 650000, max: 1800000 },
     4: { min: 220000, max: 525000 },
     5: { min: 120000, max: 330000 },
     6: { min: 50000, max: 180000 },
