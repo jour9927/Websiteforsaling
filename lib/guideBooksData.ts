@@ -1,297 +1,422 @@
 // 書本式配布圖鑑資料定義
-// 每個世代 2~3 本主題書
+// 每個世代 3 本書，按配布稀有度分為：高貴、稀有、普通
+
+export type BookTier = "noble" | "rare" | "common";
 
 export interface GuideBook {
     id: string;
     title: string;
     subtitle: string;
     generation: number;
+    tier: BookTier;
     description: string;
     coverImage: string;
     themeGradient: string;
     themeColor: string;
     accentColor: string;
-    // 用於從 distributions 中篩選配布的世代範圍
-    genFilter: number[];
+}
+
+// 稀有度分級標題
+export const tierLabels: Record<BookTier, string> = {
+    noble: "高貴",
+    rare: "稀有",
+    common: "普通",
+};
+
+export const tierEmojis: Record<BookTier, string> = {
+    noble: "👑",
+    rare: "⭐",
+    common: "📘",
+};
+
+// 根據同世代配布的 points 排序後，前 1/3 高貴、中 1/3 稀有、後 1/3 普通
+export function classifyDistributionsByTier<
+    T extends { points?: number | null },
+>(distributions: T[]): Record<BookTier, T[]> {
+    // 按 points 降序排列
+    const sorted = [...distributions].sort(
+        (a, b) => (b.points ?? 0) - (a.points ?? 0)
+    );
+
+    const total = sorted.length;
+    const nobleEnd = Math.ceil(total / 3);
+    const rareEnd = Math.ceil((total * 2) / 3);
+
+    return {
+        noble: sorted.slice(0, nobleEnd),
+        rare: sorted.slice(nobleEnd, rareEnd),
+        common: sorted.slice(rareEnd),
+    };
 }
 
 export const guideBooks: GuideBook[] = [
     // ── 第一世代 ──
     {
-        id: "gen1-legendary",
-        title: "初代傳說配布",
-        subtitle: "超夢與夢幻的軌跡",
+        id: "gen1-noble",
+        title: "第1世代・高貴配布",
+        subtitle: "關都地區的頂級珍藏",
         generation: 1,
+        tier: "noble",
         description:
-            "收錄關都地區最具傳奇色彩的配布寶可夢。從初代超夢到夢幻，見證配布歷史的起點。每一隻都承載著訓練師們最珍貴的回憶。",
+            "收錄關都地區最具價值的頂級配布寶可夢。超夢、夢幻等傳說級配布，每一隻都是無價的珍藏。",
         coverImage: "/guides/gen1_legendary.png",
-        themeGradient: "from-red-500 to-red-700",
-        themeColor: "red",
-        accentColor: "text-red-400",
-        genFilter: [1],
-    },
-    {
-        id: "gen1-classic",
-        title: "經典幻之旅",
-        subtitle: "初始御三家的奇幻冒險",
-        generation: 1,
-        description:
-            "妙蛙種子、小火龍、傑尼龜——每個訓練家的冒險都從這裡開始。本書收錄第一世代最經典的配布紀錄，帶你重溫那段純粹的感動。",
-        coverImage: "/guides/gen1_classic.png",
-        themeGradient: "from-amber-500 to-orange-600",
+        themeGradient: "from-amber-500 to-yellow-600",
         themeColor: "amber",
         accentColor: "text-amber-400",
-        genFilter: [1],
+    },
+    {
+        id: "gen1-rare",
+        title: "第1世代・稀有配布",
+        subtitle: "關都地區的珍稀收藏",
+        generation: 1,
+        tier: "rare",
+        description:
+            "中等稀有度的關都配布紀錄。每一筆都有其獨特的故事和收藏價值。",
+        coverImage: "/guides/gen1_classic.png",
+        themeGradient: "from-purple-500 to-pink-600",
+        themeColor: "purple",
+        accentColor: "text-purple-400",
+    },
+    {
+        id: "gen1-common",
+        title: "第1世代・普通配布",
+        subtitle: "關都地區的基礎配布",
+        generation: 1,
+        tier: "common",
+        description:
+            "關都地區較常見的配布紀錄。雖不稀有，卻是每位訓練家旅程的基石。",
+        coverImage: "/guides/gen1_classic.png",
+        themeGradient: "from-slate-400 to-slate-600",
+        themeColor: "slate",
+        accentColor: "text-slate-300",
     },
 
     // ── 第二世代 ──
     {
-        id: "gen2-chronicle",
-        title: "城都編年記",
-        subtitle: "鳳王與洛奇亞的傳說",
+        id: "gen2-noble",
+        title: "第2世代・高貴配布",
+        subtitle: "城都地區的頂級珍藏",
         generation: 2,
+        tier: "noble",
         description:
-            "金色與銀色的光輝交織，鳳王與洛奇亞翱翔於城都上空。本書記載第二世代所有重要配布事件，見證城都地區的輝煌時代。",
+            "鳳王與洛奇亞翱翔天際，雪拉比穿越時空——城都地區最珍貴的高貴配布大全。",
         coverImage: "/guides/gen2_chronicle.png",
-        themeGradient: "from-yellow-500 to-yellow-700",
-        themeColor: "yellow",
-        accentColor: "text-yellow-400",
-        genFilter: [2],
+        themeGradient: "from-amber-500 to-yellow-600",
+        themeColor: "amber",
+        accentColor: "text-amber-400",
     },
     {
-        id: "gen2-secret",
-        title: "金銀秘境",
-        subtitle: "雪拉比的時空之旅",
+        id: "gen2-rare",
+        title: "第2世代・稀有配布",
+        subtitle: "城都地區的珍稀收藏",
         generation: 2,
+        tier: "rare",
         description:
-            "在雪拉比守護的森林深處，時間靜止而永恆。本書探索第二世代中最神秘的幻之配布，揭開城都地區不為人知的秘密。",
+            "城都地區的中等稀有配布紀錄，金銀時代的獨特回憶。",
         coverImage: "/guides/gen2_secret.png",
-        themeGradient: "from-emerald-500 to-teal-600",
-        themeColor: "emerald",
-        accentColor: "text-emerald-400",
-        genFilter: [2],
+        themeGradient: "from-purple-500 to-pink-600",
+        themeColor: "purple",
+        accentColor: "text-purple-400",
+    },
+    {
+        id: "gen2-common",
+        title: "第2世代・普通配布",
+        subtitle: "城都地區的基礎配布",
+        generation: 2,
+        tier: "common",
+        description:
+            "城都地區的基礎配布合集，每位訓練家的共同回憶。",
+        coverImage: "/guides/gen2_secret.png",
+        themeGradient: "from-slate-400 to-slate-600",
+        themeColor: "slate",
+        accentColor: "text-slate-300",
     },
 
     // ── 第三世代 ──
     {
-        id: "gen3-hoenn",
-        title: "豐緣寶典",
-        subtitle: "大地與海洋的史詩",
+        id: "gen3-noble",
+        title: "第3世代・高貴配布",
+        subtitle: "豐緣地區的頂級珍藏",
         generation: 3,
+        tier: "noble",
         description:
-            "固拉多的烈焰灼燒大地，蓋歐卡的巨浪撼動海洋，烈空坐居高臨下守護天際。本書完整記錄第三世代磅礴壯闘的配布歷程。",
+            "固拉多、蓋歐卡、烈空坐——豐緣三神獸與最古老的 GBA 時代高貴配布。距今 20 年的傳說。",
         coverImage: "/guides/gen3_hoenn.png",
-        themeGradient: "from-emerald-500 to-emerald-700",
-        themeColor: "emerald",
-        accentColor: "text-emerald-400",
-        genFilter: [3],
+        themeGradient: "from-amber-500 to-yellow-600",
+        themeColor: "amber",
+        accentColor: "text-amber-400",
     },
     {
-        id: "gen3-myth",
-        title: "神話誕生紀",
-        subtitle: "基拉祈與乘龍的星空",
+        id: "gen3-rare",
+        title: "第3世代・稀有配布",
+        subtitle: "豐緣地區的珍稀收藏",
         generation: 3,
+        tier: "rare",
         description:
-            "當千年彗星劃過天際，基拉祈甦醒實現願望。代歐奇希斯從宇宙深處降臨。本書收錄第三世代最具神話色彩的幻之寶可夢配布。",
+            "基拉祈、代歐奇希斯等神話級幻之寶可夢的稀有配布紀錄。",
         coverImage: "/guides/gen3_myth.png",
-        themeGradient: "from-indigo-500 to-blue-700",
-        themeColor: "indigo",
-        accentColor: "text-indigo-400",
-        genFilter: [3],
+        themeGradient: "from-purple-500 to-pink-600",
+        themeColor: "purple",
+        accentColor: "text-purple-400",
+    },
+    {
+        id: "gen3-common",
+        title: "第3世代・普通配布",
+        subtitle: "豐緣地區的基礎配布",
+        generation: 3,
+        tier: "common",
+        description:
+            "豐緣地區的基礎配布合集，GBA 時代的純粹冒險。",
+        coverImage: "/guides/gen3_myth.png",
+        themeGradient: "from-slate-400 to-slate-600",
+        themeColor: "slate",
+        accentColor: "text-slate-300",
     },
 
     // ── 第四世代 ──
     {
-        id: "gen4-sinnoh",
-        title: "神奧傳承錄",
-        subtitle: "帝牙盧卡與帕路奇亞",
+        id: "gen4-noble",
+        title: "第4世代・高貴配布",
+        subtitle: "神奧地區的頂級珍藏",
         generation: 4,
+        tier: "noble",
         description:
-            "時間之神帝牙盧卡與空間之神帕路奇亞，掌控著維度的根基。本書記載神奧地區最核心的傳說配布，揭開時空的奧秘。",
-        coverImage: "/guides/gen4_sinnoh.png",
-        themeGradient: "from-blue-500 to-blue-700",
-        themeColor: "blue",
-        accentColor: "text-blue-400",
-        genFilter: [4],
+            "阿爾宙斯、帝牙盧卡、帕路奇亞——創世神話的頂級配布收藏。",
+        coverImage: "/guides/gen4_creation.png",
+        themeGradient: "from-amber-500 to-yellow-600",
+        themeColor: "amber",
+        accentColor: "text-amber-400",
     },
     {
-        id: "gen4-rift",
-        title: "時空裂隙手札",
-        subtitle: "騎拉帝納的反轉世界",
+        id: "gen4-rare",
+        title: "第4世代・稀有配布",
+        subtitle: "神奧地區的珍稀收藏",
         generation: 4,
+        tier: "rare",
         description:
-            "在被扭曲的反轉世界裡，騎拉帝納靜靜守護著維度的平衡。本書深入探索第四世代最黑暗、最神秘的配布領域。",
+            "騎拉帝納的反轉世界與時空裂隙的稀有配布紀錄。",
         coverImage: "/guides/gen4_rift.png",
-        themeGradient: "from-gray-600 to-purple-800",
+        themeGradient: "from-purple-500 to-pink-600",
         themeColor: "purple",
         accentColor: "text-purple-400",
-        genFilter: [4],
     },
     {
-        id: "gen4-creation",
-        title: "創世神典",
-        subtitle: "阿爾宙斯的神聖之光",
+        id: "gen4-common",
+        title: "第4世代・普通配布",
+        subtitle: "神奧地區的基礎配布",
         generation: 4,
+        tier: "common",
         description:
-            "萬物的創造者阿爾宙斯，從虛無中誕生宇宙。本書是第四世代最頂級的配布典籍，收錄創世神話等級的夢幻配布。",
-        coverImage: "/guides/gen4_creation.png",
-        themeGradient: "from-amber-400 to-yellow-600",
-        themeColor: "yellow",
-        accentColor: "text-yellow-300",
-        genFilter: [4],
+            "神奧地區的基礎配布合集，DS 時代的經典記憶。",
+        coverImage: "/guides/gen4_sinnoh.png",
+        themeGradient: "from-slate-400 to-slate-600",
+        themeColor: "slate",
+        accentColor: "text-slate-300",
     },
 
     // ── 第五世代 ──
     {
-        id: "gen5-unova",
-        title: "合眾啟示錄",
-        subtitle: "萊希拉姆與捷克羅姆",
+        id: "gen5-noble",
+        title: "第5世代・高貴配布",
+        subtitle: "合眾地區的頂級珍藏",
         generation: 5,
+        tier: "noble",
         description:
-            "黑與白的對決，真實與理想的碰撞。萊希拉姆的烈焰與捷克羅姆的雷擊交織出第五世代最壯烈的配布傳奇。",
+            "萊希拉姆、捷克羅姆與酋雷姆——黑白之戰的高貴配布大全。",
         coverImage: "/guides/gen5_unova.png",
-        themeGradient: "from-gray-500 to-gray-700",
-        themeColor: "gray",
-        accentColor: "text-gray-300",
-        genFilter: [5],
+        themeGradient: "from-amber-500 to-yellow-600",
+        themeColor: "amber",
+        accentColor: "text-amber-400",
     },
     {
-        id: "gen5-awakening",
-        title: "黑白覺醒記",
-        subtitle: "酋雷姆的冰封真相",
+        id: "gen5-rare",
+        title: "第5世代・稀有配布",
+        subtitle: "合眾地區的珍稀收藏",
         generation: 5,
+        tier: "rare",
         description:
-            "當萊希拉姆與捷克羅姆的力量融合，酋雷姆覺醒了完整的形態。本書收錄第五世代後期最精彩的配布紀錄。",
+            "合眾地區的中等稀有配布紀錄，真實與理想的交會。",
         coverImage: "/guides/gen5_awakening.png",
-        themeGradient: "from-cyan-400 to-blue-600",
-        themeColor: "cyan",
-        accentColor: "text-cyan-400",
-        genFilter: [5],
+        themeGradient: "from-purple-500 to-pink-600",
+        themeColor: "purple",
+        accentColor: "text-purple-400",
+    },
+    {
+        id: "gen5-common",
+        title: "第5世代・普通配布",
+        subtitle: "合眾地區的基礎配布",
+        generation: 5,
+        tier: "common",
+        description:
+            "合眾地區的基礎配布合集，BW 時代的冒險記憶。",
+        coverImage: "/guides/gen5_awakening.png",
+        themeGradient: "from-slate-400 to-slate-600",
+        themeColor: "slate",
+        accentColor: "text-slate-300",
     },
 
     // ── 第六世代 ──
     {
-        id: "gen6-kalos",
-        title: "卡洛斯圖錄",
-        subtitle: "哲爾尼亞斯與伊裴爾塔爾",
+        id: "gen6-noble",
+        title: "第6世代・高貴配布",
+        subtitle: "卡洛斯地區的頂級珍藏",
         generation: 6,
+        tier: "noble",
         description:
-            "生命之鹿哲爾尼亞斯與破壞之翼伊裴爾塔爾。在優雅的卡洛斯地區，配布文化達到了前所未有的藝術高度。",
+            "哲爾尼亞斯與伊裴爾塔爾的高貴配布。3DS 時代最珍貴的收藏。",
         coverImage: "/guides/gen6_kalos.png",
-        themeGradient: "from-blue-400 to-blue-600",
-        themeColor: "blue",
-        accentColor: "text-blue-300",
-        genFilter: [6],
+        themeGradient: "from-amber-500 to-yellow-600",
+        themeColor: "amber",
+        accentColor: "text-amber-400",
     },
     {
-        id: "gen6-mega",
-        title: "MEGA 進化誌",
-        subtitle: "超越極限的力量",
+        id: "gen6-rare",
+        title: "第6世代・稀有配布",
+        subtitle: "卡洛斯地區的珍稀收藏",
         generation: 6,
+        tier: "rare",
         description:
-            "MEGA 進化——突破寶可夢潛力的極限！本書收錄所有與 MEGA 進化相關的特殊配布，見證進化石的璀璨光芒。",
+            "MEGA 進化時代的稀有配布紀錄，突破極限的力量。",
         coverImage: "/guides/gen6_mega.png",
-        themeGradient: "from-violet-400 to-fuchsia-600",
-        themeColor: "violet",
-        accentColor: "text-violet-400",
-        genFilter: [6],
+        themeGradient: "from-purple-500 to-pink-600",
+        themeColor: "purple",
+        accentColor: "text-purple-400",
+    },
+    {
+        id: "gen6-common",
+        title: "第6世代・普通配布",
+        subtitle: "卡洛斯地區的基礎配布",
+        generation: 6,
+        tier: "common",
+        description:
+            "卡洛斯地區的基礎配布合集，XY 時代的優雅記憶。",
+        coverImage: "/guides/gen6_mega.png",
+        themeGradient: "from-slate-400 to-slate-600",
+        themeColor: "slate",
+        accentColor: "text-slate-300",
     },
 
     // ── 第七世代 ──
     {
-        id: "gen7-alola",
-        title: "阿羅拉風情記",
-        subtitle: "索爾迦雷歐與露奈雅拉",
+        id: "gen7-noble",
+        title: "第7世代・高貴配布",
+        subtitle: "阿羅拉地區的頂級珍藏",
         generation: 7,
+        tier: "noble",
         description:
-            "陽光與月光的守護者，在阿羅拉群島上演繹著日月傳說。本書帶你感受熱帶島嶼的活力與配布的獨特魅力。",
+            "索爾迦雷歐、露奈雅拉與究極異獸——阿羅拉群島最珍貴的高貴配布。",
         coverImage: "/guides/gen7_alola.png",
-        themeGradient: "from-orange-500 to-orange-700",
-        themeColor: "orange",
-        accentColor: "text-orange-400",
-        genFilter: [7],
+        themeGradient: "from-amber-500 to-yellow-600",
+        themeColor: "amber",
+        accentColor: "text-amber-400",
     },
     {
-        id: "gen7-ultra",
-        title: "究極異獸圖典",
-        subtitle: "來自異次元的訪客",
+        id: "gen7-rare",
+        title: "第7世代・稀有配布",
+        subtitle: "阿羅拉地區的珍稀收藏",
         generation: 7,
+        tier: "rare",
         description:
-            "究極之洞打開，異世界的生物湧入。本書記錄所有究極異獸相關的配布事件，探索超越認知的次元裂隙。",
+            "究極之洞的稀有配布紀錄，來自異次元的珍貴訪客。",
         coverImage: "/guides/gen7_ultra.png",
-        themeGradient: "from-pink-500 to-purple-700",
-        themeColor: "pink",
-        accentColor: "text-pink-400",
-        genFilter: [7],
+        themeGradient: "from-purple-500 to-pink-600",
+        themeColor: "purple",
+        accentColor: "text-purple-400",
+    },
+    {
+        id: "gen7-common",
+        title: "第7世代・普通配布",
+        subtitle: "阿羅拉地區的基礎配布",
+        generation: 7,
+        tier: "common",
+        description:
+            "阿羅拉地區的基礎配布合集，熱帶島嶼的純粹回憶。",
+        coverImage: "/guides/gen7_ultra.png",
+        themeGradient: "from-slate-400 to-slate-600",
+        themeColor: "slate",
+        accentColor: "text-slate-300",
     },
 
     // ── 第八世代 ──
     {
-        id: "gen8-galar",
-        title: "伽勒爾紀行",
-        subtitle: "蒼響與藏瑪然特的騎士傳說",
+        id: "gen8-noble",
+        title: "第8世代・高貴配布",
+        subtitle: "伽勒爾地區的頂級珍藏",
         generation: 8,
+        tier: "noble",
         description:
-            "在伽勒爾的古老王國中，蒼響執劍、藏瑪然特持盾，守護著這片土地。本書記錄第八世代最壯麗的配布故事。",
+            "蒼響、藏瑪然特與無極汰那——伽勒爾騎士傳說的高貴配布。",
         coverImage: "/guides/gen8_galar.png",
-        themeGradient: "from-pink-500 to-pink-700",
-        themeColor: "pink",
-        accentColor: "text-pink-300",
-        genFilter: [8],
+        themeGradient: "from-amber-500 to-yellow-600",
+        themeColor: "amber",
+        accentColor: "text-amber-400",
     },
     {
-        id: "gen8-dynamax",
-        title: "極巨化圖鑑",
-        subtitle: "無極汰那的暗黑能量",
+        id: "gen8-rare",
+        title: "第8世代・稀有配布",
+        subtitle: "伽勒爾地區的珍稀收藏",
         generation: 8,
+        tier: "rare",
         description:
-            "極巨化能量改變了戰鬥的規則，而無極汰那正是這股力量的根源。本書深入探索極巨化現象與相關的限定配布。",
+            "極巨化時代的稀有配布紀錄，劍盾的珍貴記憶。",
         coverImage: "/guides/gen8_dynamax.png",
-        themeGradient: "from-rose-500 to-red-700",
-        themeColor: "rose",
-        accentColor: "text-rose-400",
-        genFilter: [8],
+        themeGradient: "from-purple-500 to-pink-600",
+        themeColor: "purple",
+        accentColor: "text-purple-400",
+    },
+    {
+        id: "gen8-common",
+        title: "第8世代・普通配布",
+        subtitle: "伽勒爾地區的基礎配布",
+        generation: 8,
+        tier: "common",
+        description:
+            "伽勒爾地區的基礎配布合集，Wi-Fi 大量配布時代。",
+        coverImage: "/guides/gen8_dynamax.png",
+        themeGradient: "from-slate-400 to-slate-600",
+        themeColor: "slate",
+        accentColor: "text-slate-300",
     },
 
     // ── 第九世代 ──
     {
-        id: "gen9-paldea",
-        title: "帕底亞探索誌",
-        subtitle: "故勒頓與密勒頓的時空旅程",
+        id: "gen9-noble",
+        title: "第9世代・高貴配布",
+        subtitle: "帕底亞地區的頂級珍藏",
         generation: 9,
+        tier: "noble",
         description:
-            "過去與未來在帕底亞交匯。故勒頓馳騁於遠古大地，密勒頓翱翔於未來天際。本書記錄第九世代全新的冒險配布。",
+            "故勒頓、密勒頓與太樂巴戈斯——帕底亞最珍貴的高貴配布。",
         coverImage: "/guides/gen9_paldea.png",
-        themeGradient: "from-purple-500 to-violet-700",
+        themeGradient: "from-amber-500 to-yellow-600",
+        themeColor: "amber",
+        accentColor: "text-amber-400",
+    },
+    {
+        id: "gen9-rare",
+        title: "第9世代・稀有配布",
+        subtitle: "帕底亞地區的珍稀收藏",
+        generation: 9,
+        tier: "rare",
+        description:
+            "太晶化時代的稀有配布紀錄，結晶之冠的珍貴力量。",
+        coverImage: "/guides/gen9_tera.png",
+        themeGradient: "from-purple-500 to-pink-600",
         themeColor: "purple",
         accentColor: "text-purple-400",
-        genFilter: [9],
     },
     {
-        id: "gen9-tera",
-        title: "太晶寶典",
-        subtitle: "結晶之冠的奧秘",
+        id: "gen9-common",
+        title: "第9世代・普通配布",
+        subtitle: "帕底亞地區的基礎配布",
         generation: 9,
+        tier: "common",
         description:
-            "太晶化——在帕底亞地區獨特的結晶現象。寶可夢頭頂閃耀的太晶寶冠蘊含著不可思議的力量。本書收錄太晶相關的珍稀配布。",
-        coverImage: "/guides/gen9_tera.png",
-        themeGradient: "from-amber-400 to-pink-500",
-        themeColor: "amber",
-        accentColor: "text-amber-300",
-        genFilter: [9],
-    },
-    {
-        id: "gen9-zero",
-        title: "零區秘聞錄",
-        subtitle: "太樂巴戈斯與大坑洞之謎",
-        generation: 9,
-        description:
-            "在帕底亞大坑洞的最深處，沉睡著古老的秘密。太樂巴戈斯守護的零區藏著關於太晶化起源的真相。本書揭開第九世代最終章的面紗。",
+            "帕底亞地區的基礎配布合集，朱紫時代的日常冒險。",
         coverImage: "/guides/gen9_zero.png",
-        themeGradient: "from-stone-500 to-amber-700",
-        themeColor: "stone",
-        accentColor: "text-stone-300",
-        genFilter: [9],
+        themeGradient: "from-slate-400 to-slate-600",
+        themeColor: "slate",
+        accentColor: "text-slate-300",
     },
 ];
 

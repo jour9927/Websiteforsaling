@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useMemo } from "react";
 import { BookGuideCard } from "@/components/BookGuideCard";
 import { BookGuideDetail } from "@/components/BookGuideDetail";
 import {
@@ -8,7 +8,9 @@ import {
     getBooksByGeneration,
     genNames,
     genGames,
+    classifyDistributionsByTier,
     type GuideBook,
+    type BookTier,
 } from "@/lib/guideBooksData";
 import { supabase } from "@/lib/supabase";
 
@@ -55,22 +57,32 @@ export default function GuidesContent({
         .map(Number)
         .sort((a, b) => b - a);
 
+    // 預先按世代 + 稀有度分類所有配布
+    const classifiedByGen = useMemo(() => {
+        const result: Record<number, Record<BookTier, Distribution[]>> = {};
+        // 先按世代分組
+        const byGen: Record<number, Distribution[]> = {};
+        for (const d of distributions) {
+            if (!byGen[d.generation]) byGen[d.generation] = [];
+            byGen[d.generation].push(d);
+        }
+        // 再按 points 分為高貴/稀有/普通
+        for (const gen of Object.keys(byGen).map(Number)) {
+            result[gen] = classifyDistributionsByTier(byGen[gen]);
+        }
+        return result;
+    }, [distributions]);
+
     // 取得某本書對應的配布列表
-    const getBookDistributions = useCallback(
-        (book: GuideBook) => {
-            return distributions.filter((d) => book.genFilter.includes(d.generation));
-        },
-        [distributions]
-    );
+    function getBookDistributions(book: GuideBook): Distribution[] {
+        return classifiedByGen[book.generation]?.[book.tier] ?? [];
+    }
 
     // 取得某本書的已收集數量
-    const getBookCollectedCount = useCallback(
-        (book: GuideBook) => {
-            const bookDists = getBookDistributions(book);
-            return bookDists.filter((d) => collected.includes(d.id)).length;
-        },
-        [collected, getBookDistributions]
-    );
+    function getBookCollectedCount(book: GuideBook): number {
+        const bookDists = getBookDistributions(book);
+        return bookDists.filter((d) => collected.includes(d.id)).length;
+    }
 
     // 切換收集狀態
     async function toggleCollect(distributionId: string) {
@@ -110,7 +122,7 @@ export default function GuidesContent({
                             配布圖鑑書架
                         </h1>
                         <p className="mt-1 text-sm text-white/60">
-                            翻閱各世代的精美配布圖鑑，深入了解每個寶可夢的故事
+                            依稀有度分為 👑 高貴・⭐ 稀有・📘 普通，翻閱各世代的配布圖鑑
                         </p>
                     </div>
 

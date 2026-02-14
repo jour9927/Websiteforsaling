@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import type { GuideBook } from "@/lib/guideBooksData";
+import { tierEmojis, tierLabels, type GuideBook } from "@/lib/guideBooksData";
 
 interface BookGuideCardProps {
     book: GuideBook;
@@ -79,11 +79,11 @@ export function BookGuideCard({
                         }}
                     />
 
-                    {/* 世代標籤 */}
+                    {/* 稀有度標籤 */}
                     <div
                         className={`absolute right-2 top-2 rounded-full bg-gradient-to-r ${book.themeGradient} px-2 py-0.5 text-[10px] font-bold tracking-wider text-white shadow-lg`}
                     >
-                        Gen {book.generation}
+                        {tierEmojis[book.tier]} {tierLabels[book.tier]}
                     </div>
 
                     {/* 書名區域（底部） */}

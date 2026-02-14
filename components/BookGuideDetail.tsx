@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import type { GuideBook } from "@/lib/guideBooksData";
+import { tierEmojis, tierLabels, type GuideBook } from "@/lib/guideBooksData";
 
 interface Distribution {
     id: string;
@@ -104,11 +104,11 @@ export function BookGuideDetail({
                         ✕
                     </button>
 
-                    {/* 世代標記 */}
+                    {/* 稀有度標記 */}
                     <div
                         className={`absolute left-3 top-3 rounded-full bg-gradient-to-r ${book.themeGradient} px-3 py-1 text-xs font-bold text-white shadow-lg`}
                     >
-                        第{book.generation}世代
+                        {tierEmojis[book.tier]} {tierLabels[book.tier]} ・第{book.generation}世代
                     </div>
 
                     {/* 書名（覆蓋於圖片上） */}
