@@ -101,7 +101,7 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
                 )}
 
                 {/* 狀態標籤 */}
-                <div className="absolute top-3 right-3">
+                <div className="absolute top-3 right-3 flex flex-col items-end gap-1">
                     {isEnded ? (
                         <span className="rounded-full bg-gray-900/80 px-3 py-1 text-xs font-medium text-gray-300">
                             已結標
@@ -111,6 +111,19 @@ export default function AuctionCard({ auction }: AuctionCardProps) {
                             🔴 競標中
                         </span>
                     )}
+                    {estimatedBidCount >= 20 ? (
+                        <span className="rounded-full bg-red-500/90 px-2 py-0.5 text-xs font-bold text-white animate-pulse">
+                            🔥🔥🔥 白熱化
+                        </span>
+                    ) : estimatedBidCount >= 10 ? (
+                        <span className="rounded-full bg-orange-500/80 px-2 py-0.5 text-xs font-bold text-white">
+                            🔥🔥 激烈
+                        </span>
+                    ) : estimatedBidCount >= 5 ? (
+                        <span className="rounded-full bg-yellow-600/80 px-2 py-0.5 text-xs font-medium text-white">
+                            🔥 熱門
+                        </span>
+                    ) : null}
                 </div>
             </div>
 

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { tierEmojis, tierLabels, type GuideBook } from "@/lib/guideBooksData";
+import { tierLabels, tierSubtitles, type GuideBook } from "@/lib/guideBooksData";
 
 interface BookGuideCardProps {
     book: GuideBook;
@@ -83,7 +83,7 @@ export function BookGuideCard({
                     <div
                         className={`absolute right-2 top-2 rounded-full bg-gradient-to-r ${book.themeGradient} px-2 py-0.5 text-[10px] font-bold tracking-wider text-white shadow-lg`}
                     >
-                        {tierEmojis[book.tier]} {tierLabels[book.tier]}
+                        {tierLabels[book.tier]}（{tierSubtitles[book.tier]}）
                     </div>
 
                     {/* 書名區域（底部） */}

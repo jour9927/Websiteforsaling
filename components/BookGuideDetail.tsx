@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { tierEmojis, tierLabels, type GuideBook } from "@/lib/guideBooksData";
+import { tierLabels, tierSubtitles, type GuideBook } from "@/lib/guideBooksData";
 
 interface Distribution {
     id: string;
@@ -108,7 +108,7 @@ export function BookGuideDetail({
                     <div
                         className={`absolute left-3 top-3 rounded-full bg-gradient-to-r ${book.themeGradient} px-3 py-1 text-xs font-bold text-white shadow-lg`}
                     >
-                        {tierEmojis[book.tier]} {tierLabels[book.tier]} ・第{book.generation}世代
+                        {tierLabels[book.tier]}（{tierSubtitles[book.tier]}）・第{book.generation}世代
                     </div>
 
                     {/* 書名（覆蓋於圖片上） */}

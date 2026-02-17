@@ -122,7 +122,7 @@ export default function GuidesContent({
                             配布圖鑑書架
                         </h1>
                         <p className="mt-1 text-sm text-white/60">
-                            依稀有度分為 👑 高貴・⭐ 稀有・📘 普通，翻閱各世代的配布圖鑑
+                            依稀有度分為 SSR（稀有）・SR（高級）・R（普遍），翻閱各世代的配布圖鑑
                         </p>
                     </div>
 

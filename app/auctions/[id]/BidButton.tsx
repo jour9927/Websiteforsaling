@@ -76,6 +76,8 @@ export default function BidButton({
             }
 
             setSuccess("出價成功！");
+            // 通知 BidOutbidAlert 追蹤出價狀態
+            window.dispatchEvent(new CustomEvent('bid-success'));
             router.refresh();
 
             // 更新為下一個最低出價金額
@@ -132,6 +134,7 @@ export default function BidButton({
                         min={minBid}
                         value={bidAmount}
                         onChange={(e) => setBidAmount(parseInt(e.target.value) || minBid)}
+                        data-bid-input
                         className="w-full rounded-xl border border-white/20 bg-white/10 py-3 pl-8 pr-4 text-lg font-semibold text-white text-center focus:border-white/40 focus:outline-none"
                     />
                 </div>

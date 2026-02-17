@@ -1,5 +1,5 @@
 // 書本式配布圖鑑資料定義
-// 每個世代 3 本書，按配布點數高低分為：稀有、高級、普遍
+// 每個世代 3 本書，按配布點數高低分為：SSR（稀有）、SR（高級）、R（普遍）
 
 export type BookTier = "rare" | "premium" | "common";
 
@@ -18,6 +18,12 @@ export interface GuideBook {
 
 // 稀有度分級標題
 export const tierLabels: Record<BookTier, string> = {
+    rare: "SSR",
+    premium: "SR",
+    common: "R",
+};
+
+export const tierSubtitles: Record<BookTier, string> = {
     rare: "稀有",
     premium: "高級",
     common: "普遍",
@@ -29,7 +35,7 @@ export const tierEmojis: Record<BookTier, string> = {
     common: "📘",
 };
 
-// 根據同世代配布的 points 排序後，前 1/3 稀有、中 1/3 高級、後 1/3 普遍
+// 根據同世代配布的 points 排序後，前 1/3 SSR、中 1/3 SR、後 1/3 R
 export function classifyDistributionsByTier<
     T extends { points?: number | null },
 >(distributions: T[]): Record<BookTier, T[]> {
@@ -53,7 +59,7 @@ export const guideBooks: GuideBook[] = [
     // ── 第一世代 ──
     {
         id: "gen1-rare",
-        title: "第1世代・稀有",
+        title: "第1世代・SSR",
         subtitle: "關都地區最珍貴的配布",
         generation: 1,
         tier: "rare",
@@ -66,7 +72,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen1-premium",
-        title: "第1世代・高級",
+        title: "第1世代・SR",
         subtitle: "關都地區的優質收藏",
         generation: 1,
         tier: "premium",
@@ -79,7 +85,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen1-common",
-        title: "第1世代・普遍",
+        title: "第1世代・R",
         subtitle: "關都地區的基礎配布",
         generation: 1,
         tier: "common",
@@ -94,7 +100,7 @@ export const guideBooks: GuideBook[] = [
     // ── 第二世代 ──
     {
         id: "gen2-rare",
-        title: "第2世代・稀有",
+        title: "第2世代・SSR",
         subtitle: "城都地區最珍貴的配布",
         generation: 2,
         tier: "rare",
@@ -107,7 +113,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen2-premium",
-        title: "第2世代・高級",
+        title: "第2世代・SR",
         subtitle: "城都地區的優質收藏",
         generation: 2,
         tier: "premium",
@@ -120,7 +126,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen2-common",
-        title: "第2世代・普遍",
+        title: "第2世代・R",
         subtitle: "城都地區的基礎配布",
         generation: 2,
         tier: "common",
@@ -135,7 +141,7 @@ export const guideBooks: GuideBook[] = [
     // ── 第三世代 ──
     {
         id: "gen3-rare",
-        title: "第3世代・稀有",
+        title: "第3世代・SSR",
         subtitle: "豐緣地區最珍貴的配布",
         generation: 3,
         tier: "rare",
@@ -148,7 +154,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen3-premium",
-        title: "第3世代・高級",
+        title: "第3世代・SR",
         subtitle: "豐緣地區的優質收藏",
         generation: 3,
         tier: "premium",
@@ -161,7 +167,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen3-common",
-        title: "第3世代・普遍",
+        title: "第3世代・R",
         subtitle: "豐緣地區的基礎配布",
         generation: 3,
         tier: "common",
@@ -176,7 +182,7 @@ export const guideBooks: GuideBook[] = [
     // ── 第四世代 ──
     {
         id: "gen4-rare",
-        title: "第4世代・稀有",
+        title: "第4世代・SSR",
         subtitle: "神奧地區最珍貴的配布",
         generation: 4,
         tier: "rare",
@@ -189,7 +195,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen4-premium",
-        title: "第4世代・高級",
+        title: "第4世代・SR",
         subtitle: "神奧地區的優質收藏",
         generation: 4,
         tier: "premium",
@@ -202,7 +208,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen4-common",
-        title: "第4世代・普遍",
+        title: "第4世代・R",
         subtitle: "神奧地區的基礎配布",
         generation: 4,
         tier: "common",
@@ -217,7 +223,7 @@ export const guideBooks: GuideBook[] = [
     // ── 第五世代 ──
     {
         id: "gen5-rare",
-        title: "第5世代・稀有",
+        title: "第5世代・SSR",
         subtitle: "合眾地區最珍貴的配布",
         generation: 5,
         tier: "rare",
@@ -230,7 +236,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen5-premium",
-        title: "第5世代・高級",
+        title: "第5世代・SR",
         subtitle: "合眾地區的優質收藏",
         generation: 5,
         tier: "premium",
@@ -243,7 +249,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen5-common",
-        title: "第5世代・普遍",
+        title: "第5世代・R",
         subtitle: "合眾地區的基礎配布",
         generation: 5,
         tier: "common",
@@ -258,7 +264,7 @@ export const guideBooks: GuideBook[] = [
     // ── 第六世代 ──
     {
         id: "gen6-rare",
-        title: "第6世代・稀有",
+        title: "第6世代・SSR",
         subtitle: "卡洛斯地區最珍貴的配布",
         generation: 6,
         tier: "rare",
@@ -271,7 +277,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen6-premium",
-        title: "第6世代・高級",
+        title: "第6世代・SR",
         subtitle: "卡洛斯地區的優質收藏",
         generation: 6,
         tier: "premium",
@@ -284,7 +290,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen6-common",
-        title: "第6世代・普遍",
+        title: "第6世代・R",
         subtitle: "卡洛斯地區的基礎配布",
         generation: 6,
         tier: "common",
@@ -299,7 +305,7 @@ export const guideBooks: GuideBook[] = [
     // ── 第七世代 ──
     {
         id: "gen7-rare",
-        title: "第7世代・稀有",
+        title: "第7世代・SSR",
         subtitle: "阿羅拉地區最珍貴的配布",
         generation: 7,
         tier: "rare",
@@ -312,7 +318,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen7-premium",
-        title: "第7世代・高級",
+        title: "第7世代・SR",
         subtitle: "阿羅拉地區的優質收藏",
         generation: 7,
         tier: "premium",
@@ -325,7 +331,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen7-common",
-        title: "第7世代・普遍",
+        title: "第7世代・R",
         subtitle: "阿羅拉地區的基礎配布",
         generation: 7,
         tier: "common",
@@ -340,7 +346,7 @@ export const guideBooks: GuideBook[] = [
     // ── 第八世代 ──
     {
         id: "gen8-rare",
-        title: "第8世代・稀有",
+        title: "第8世代・SSR",
         subtitle: "伽勒爾地區最珍貴的配布",
         generation: 8,
         tier: "rare",
@@ -353,7 +359,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen8-premium",
-        title: "第8世代・高級",
+        title: "第8世代・SR",
         subtitle: "伽勒爾地區的優質收藏",
         generation: 8,
         tier: "premium",
@@ -366,7 +372,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen8-common",
-        title: "第8世代・普遍",
+        title: "第8世代・R",
         subtitle: "伽勒爾地區的基礎配布",
         generation: 8,
         tier: "common",
@@ -381,7 +387,7 @@ export const guideBooks: GuideBook[] = [
     // ── 第九世代 ──
     {
         id: "gen9-rare",
-        title: "第9世代・稀有",
+        title: "第9世代・SSR",
         subtitle: "帕底亞地區最珍貴的配布",
         generation: 9,
         tier: "rare",
@@ -394,7 +400,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen9-premium",
-        title: "第9世代・高級",
+        title: "第9世代・SR",
         subtitle: "帕底亞地區的優質收藏",
         generation: 9,
         tier: "premium",
@@ -407,7 +413,7 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen9-common",
-        title: "第9世代・普遍",
+        title: "第9世代・R",
         subtitle: "帕底亞地區的基礎配布",
         generation: 9,
         tier: "common",

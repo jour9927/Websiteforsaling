@@ -97,6 +97,19 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                                 <div id="viewer-count-slot" />
                             </>
                         )}
+                        {auction.bid_count >= 20 ? (
+                            <span className="rounded-full bg-red-500/90 px-3 py-1 text-xs font-bold text-white animate-pulse">
+                                🔥🔥🔥 白熱化
+                            </span>
+                        ) : auction.bid_count >= 10 ? (
+                            <span className="rounded-full bg-orange-500/80 px-3 py-1 text-xs font-bold text-white">
+                                🔥🔥 激烈
+                            </span>
+                        ) : auction.bid_count >= 5 ? (
+                            <span className="rounded-full bg-yellow-600/80 px-3 py-1 text-xs font-medium text-white">
+                                🔥 熱門
+                            </span>
+                        ) : null}
                     </div>
 
                     {/* 標題：主標題 + 活動名稱分行 */}

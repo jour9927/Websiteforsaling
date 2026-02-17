@@ -11,6 +11,7 @@ import {
 import { AuctionSidebarActivity } from "./AuctionActivityWrapper";
 import { SimulatedViewers, SimulatedViewerJoinToast } from "@/components/SimulatedActivity";
 import BidButton from "./BidButton";
+import BidOutbidAlert from "./BidOutbidAlert";
 
 // 浮動在線人數元件（使用統一的 ViewerContext）
 function FloatingViewerCount() {
@@ -147,6 +148,9 @@ export function AuctionPageClient({
 
             {/* 浮動在線人數（使用統一的 ViewerContext） */}
             {isActiveState && <FloatingViewerCount />}
+
+            {/* 被超價即時通知 */}
+            {isActiveState && <BidOutbidAlert auctionId={auctionId} isActive={isActiveState} />}
 
             {/* 即時出價 Toast 通知 */}
             {isActiveState && <SimulatedViewerJoinToast />}
