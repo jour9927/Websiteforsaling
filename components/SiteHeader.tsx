@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Route } from "next";
@@ -37,6 +37,55 @@ const signedOutLinks = [
   { label: "登入", href: "/login" as Route },
   { label: "註冊", href: "/signup" as Route }
 ] as const;
+
+function AccountDropdown({
+  links,
+  isActive,
+  isAuthenticated,
+}: {
+  links: readonly { label: string; href: Route }[];
+  isActive: (href: string) => boolean;
+  isAuthenticated: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 whitespace-nowrap text-xs text-white/70 transition hover:text-white"
+      >
+        {isAuthenticated ? "我的帳號 ▾" : "登入 / 註冊"}
+      </button>
+      {open && (
+        <div className="absolute right-0 top-full mt-2 min-w-[140px] rounded-xl border border-white/15 bg-midnight-900/95 py-2 shadow-xl backdrop-blur">
+          {links.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={() => setOpen(false)}
+              className={`block px-4 py-2 text-xs transition ${isActive(item.href)
+                  ? "bg-white/10 text-white"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
+                }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function SiteHeader({ displayName, isAuthenticated, isAdmin }: SiteHeaderProps) {
   const pathname = usePathname();
@@ -76,28 +125,22 @@ export function SiteHeader({ displayName, isAuthenticated, isAdmin }: SiteHeader
           </Link>
           <NotificationBell isAuthenticated={isAuthenticated} />
         </div>
-        <nav className="hidden items-center gap-6 text-sm text-white/80 lg:flex">
+        <nav className="hidden items-center gap-4 text-sm text-white/80 lg:flex">
           {visiblePrimaryLinks.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`transition ${isActive(item.href) ? "text-white" : "hover:text-white"}`}
+              className={`whitespace-nowrap transition ${isActive(item.href) ? "text-white" : "hover:text-white"}`}
             >
               {item.label}
             </Link>
           ))}
           <div className="h-4 w-px bg-white/20" aria-hidden />
-          <div className="flex items-center gap-4">
-            {(isAuthenticated ? signedInLinks : signedOutLinks).map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`text-xs transition ${isActive(item.href) ? "text-white" : "text-white/70 hover:text-white"}`}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
+          <AccountDropdown
+            links={isAuthenticated ? signedInLinks : signedOutLinks}
+            isActive={isActive}
+            isAuthenticated={isAuthenticated}
+          />
         </nav>
         <button
           type="button"
