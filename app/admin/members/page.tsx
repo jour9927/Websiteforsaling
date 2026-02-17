@@ -47,12 +47,14 @@ export default function AdminMembersPage() {
     setSuccess("");
 
     try {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: newRole })
-        .eq('id', userId);
+      const res = await fetch('/api/admin/members/role', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, newRole }),
+      });
 
-      if (error) throw error;
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || '更新失敗');
 
       setSuccess(`會員角色已更新為「${newRole === 'member' ? '群內成員' : '一般會員'}」`);
       loadProfiles();
@@ -65,7 +67,7 @@ export default function AdminMembersPage() {
 
   const filteredProfiles = profiles.filter(profile => {
     const matchesFilter = filter === 'all' || profile.role === filter;
-    const matchesSearch = !searchTerm || 
+    const matchesSearch = !searchTerm ||
       profile.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (profile.full_name && profile.full_name.toLowerCase().includes(searchTerm.toLowerCase()));
     return matchesFilter && matchesSearch;
@@ -108,25 +110,22 @@ export default function AdminMembersPage() {
           <div className="flex gap-2">
             <button
               onClick={() => setFilter('all')}
-              className={`rounded-full px-4 py-2 text-sm transition ${
-                filter === 'all' ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white'
-              }`}
+              className={`rounded-full px-4 py-2 text-sm transition ${filter === 'all' ? 'bg-white/20 text-white' : 'text-white/60 hover:text-white'
+                }`}
             >
               全部 ({profiles.length})
             </button>
             <button
               onClick={() => setFilter('member')}
-              className={`rounded-full px-4 py-2 text-sm transition ${
-                filter === 'member' ? 'bg-blue-500/20 text-blue-200' : 'text-white/60 hover:text-white'
-              }`}
+              className={`rounded-full px-4 py-2 text-sm transition ${filter === 'member' ? 'bg-blue-500/20 text-blue-200' : 'text-white/60 hover:text-white'
+                }`}
             >
               群內成員 ({memberCount})
             </button>
             <button
               onClick={() => setFilter('user')}
-              className={`rounded-full px-4 py-2 text-sm transition ${
-                filter === 'user' ? 'bg-white/10 text-white/80' : 'text-white/60 hover:text-white'
-              }`}
+              className={`rounded-full px-4 py-2 text-sm transition ${filter === 'user' ? 'bg-white/10 text-white/80' : 'text-white/60 hover:text-white'
+                }`}
             >
               一般會員 ({userCount})
             </button>
@@ -174,11 +173,10 @@ export default function AdminMembersPage() {
                       {new Date(profile.created_at).toLocaleDateString('zh-TW')}
                     </td>
                     <td className="px-4 py-4">
-                      <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${
-                        profile.role === 'member'
+                      <span className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${profile.role === 'member'
                           ? 'bg-blue-500/20 text-blue-200'
                           : 'bg-white/10 text-white/60'
-                      }`}>
+                        }`}>
                         {profile.role === 'member' ? '群內成員' : '一般會員'}
                       </span>
                     </td>
