@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 
 // 模擬出價者名單
 const FAKE_BIDDERS = [
@@ -107,6 +107,13 @@ function generateDeterministicBids(
     return bids;
 }
 
+// 真實出價的最小介面
+interface RealBid {
+    id: string;
+    amount: number;
+    created_at: string;
+}
+
 interface UseSimulatedBidsProps {
     auctionId: string;
     startTime: string;
@@ -114,7 +121,8 @@ interface UseSimulatedBidsProps {
     minIncrement: number;
     endTime: string;
     isActive: boolean;
-    auctionTitle?: string;  // 新增：競標標題
+    auctionTitle?: string;
+    realBids?: RealBid[];  // 新增：真實出價，用於反應式 counter-bid
 }
 
 export function useSimulatedBids({
@@ -124,9 +132,18 @@ export function useSimulatedBids({
     minIncrement,
     endTime,
     isActive,
-    auctionTitle
+    auctionTitle,
+    realBids = []
 }: UseSimulatedBidsProps) {
     const [currentTime, setCurrentTime] = useState(new Date());
+
+    // === 反應式 counter-bid 狀態 ===
+    const [counterBids, setCounterBids] = useState<SimulatedBid[]>([]);
+    const consecutiveRealRef = useRef(0);      // 連續真實出價計數
+    const yieldedRef = useRef(false);           // 是否已讓步
+    const lastRealBidCountRef = useRef(0);      // 上次偵測到的真實出價數量
+    const counterBidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const counterBidIndexRef = useRef(0);       // counter-bid 索引（用於生成唯一名稱）
 
     // 每秒更新當前時間（觸發重新計算）
     useEffect(() => {
@@ -139,9 +156,80 @@ export function useSimulatedBids({
         return () => clearInterval(interval);
     }, [isActive]);
 
-    // 使用確定性算法生成模擬出價
-    const simulatedBids = useMemo(() => {
-        // 如果結束了，用 endTime 來計算最終的出價紀錄
+    // === 偵測真實出價 → 生成 counter-bid ===
+    useEffect(() => {
+        if (!isActive || realBids.length === 0) return;
+
+        // 偵測新的真實出價
+        if (realBids.length > lastRealBidCountRef.current) {
+            const newBidsCount = realBids.length - lastRealBidCountRef.current;
+            lastRealBidCountRef.current = realBids.length;
+
+            // 增加連續真實出價計數
+            consecutiveRealRef.current += newBidsCount;
+
+            // 連續 5 次 → 虛擬讓步
+            if (consecutiveRealRef.current >= 5) {
+                yieldedRef.current = true;
+                // 清除待執行的 counter-bid timer
+                if (counterBidTimerRef.current) {
+                    clearTimeout(counterBidTimerRef.current);
+                    counterBidTimerRef.current = null;
+                }
+                return;
+            }
+
+            // 尚未讓步 → 排程 counter-bid
+            if (!yieldedRef.current) {
+                // 清除之前的 timer（避免重複）
+                if (counterBidTimerRef.current) {
+                    clearTimeout(counterBidTimerRef.current);
+                }
+
+                // 3~8 秒後回擊
+                const delay = 3000 + Math.random() * 5000;
+                const latestRealBid = realBids.reduce((max, bid) =>
+                    bid.amount > max.amount ? bid : max, realBids[0]);
+
+                counterBidTimerRef.current = setTimeout(() => {
+                    // 計算 counter-bid 金額
+                    const isDiancie = auctionTitle?.includes('蒂安希') || auctionTitle?.includes('Diancie');
+                    const maxMult = isDiancie ? 7 : 3;
+                    const multiplier = 1 + Math.floor(Math.random() * maxMult);
+                    const counterAmount = latestRealBid.amount + minIncrement * multiplier;
+
+                    // 選擇隨機出價者
+                    const bidderIdx = Math.floor(Math.random() * FAKE_BIDDERS.length);
+                    const idx = counterBidIndexRef.current++;
+
+                    const newCounterBid: SimulatedBid = {
+                        id: `counter-${auctionId}-${idx}`,
+                        bidder_name: FAKE_BIDDERS[bidderIdx],
+                        amount: counterAmount,
+                        created_at: new Date().toISOString(),
+                        is_simulated: true
+                    };
+
+                    setCounterBids(prev => [...prev, newCounterBid]);
+                    // 成功回擊 → 重置連續計數
+                    consecutiveRealRef.current = 0;
+                    counterBidTimerRef.current = null;
+                }, delay);
+            }
+        }
+    }, [realBids.length, isActive, auctionId, minIncrement, auctionTitle, realBids]);
+
+    // 清除 timer on unmount
+    useEffect(() => {
+        return () => {
+            if (counterBidTimerRef.current) {
+                clearTimeout(counterBidTimerRef.current);
+            }
+        };
+    }, []);
+
+    // 使用確定性算法生成模擬出價（基底出價）
+    const baseBids = useMemo(() => {
         const timeToUse = isActive ? currentTime : new Date(endTime);
         return generateDeterministicBids(
             auctionId,
@@ -153,6 +241,11 @@ export function useSimulatedBids({
             auctionTitle
         );
     }, [auctionId, startTime, endTime, startingPrice, minIncrement, currentTime, isActive, auctionTitle]);
+
+    // 合併基底出價 + counter-bid
+    const simulatedBids = useMemo(() => {
+        return [...baseBids, ...counterBids];
+    }, [baseBids, counterBids]);
 
     // 計算模擬最高價
     const simulatedHighest = useMemo(() => {

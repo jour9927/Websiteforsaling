@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/auth";
 import AuctionCard from "@/components/AuctionCard";
+import { SpringFestivalBanner } from "@/components/SpringFestivalBanner";
 
 export const dynamic = 'force-dynamic';
 
@@ -36,6 +37,9 @@ export default async function AuctionsPage() {
                     群內成員專屬的限時競標活動，把握機會贏得珍貴的配布寶可夢！
                 </p>
             </header>
+
+            {/* 春節特別活動橫幅 */}
+            <SpringFestivalBanner />
 
             {/* 進行中的競標 */}
             <section>

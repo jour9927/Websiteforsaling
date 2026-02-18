@@ -84,7 +84,8 @@ export function BidHistoryWithSimulation({
         minIncrement,
         endTime,
         isActive,
-        auctionTitle
+        auctionTitle,
+        realBids: realBids.map(b => ({ id: b.id, amount: b.amount, created_at: b.created_at }))
     });
 
     // 合併真實和模擬出價，按金額排序

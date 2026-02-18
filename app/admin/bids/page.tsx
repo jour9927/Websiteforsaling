@@ -29,7 +29,7 @@ export default function AdminBidsPage() {
     const [error, setError] = useState("");
     const [filter, setFilter] = useState<'today' | 'all' | 'active'>('today');
     const [searchTerm, setSearchTerm] = useState("");
-    
+
     // 編輯狀態
     const [editingBidId, setEditingBidId] = useState<string | null>(null);
     const [editAmount, setEditAmount] = useState<number>(0);
@@ -80,7 +80,6 @@ export default function AdminBidsPage() {
     // 統計
     const uniqueUsers = new Set(bids.map(b => b.user_id));
     const uniqueAuctions = new Set(bids.map(b => b.auction_id));
-    const totalBidAmount = bids.reduce((sum, b) => Math.max(sum, b.amount), 0);
 
     const getRoleLabel = (role?: string) => {
         const map: Record<string, { label: string; style: string }> = {
@@ -111,7 +110,7 @@ export default function AdminBidsPage() {
     const handleSaveEdit = async (bidId: string) => {
         setSaving(true);
         setError("");
-        
+
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('未登入');
