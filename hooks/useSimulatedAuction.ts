@@ -156,6 +156,20 @@ export function useSimulatedBids({
         return () => clearInterval(interval);
     }, [isActive]);
 
+    // 使用確定性算法生成模擬出價（基底出價）
+    const baseBids = useMemo(() => {
+        const timeToUse = isActive ? currentTime : new Date(endTime);
+        return generateDeterministicBids(
+            auctionId,
+            startTime,
+            endTime,
+            startingPrice,
+            minIncrement,
+            timeToUse,
+            auctionTitle
+        );
+    }, [auctionId, startTime, endTime, startingPrice, minIncrement, currentTime, isActive, auctionTitle]);
+
     // === 偵測真實出價 → 生成 counter-bid ===
     useEffect(() => {
         if (!isActive || realBids.length === 0) return;
@@ -239,20 +253,6 @@ export function useSimulatedBids({
             }
         };
     }, []);
-
-    // 使用確定性算法生成模擬出價（基底出價）
-    const baseBids = useMemo(() => {
-        const timeToUse = isActive ? currentTime : new Date(endTime);
-        return generateDeterministicBids(
-            auctionId,
-            startTime,
-            endTime,
-            startingPrice,
-            minIncrement,
-            timeToUse,
-            auctionTitle
-        );
-    }, [auctionId, startTime, endTime, startingPrice, minIncrement, currentTime, isActive, auctionTitle]);
 
     // 合併基底出價 + counter-bid
     const simulatedBids = useMemo(() => {
