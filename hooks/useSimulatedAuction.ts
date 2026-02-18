@@ -75,7 +75,7 @@ function generateDeterministicBids(
         // 蒂安希(Diancie)特殊處理：1-7 倍
         // 其他寶可夢：1-3 倍（預設）
         const isHighValue = auctionTitle?.includes('蒂安希') || auctionTitle?.includes('Diancie') || auctionTitle?.includes('波加曼') || auctionTitle?.includes('Piplup');
-        const maxMultiplier = isHighValue ? 7 : 3;
+        const maxMultiplier = isHighValue ? 9 : 3;
         const multiplier = 1 + Math.floor(seededRandom(thisSeed + 2) * maxMultiplier);
         const increment = minIncrement * multiplier;
         currentPrice += increment;
@@ -194,7 +194,7 @@ export function useSimulatedBids({
                 counterBidTimerRef.current = setTimeout(() => {
                     // 計算 counter-bid 金額
                     const isHighValue = auctionTitle?.includes('蒂安希') || auctionTitle?.includes('Diancie') || auctionTitle?.includes('波加曼') || auctionTitle?.includes('Piplup');
-                    const maxMult = isHighValue ? 7 : 3;
+                    const maxMult = isHighValue ? 9 : 3;
                     const multiplier = 1 + Math.floor(Math.random() * maxMult);
                     const counterAmount = latestRealBid.amount + minIncrement * multiplier;
 
