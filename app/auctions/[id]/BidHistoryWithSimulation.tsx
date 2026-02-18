@@ -62,6 +62,7 @@ interface BidHistoryWithSimulationProps {
     minIncrement: number;
     endTime: string;
     isActive: boolean;
+    auctionTitle?: string;  // 新增：競標標題
     onHighestChange?: (amount: number, bidderName: string | null) => void;
 }
 
@@ -73,6 +74,7 @@ export function BidHistoryWithSimulation({
     minIncrement,
     endTime,
     isActive,
+    auctionTitle,
     onHighestChange
 }: BidHistoryWithSimulationProps) {
     const { simulatedBids } = useSimulatedBids({
@@ -81,7 +83,8 @@ export function BidHistoryWithSimulation({
         startingPrice,
         minIncrement,
         endTime,
-        isActive
+        isActive,
+        auctionTitle
     });
 
     // 合併真實和模擬出價，按金額排序

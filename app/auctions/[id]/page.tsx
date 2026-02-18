@@ -64,6 +64,7 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
     // 傳遞給 Client Component 的資料
     const clientProps = {
         auctionId: params.id,
+        title: auction.title,  // 新增：用於判斷是否為蒂安希
         realBids: bids || [],
         startTime: auction.start_time,
         startingPrice: auction.starting_price,

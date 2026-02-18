@@ -31,7 +31,8 @@ function generateDeterministicBids(
     endTime: string,
     startingPrice: number,
     minIncrement: number,
-    currentTime: Date
+    currentTime: Date,
+    auctionTitle?: string  // 新增：競標標題，用於判斷是否為特殊寶可夢
 ): SimulatedBid[] {
     const start = new Date(startTime);
     const end = new Date(endTime);
@@ -70,8 +71,12 @@ function generateDeterministicBids(
             usedBidders.clear();
         }
 
-        // 計算出價金額（1-3 倍最低加價）
-        const multiplier = 1 + Math.floor(seededRandom(thisSeed + 2) * 3);
+        // 計算出價金額
+        // 蒂安希(Diancie)特殊處理：1-7 倍
+        // 其他寶可夢：1-3 倍（預設）
+        const isDiancie = auctionTitle?.includes('蒂安希') || auctionTitle?.includes('Diancie');
+        const maxMultiplier = isDiancie ? 7 : 3;
+        const multiplier = 1 + Math.floor(seededRandom(thisSeed + 2) * maxMultiplier);
         const increment = minIncrement * multiplier;
         currentPrice += increment;
 
@@ -109,6 +114,7 @@ interface UseSimulatedBidsProps {
     minIncrement: number;
     endTime: string;
     isActive: boolean;
+    auctionTitle?: string;  // 新增：競標標題
 }
 
 export function useSimulatedBids({
@@ -117,7 +123,8 @@ export function useSimulatedBids({
     startingPrice,
     minIncrement,
     endTime,
-    isActive
+    isActive,
+    auctionTitle
 }: UseSimulatedBidsProps) {
     const [currentTime, setCurrentTime] = useState(new Date());
 
@@ -142,9 +149,10 @@ export function useSimulatedBids({
             endTime,
             startingPrice,
             minIncrement,
-            timeToUse
+            timeToUse,
+            auctionTitle
         );
-    }, [auctionId, startTime, endTime, startingPrice, minIncrement, currentTime, isActive]);
+    }, [auctionId, startTime, endTime, startingPrice, minIncrement, currentTime, isActive, auctionTitle]);
 
     // 計算模擬最高價
     const simulatedHighest = useMemo(() => {

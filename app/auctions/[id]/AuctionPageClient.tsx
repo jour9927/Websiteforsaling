@@ -38,6 +38,7 @@ interface RealBid {
 interface AuctionPageClientProps {
     children: ReactNode;
     auctionId: string;
+    title: string;  // 新增：競標標題
     realBids: RealBid[];
     startTime: string;
     startingPrice: number;
@@ -52,6 +53,7 @@ interface AuctionPageClientProps {
 export function AuctionPageClient({
     children,
     auctionId,
+    title,
     realBids,
     startTime,
     startingPrice,
@@ -167,6 +169,7 @@ export function AuctionPageClient({
                     <h2 className="text-lg font-semibold text-white/90">出價紀錄</h2>
                     <BidHistoryWithSimulation
                         auctionId={auctionId}
+                        auctionTitle={title}
                         realBids={realBids}
                         startTime={startTime}
                         startingPrice={startingPrice}

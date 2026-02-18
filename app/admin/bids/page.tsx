@@ -29,6 +29,11 @@ export default function AdminBidsPage() {
     const [error, setError] = useState("");
     const [filter, setFilter] = useState<'today' | 'all' | 'active'>('today');
     const [searchTerm, setSearchTerm] = useState("");
+    
+    // 編輯狀態
+    const [editingBidId, setEditingBidId] = useState<string | null>(null);
+    const [editAmount, setEditAmount] = useState<number>(0);
+    const [saving, setSaving] = useState(false);
 
     useEffect(() => {
         loadBids();
@@ -89,6 +94,47 @@ export default function AdminBidsPage() {
     const formatTime = (dateStr: string) => {
         const d = new Date(dateStr);
         return d.toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    };
+
+    // 編輯處理函數
+    const handleEditClick = (bid: Bid) => {
+        setEditingBidId(bid.id);
+        setEditAmount(bid.amount);
+        setError("");
+    };
+
+    const handleCancelEdit = () => {
+        setEditingBidId(null);
+        setEditAmount(0);
+    };
+
+    const handleSaveEdit = async (bidId: string) => {
+        setSaving(true);
+        setError("");
+        
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error('未登入');
+
+            // 呼叫資料庫函數更新出價金額
+            const { data, error: rpcError } = await supabase.rpc('admin_update_bid_amount', {
+                p_bid_id: bidId,
+                p_new_amount: editAmount,
+                p_admin_user_id: user.id
+            });
+
+            if (rpcError) throw rpcError;
+            if (!data?.success) throw new Error(data?.error || '更新失敗');
+
+            // 重新載入資料
+            await loadBids();
+            setEditingBidId(null);
+            setEditAmount(0);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : '儲存失敗');
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
@@ -166,6 +212,7 @@ export default function AdminBidsPage() {
                                     <th className="px-4 py-3">競標項目</th>
                                     <th className="px-4 py-3">出價金額</th>
                                     <th className="px-4 py-3">競標狀態</th>
+                                    <th className="px-4 py-3">操作</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/10">
@@ -201,11 +248,27 @@ export default function AdminBidsPage() {
                                                 {bid.auctions?.title?.split('\n')[0] || '(未知)'}
                                             </td>
                                             <td className="px-4 py-4">
-                                                <span className={`font-bold ${isHighest ? 'text-yellow-300' : 'text-white/70'}`}>
-                                                    ${bid.amount.toLocaleString()}
-                                                </span>
-                                                {isHighest && (
-                                                    <span className="ml-2 text-xs text-yellow-300/70">👑 最高</span>
+                                                {editingBidId === bid.id ? (
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-white/60 text-sm">$</span>
+                                                        <input
+                                                            type="number"
+                                                            value={editAmount}
+                                                            onChange={(e) => setEditAmount(parseInt(e.target.value) || 0)}
+                                                            className="w-24 rounded-lg border border-yellow-500/50 bg-yellow-500/10 px-2 py-1 text-sm text-white focus:border-yellow-500 focus:outline-none"
+                                                            min="1"
+                                                            autoFocus
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <>
+                                                        <span className={`font-bold ${isHighest ? 'text-yellow-300' : 'text-white/70'}`}>
+                                                            ${bid.amount.toLocaleString()}
+                                                        </span>
+                                                        {isHighest && (
+                                                            <span className="ml-2 text-xs text-yellow-300/70">👑 最高</span>
+                                                        )}
+                                                    </>
                                                 )}
                                             </td>
                                             <td className="px-4 py-4">
@@ -217,6 +280,33 @@ export default function AdminBidsPage() {
                                                     <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-white/60">
                                                         {bid.auctions?.status || '-'}
                                                     </span>
+                                                )}
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                {editingBidId === bid.id ? (
+                                                    <div className="flex gap-2">
+                                                        <button
+                                                            onClick={() => handleSaveEdit(bid.id)}
+                                                            disabled={saving}
+                                                            className="rounded-lg bg-green-500/20 px-3 py-1 text-xs font-medium text-green-200 hover:bg-green-500/30 disabled:opacity-50"
+                                                        >
+                                                            {saving ? '儲存中...' : '儲存'}
+                                                        </button>
+                                                        <button
+                                                            onClick={handleCancelEdit}
+                                                            disabled={saving}
+                                                            className="rounded-lg bg-white/10 px-3 py-1 text-xs font-medium text-white/70 hover:bg-white/20 disabled:opacity-50"
+                                                        >
+                                                            取消
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleEditClick(bid)}
+                                                        className="rounded-lg bg-blue-500/20 px-3 py-1 text-xs font-medium text-blue-200 hover:bg-blue-500/30"
+                                                    >
+                                                        編輯
+                                                    </button>
                                                 )}
                                             </td>
                                         </tr>
