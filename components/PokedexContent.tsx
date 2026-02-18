@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import { detectLanguage, getLanguageTag } from "@/lib/utils/language";
+import { detectLanguage, getLanguageTag, getLanguageStyle } from "@/lib/utils/language";
 
 interface Distribution {
     id: string;
@@ -328,11 +328,16 @@ export default function PokedexContent({
                                         referrerPolicy="no-referrer"
                                     />
                                 )}
-                                <h3 className="text-center text-sm font-medium text-white">
+                                <h3 className="text-center text-sm font-medium text-white flex items-center justify-center gap-1.5">
                                     {dist.pokemon_name}
-                                    <span className="text-white/40 text-xs ml-1">
-                                        ({getLanguageTag(detectLanguage(dist.original_trainer))})
-                                    </span>
+                                    {(() => {
+                                        const lang = detectLanguage(dist.original_trainer);
+                                        return (
+                                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${getLanguageStyle(lang)}`}>
+                                                {getLanguageTag(lang)}
+                                            </span>
+                                        );
+                                    })()}
                                 </h3>
                             </div>
 

@@ -38,3 +38,19 @@ export function getLanguageTag(lang: Language): string {
             return '英';
     }
 }
+
+/**
+ * 獲取語種標籤 pill 徽章的樣式
+ * @param lang 語種類型
+ * @returns Tailwind CSS class string
+ */
+export function getLanguageStyle(lang: Language): string {
+    switch (lang) {
+        case 'Japanese':
+            return 'bg-red-500/20 text-red-300';
+        case 'Korean':
+            return 'bg-blue-500/20 text-blue-300';
+        case 'Other':
+            return 'bg-emerald-500/20 text-emerald-300';
+    }
+}
