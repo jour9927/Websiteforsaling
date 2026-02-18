@@ -191,9 +191,21 @@ export function useSimulatedBids({
                 const latestRealBid = realBids.reduce((max, bid) =>
                     bid.amount > max.amount ? bid : max, realBids[0]);
 
+                // 計算「前一次最高價」以確定真實用戶實際加了多少
+                // 取所有模擬出價（base + 之前的 counter-bid）的最高價
+                const allSimHighest = [...baseBids, ...counterBids].reduce(
+                    (max, b) => Math.max(max, b.amount), startingPrice
+                );
+                // 也考慮前一筆真實出價（倒數第二高的真實出價）
+                const sortedReal = [...realBids].sort((a, b) => b.amount - a.amount);
+                const previousHighest = Math.max(
+                    allSimHighest,
+                    sortedReal.length > 1 ? sortedReal[1].amount : startingPrice
+                );
+
                 counterBidTimerRef.current = setTimeout(() => {
-                    // counter-bid 金額 = 真實出價的加價幅度（±20% 隨機抖動）
-                    const realIncrement = Math.max(latestRealBid.amount - (startingPrice || 0), minIncrement);
+                    // counter-bid 金額 = 真實用戶實際加價幅度（±20% 隨機抖動）
+                    const realIncrement = Math.max(latestRealBid.amount - previousHighest, minIncrement);
                     const jitter = 0.8 + Math.random() * 0.4; // 0.8 ~ 1.2
                     const counterIncrement = Math.max(Math.round(realIncrement * jitter), minIncrement);
                     const counterAmount = latestRealBid.amount + counterIncrement;
@@ -217,7 +229,7 @@ export function useSimulatedBids({
                 }, delay);
             }
         }
-    }, [realBids.length, isActive, auctionId, minIncrement, auctionTitle, realBids]);
+    }, [realBids.length, isActive, auctionId, minIncrement, startingPrice, auctionTitle, realBids, baseBids, counterBids]);
 
     // 清除 timer on unmount
     useEffect(() => {
