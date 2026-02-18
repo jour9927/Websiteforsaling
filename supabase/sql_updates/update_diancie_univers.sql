@@ -14,7 +14,7 @@ FROM distributions
 WHERE 
     (pokemon_name LIKE '%蒂安希%' OR pokemon_name LIKE '%Diancie%')
     AND (
-        original_trainer LIKE '%univers%' 
+        original_trainer LIKE '%Universe%' 
         OR original_trainer LIKE '%Universe%'
         OR original_trainer LIKE '%ユニバース%'  -- 日文
     )
