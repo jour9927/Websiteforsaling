@@ -192,11 +192,11 @@ export function useSimulatedBids({
                     bid.amount > max.amount ? bid : max, realBids[0]);
 
                 counterBidTimerRef.current = setTimeout(() => {
-                    // 計算 counter-bid 金額
-                    const isHighValue = auctionTitle?.includes('蒂安希') || auctionTitle?.includes('Diancie') || auctionTitle?.includes('波加曼') || auctionTitle?.includes('Piplup');
-                    const maxMult = isHighValue ? 9 : 3;
-                    const multiplier = 1 + Math.floor(Math.random() * maxMult);
-                    const counterAmount = latestRealBid.amount + minIncrement * multiplier;
+                    // counter-bid 金額 = 真實出價的加價幅度（±20% 隨機抖動）
+                    const realIncrement = Math.max(latestRealBid.amount - (startingPrice || 0), minIncrement);
+                    const jitter = 0.8 + Math.random() * 0.4; // 0.8 ~ 1.2
+                    const counterIncrement = Math.max(Math.round(realIncrement * jitter), minIncrement);
+                    const counterAmount = latestRealBid.amount + counterIncrement;
 
                     // 選擇隨機出價者
                     const bidderIdx = Math.floor(Math.random() * FAKE_BIDDERS.length);
