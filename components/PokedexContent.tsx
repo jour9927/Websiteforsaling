@@ -373,9 +373,9 @@ export default function PokedexContent({
                             <p className="text-center text-xs text-white/30 mt-0.5 truncate px-1" title={`${dist.original_trainer || ''} ${dist.trainer_id ? '/ ID:' + dist.trainer_id : ''}`}>
                                 {dist.trainer_id || dist.original_trainer ? (
                                     <>
-                                        {dist.original_trainer && <span>{dist.original_trainer.split(',')[0].trim()}</span>}
+                                        {dist.original_trainer && <span>{dist.original_trainer}</span>}
                                         {dist.trainer_id && dist.original_trainer && <span> / </span>}
-                                        {dist.trainer_id && <span>ID:{dist.trainer_id.split(',')[0].trim()}</span>}
+                                        {dist.trainer_id && <span>ID:{dist.trainer_id}</span>}
                                     </>
                                 ) : "—"}
                             </p>
