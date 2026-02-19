@@ -106,22 +106,22 @@ export default function BidButton({
             {/* 快速加價按鈕（固定金額） */}
             <div className="flex gap-2">
                 <button
-                    onClick={() => handleQuickBid(100)}
+                    onClick={() => handleQuickBid(10)}
                     className="flex-1 rounded-lg border border-white/20 bg-white/10 py-2 text-sm font-medium text-white/90 transition hover:bg-white/20"
                 >
-                    +$100
+                    +$10
                 </button>
                 <button
-                    onClick={() => handleQuickBid(200)}
+                    onClick={() => handleQuickBid(15)}
                     className="flex-1 rounded-lg border border-white/20 bg-white/10 py-2 text-sm font-medium text-white/90 transition hover:bg-white/20"
                 >
-                    +$200
+                    +$15
                 </button>
                 <button
-                    onClick={() => handleQuickBid(500)}
+                    onClick={() => handleQuickBid(20)}
                     className="flex-1 rounded-lg border border-white/20 bg-white/10 py-2 text-sm font-medium text-white/90 transition hover:bg-white/20"
                 >
-                    +$500
+                    +$20
                 </button>
             </div>
 
