@@ -38,12 +38,14 @@ function FloatingViewerCount() {
 
 type AuctionSidebarActivityProps = {
     auctionId?: string;
+    auctionTitle?: string;
     isActive?: boolean;
     currentUserName?: string | null;
 };
 
 export function AuctionSidebarActivity({
     auctionId,
+    auctionTitle,
     isActive = true,
     currentUserName
 }: AuctionSidebarActivityProps) {
@@ -54,6 +56,7 @@ export function AuctionSidebarActivity({
     return (
         <AuctionComments
             auctionId={auctionId}
+            auctionTitle={auctionTitle || ''}
             isActive={isActive}
             currentUserName={currentUserName}
         />

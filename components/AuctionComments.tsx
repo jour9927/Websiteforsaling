@@ -252,12 +252,14 @@ interface Comment {
 
 interface AuctionCommentsProps {
     auctionId: string;
+    auctionTitle?: string;
     isActive: boolean;
     currentUserName?: string | null;
 }
 
 export default function AuctionComments({
     auctionId,
+    auctionTitle = '',
     isActive,
     currentUserName
 }: AuctionCommentsProps) {
@@ -442,8 +444,8 @@ export default function AuctionComments({
         return () => clearInterval(interval);
     }, [isActive, auctionId]);
 
-    // 觸發模擬 @回覆（延遲 10-15 秒，只回一次）
-    const triggerSimulatedReply = useCallback((userName: string) => {
+    // 觸發模擬 @回覆（延遲 8-15 秒，只回一次，使用 LLM 生成）
+    const triggerSimulatedReply = useCallback((userName: string, userComment: string) => {
         // 檢查是否已回覆過這個用戶
         if (repliedUsersRef.current.has(userName)) {
             return; // 已回覆過，不再回覆
@@ -452,21 +454,52 @@ export default function AuctionComments({
         // 標記為已回覆
         repliedUsersRef.current.add(userName);
 
-        // 延遲 10-15 秒後回覆
-        setTimeout(() => {
+        // 延遲 8-15 秒後回覆
+        setTimeout(async () => {
             const replyUser = virtualProfilesRef.current[Math.floor(Math.random() * virtualProfilesRef.current.length)];
-            const replyTemplate = PSYCHOLOGY_REPLIES[Math.floor(Math.random() * PSYCHOLOGY_REPLIES.length)];
+            let replyContent: string;
+
+            try {
+                // 收集最近的聊天上下文
+                const allChats = [...comments, ...simulatedComments]
+                    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                    .slice(-5)
+                    .map(c => `${c.user_name}: ${c.content}`)
+                    .join('\n');
+
+                const res = await fetch('/api/generate-reply', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        userComment,
+                        auctionTitle: auctionTitle,
+                        recentChat: allChats,
+                    }),
+                });
+
+                if (res.ok) {
+                    const data = await res.json();
+                    replyContent = `@${userName} ${data.reply}`;
+                } else {
+                    throw new Error('API failed');
+                }
+            } catch {
+                // 降級：使用預設回覆
+                const fallback = PSYCHOLOGY_REPLIES[Math.floor(Math.random() * PSYCHOLOGY_REPLIES.length)];
+                replyContent = fallback(userName);
+            }
+
             const newReply: Comment = {
                 id: `reply-${Date.now()}`,
                 user_name: replyUser?.display_name || '會員**',
                 virtual_user_id: replyUser?.id,
-                content: replyTemplate(userName),
+                content: replyContent,
                 created_at: new Date().toISOString(),
                 is_simulated: true
             };
             setSimulatedComments(prev => [...prev, newReply].slice(-12));
-        }, 10000 + Math.random() * 5000); // 10-15 秒
-    }, []);
+        }, 8000 + Math.random() * 7000); // 8-15 秒
+    }, [auctionTitle, comments, simulatedComments]);
 
     // 送出留言
     const handleSubmit = async (e: React.FormEvent) => {
@@ -509,7 +542,7 @@ export default function AuctionComments({
                         : c
                 ));
                 // 觸發模擬回覆（只會回一次）
-                triggerSimulatedReply(user.name);
+                triggerSimulatedReply(user.name, content);
             } else {
                 // 發生錯誤，移除樂觀更新的留言
                 setComments(prev => prev.filter(c => c.id !== optimisticComment.id));

@@ -202,6 +202,7 @@ export function AuctionPageClient({
             {sidebarSlot && isActiveState && createPortal(
                 <AuctionSidebarActivity
                     auctionId={auctionId}
+                    auctionTitle={title}
                     isActive={isActiveState}
                 />,
                 sidebarSlot
