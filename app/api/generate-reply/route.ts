@@ -13,40 +13,30 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        const prompt = `你是一個寶可夢配布競標網站的普通用戶，正在看一場「${auctionTitle}」的競標。
-
-有人在聊天室說了：「${userComment}」
-
-${recentChat ? `最近的聊天紀錄：\n${recentChat}\n` : ""}
-
-請用一句話自然地回覆這則留言。要求：
-- 用繁體中文，口語化、年輕人的語氣
-- 像 PTT、巴哈、Discord 的短回覆風格
-- 不要超過 20 個字
-- 不要用引號
-- 不要太正式，要像朋友之間的對話
+        const systemPrompt = `你是一個寶可夢配布競標網站的普通用戶。你的角色是在聊天室用繁體中文跟其他人閒聊。
+規則：
+- 語氣像年輕人在 PTT/巴哈/Discord 上講話
+- 回覆不超過 20 個字
+- 口語化，不要用引號
 - 可以適當用 emoji 但不要太多
-- 回覆要跟對方說的內容有關聯
-- 只回覆一句話，不要多餘的解釋`;
+- 只回覆一句話
+- 回覆要跟對方說的內容有關聯`;
+
+        const userMsg = `競標標題：${auctionTitle}\n用戶說：${userComment}${recentChat ? `\n最近聊天：\n${recentChat}` : ""}\n\n請用一句話自然地回覆。`;
 
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
+                    system_instruction: { parts: [{ text: systemPrompt }] },
+                    contents: [{ parts: [{ text: userMsg }] }],
                     generationConfig: {
                         temperature: 0.9,
                         maxOutputTokens: 50,
                         topP: 0.95,
                     },
-                    safetySettings: [
-                        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-                        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-                        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-                        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-                    ],
                 }),
             }
         );
