@@ -5,7 +5,8 @@ import AuctionCard from "@/components/AuctionCard";
 import { PopularityWidgetToggle } from "@/components/PopularityWidgetToggle";
 import { MaintenanceToggle } from "@/components/MaintenanceToggle";
 import { EeveeDayWidget } from "@/components/EeveeDayWidget";
-import { SpringFestivalBanner } from "@/components/SpringFestivalBanner";
+// [春節活動] 明年再啟用
+// import { SpringFestivalBanner } from "@/components/SpringFestivalBanner";
 
 // 每次請求都重新執行，確保競標數據是最新的
 export const dynamic = "force-dynamic";
@@ -91,8 +92,8 @@ export default async function HomePage() {
           </div>
         </section>
 
-        {/* 春節特別活動橫幅 */}
-        <SpringFestivalBanner />
+        {/* [春節活動] 明年再啟用 */}
+        {/* <SpringFestivalBanner /> */}
 
         {/* 熱門競標區塊 */}
         <HotAuctionsSection />
@@ -192,8 +193,8 @@ export default async function HomePage() {
       {/* 管理員維護過罩開關 */}
       <MaintenanceToggle />
 
-      {/* 春節特別活動橫幅 */}
-      <SpringFestivalBanner />
+      {/* [春節活動] 明年再啟用 */}
+      {/* <SpringFestivalBanner /> */}
 
       {/* 熱門競標區塊 */}
       <HotAuctionsSection />
