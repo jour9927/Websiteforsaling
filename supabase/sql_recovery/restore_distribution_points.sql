@@ -87,6 +87,16 @@ UPDATE distributions
 SET points = 990082 
 WHERE pokemon_name LIKE '%炎武王%';
 
+-- 捷拉奧拉
+UPDATE distributions 
+SET points = 350052 
+WHERE pokemon_name LIKE '%捷拉奧拉%';
+
+-- 美錄梅塔
+UPDATE distributions 
+SET points = 500 
+WHERE pokemon_name LIKE '%美錄梅塔%';
+
 -- 月石
 UPDATE distributions 
 SET points = 1230089 

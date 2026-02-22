@@ -93,6 +93,8 @@ async function main() {
         // Manual overrides
         else if (dist.pokemon_name?.includes('太陽岩') && dist.generation === 7) { points = 740068; }
         else if (dist.pokemon_name?.includes('炎武王')) { points = 990082; }
+        else if (dist.pokemon_name?.includes('捷拉奧拉')) { points = 350052; }
+        else if (dist.pokemon_name?.includes('美錄梅塔')) { points = 500; }
         else if (dist.pokemon_name?.includes('月石')) { points = 1230089; }
         else if (dist.pokemon_name?.includes('瑪夏多') && dist.original_trainer?.includes('天青')) { points = 960053; }
         else if (dist.pokemon_name?.includes('謝米') && dist.original_trainer?.includes('鶴山')) { points = 1650073; }
