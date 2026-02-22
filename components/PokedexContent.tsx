@@ -87,8 +87,9 @@ export default function PokedexContent({
 
     // 格式化點數（加小數點）
     function formatPoints(points: number): string {
-        // 加上小數點模擬精準感
-        const decimal = (points % 100) / 100;
+        // 利用 Math.sin 結合 points 產生一個固定的 0~99 亂數作為小數點
+        const decimalStr = Math.abs(Math.sin(points)).toString().slice(2, 4);
+        const decimal = parseInt(decimalStr, 10) / 100;
         const display = points + decimal;
         return display.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }

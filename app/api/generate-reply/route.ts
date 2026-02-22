@@ -13,34 +13,30 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        // 隨機選擇一種心理學回覆策略
-        const strategies = [
-            "用「好奇心缺口」策略：回覆一個跟對方留言有關的開放性問題，讓對方想回答你。例如「你之前有搶過這種的嗎？」「你收藏幾隻了？」",
-            "用「正面強化」策略：真心肯定對方說的話，讓對方感覺被重視、被認同。例如「你這眼光真的讚」「懂的人就是懂」",
-            "用「社會認同」策略：讓對方覺得自己是社群重要的一份子，暗示很多人跟他想法一樣。例如「大家都在等這隻」「你跟我想的一樣欸」",
-            "用「FOMO」策略：輕微暗示還有更精彩的或即將錯過什麼，但要自然不刻意。例如「等等下一場更猛喔」「趁現在價格還OK快搶」",
-            "用「留懸念」策略：說一半讓對方好奇，想繼續聊。例如「我上次搶到一隻超特別的...」「這隻其實有個故事」",
-            "用「共鳴」策略：分享自己類似的感受或經驗，建立連結。例如「我也是看了好久才下手」「我懂那種猶豫的感覺」",
+        // 隨機選擇回覆風格（不同的陌生人反應）
+        const styles = [
+            "簡短附和或吐槽，像在直播聊天室隨口接話，例如：「真的」「也太貴」「笑死」「懂」",
+            "分享自己的看法或經驗，但語氣淡淡的不刻意，例如：「我之前也猶豫很久」「這隻確實不錯」",
+            "隨口丟一個相關的問題，但不是刻意攀談，像是自言自語被聽到，例如：「這隻幾等啊」「OT是啥活動的」",
+            "簡短回應，帶一點幽默或自嘲，例如：「窮人只能看」「又要吃土了」「我先告辭」",
         ];
-        const selectedStrategy = strategies[Math.floor(Math.random() * strategies.length)];
+        const selectedStyle = styles[Math.floor(Math.random() * styles.length)];
 
-        const systemPrompt = `你是一個寶可夢配布競標網站的資深用戶，很享受這個社群的氛圍。你在聊天室用繁體中文跟其他人自然互動。
+        const systemPrompt = `你是競標聊天室裡的一個路人，不認識對方。你只是剛好看到對方的留言，順口回一句。
 
-你的個性：熱情但不浮誇、懂寶可夢配布、樂於助人、像一個熱心的老玩家。
+重要：你跟對方不熟，不要表現得很親切或太熱情。就像 Twitch 直播聊天或 PTT 推文，大家互不認識但會隨口接話。
 
-回覆規則：
-- 語氣像年輕人在 PTT/巴哈/Discord 上聊天
-- 回覆不超過 25 個字
-- 口語化、自然，不要用引號
-- 不要使用任何 emoji 或表情符號
-- 只回覆一句話
-- 回覆必須跟對方說的內容直接相關
-- 不要說「我是AI」或任何暗示自己不是真人的話
+語氣規則：
+- 繁體中文，簡短隨性
+- 不超過 15 個字
+- 不用 emoji、不用引號、不用驚嘆號
+- 不要主動關心對方或問私人問題
+- 不要說「歡迎」「加油」這種客套話
+- 語氣冷淡一點沒關係，真實比友善重要
 
-本次回覆策略：
-${selectedStrategy}`;
+本次風格：${selectedStyle}`;
 
-        const userMsg = `競標：${auctionTitle}\n對方說：${userComment}${recentChat ? `\n最近聊天：\n${recentChat}` : ""}\n\n用上述策略自然地回覆一句話。`;
+        const userMsg = `[${auctionTitle}]\n有人說：${userComment}${recentChat ? `\n聊天室：\n${recentChat}` : ""}\n\n你隨口回一句。`;
 
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,

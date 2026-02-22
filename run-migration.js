@@ -5,8 +5,8 @@ const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
 const path = require('path');
 
-// 從 .env.local 讀取環境變數
-require('dotenv').config({ path: '.env.local' });
+// 從 .env.local 讀取環境變數 (使用 node --env-file=.env.local 執行)
+// require('dotenv').config({ path: '.env.local' });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -59,7 +59,7 @@ async function runMigration(filePath) {
 
 // 主程式
 async function main() {
-    const migrationFile = 'supabase/migrations/027_bid_edit_function.sql';
+    const migrationFile = 'supabase/sql_recovery/restore_distribution_points.sql';
     await runMigration(migrationFile);
 }
 
