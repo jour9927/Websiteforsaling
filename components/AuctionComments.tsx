@@ -261,8 +261,10 @@ export default function AuctionComments({
     auctionId,
     auctionTitle = '',
     isActive,
-    currentUserName
-}: AuctionCommentsProps) {
+    currentUserName,
+    currentPrice = 0,
+    endTime = ''
+}: AuctionCommentsProps & { currentPrice?: number, endTime?: string }) {
     const [comments, setComments] = useState<Comment[]>([]);
     const [simulatedComments, setSimulatedComments] = useState<Comment[]>([]);
     const [inputValue, setInputValue] = useState('');
@@ -415,34 +417,83 @@ export default function AuctionComments({
         };
 
         // 每 15-35 秒新增一個模擬留言
-        const interval = setInterval(() => {
+        const interval = setInterval(async () => {
             const virtualUser = getRandomVirtualUser();
             if (!virtualUser) return;
 
-            // 30% 機率會 @ 其他模擬用戶
-            let content: string;
-            if (Math.random() < 0.3 && activeSimUsersRef.current.length > 1) {
-                const otherUsers = activeSimUsersRef.current.filter(u => u.id !== virtualUser.id);
-                const targetUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
-                const interaction = SIMULATED_INTERACTIONS[Math.floor(Math.random() * SIMULATED_INTERACTIONS.length)];
-                content = interaction(targetUser.display_name);
-            } else {
+            // 隨機決定要採取哪種發言行為
+            const rand = Math.random();
+            let content: string = '';
+            let simulatedName = virtualUser.display_name;
+
+            try {
+                if (rand < 0.2) {
+                    // 20% 機率：主動透過 LLM 生成符合當下情境的發言 (Spontaneous Chat)
+                    // 計算剩餘時間狀態字串
+                    let timeState = "熱烈進行中";
+                    if (endTime) {
+                        const remainingMs = new Date(endTime).getTime() - new Date().getTime();
+                        if (remainingMs < 60000) timeState = "即將結標 (最後一分鐘內)";
+                        else if (remainingMs > 300000) timeState = "剛開局不久";
+                    }
+
+                    // 收集最近聊天上下文
+                    const recentChatCtx = [...comments, ...simulatedComments]
+                        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+                        .slice(-3)
+                        .map(c => `${c.user_name}: ${c.content}`)
+                        .join('\n');
+
+                    const response = await fetch('/api/generate-spontaneous', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            auctionTitle,
+                            recentChat: recentChatCtx,
+                            currentPrice,
+                            timeRemaining: timeState
+                        })
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        content = data.reply;
+                        if (data.simulatedName) {
+                            simulatedName = data.simulatedName;
+                        }
+                    } else {
+                        throw new Error('Spontaneous API failed');
+                    }
+                } else if (rand < 0.45 && activeSimUsersRef.current.length > 1) {
+                    // 25% 機率：兩個模擬帳號互相 @
+                    const otherUsers = activeSimUsersRef.current.filter(u => u.id !== virtualUser.id);
+                    const targetUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
+                    const interaction = SIMULATED_INTERACTIONS[Math.floor(Math.random() * SIMULATED_INTERACTIONS.length)];
+                    content = interaction(targetUser.display_name);
+                } else {
+                    // 55% 機率：從靜態詞庫中隨便抽一句
+                    content = getRandomComment();
+                }
+            } catch (error) {
+                // 如果 LLM 失敗或超時，降級回隨機詞庫
                 content = getRandomComment();
             }
 
+            if (!content) return;
+
             const newSimComment: Comment = {
                 id: `sim-${Date.now()}`,
-                user_name: virtualUser.display_name,
+                user_name: simulatedName,
                 virtual_user_id: virtualUser.id,
                 content,
                 created_at: new Date().toISOString(),
                 is_simulated: true
             };
-            setSimulatedComments(prev => [...prev, newSimComment].slice(-12));
+            setSimulatedComments(prev => [...prev, newSimComment].slice(-25));
         }, 15000 + Math.random() * 20000);
 
         return () => clearInterval(interval);
-    }, [isActive, auctionId]);
+    }, [isActive, auctionId, auctionTitle, currentPrice, endTime, comments]);
 
     // 觸發模擬 @回覆（延遲 8-15 秒，只回一次，使用 LLM 生成）
     const triggerSimulatedReply = useCallback((userName: string, userComment: string) => {

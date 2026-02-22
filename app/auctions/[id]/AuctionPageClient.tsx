@@ -204,6 +204,8 @@ export function AuctionPageClient({
                     auctionId={auctionId}
                     auctionTitle={title}
                     isActive={isActiveState}
+                    currentPrice={displayHighest}
+                    endTime={endTime}
                 />,
                 sidebarSlot
             )}

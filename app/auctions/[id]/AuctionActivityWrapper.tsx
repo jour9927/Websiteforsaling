@@ -41,6 +41,8 @@ type AuctionSidebarActivityProps = {
     auctionTitle?: string;
     isActive?: boolean;
     currentUserName?: string | null;
+    currentPrice?: number;
+    endTime?: string;
 };
 
 export function AuctionSidebarActivity({
@@ -59,6 +61,8 @@ export function AuctionSidebarActivity({
             auctionTitle={auctionTitle || ''}
             isActive={isActive}
             currentUserName={currentUserName}
+            currentPrice={currentPrice}
+            endTime={endTime}
         />
     );
 }
