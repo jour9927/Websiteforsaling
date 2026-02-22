@@ -63,21 +63,41 @@ export default function PokedexContent({
     const [showDisclaimer, setShowDisclaimer] = useState(true);
 
     // 根據 ID 和日期產生穩定的隨機漲跌幅（每天變化一次）
-    function getFluctuation(id: string, points: number): { value: number; isPositive: boolean } {
+    function getFluctuation(id: string, points: number): { value: number; isPositive: boolean; type: 'normal' | 'crash' | 'boom' } {
         const today = new Date().toISOString().slice(0, 10);
         const seed = id + today;
         let hash = 0;
         for (let i = 0; i < seed.length; i++) {
             hash = ((hash << 5) - hash + seed.charCodeAt(i)) | 0;
         }
-        // 漲跌方向：大約 55% 機率上漲
-        const isPositive = (Math.abs(hash) % 100) < 55;
-        // 漲跌幅度：點數的 0.5% ~ 8%
-        const pct = ((Math.abs(hash >> 8) % 750) + 50) / 10000;
+
+        const absHash = Math.abs(hash);
+        const eventRoll = absHash % 100;
+
+        let type: 'normal' | 'crash' | 'boom' = 'normal';
+        let isPositive = true;
+        let pct = 0;
+
+        if (eventRoll < 2) {
+            // 2% 機率：跌停板 (Crash) - 大跌 10% ~ 20%
+            type = 'crash';
+            isPositive = false;
+            pct = ((absHash >> 8) % 1000 + 1000) / 10000; // 0.1000 ~ 0.1999
+        } else if (eventRoll < 4) {
+            // 2% 機率：漲停板 (Boom) - 大漲 10% ~ 20%
+            type = 'boom';
+            isPositive = true;
+            pct = ((absHash >> 8) % 1000 + 1000) / 10000;
+        } else {
+            // 96% 機率：正常波動
+            isPositive = eventRoll < 55; // 正常情況約 55% 機率上漲
+            pct = ((absHash >> 8) % 750 + 50) / 10000; // 漲跌幅 0.5% ~ 8%
+        }
+
         const value = points * pct;
         // 小數點：保留兩位
         const rounded = Math.round(value * 100) / 100;
-        return { value: rounded, isPositive };
+        return { value: rounded, isPositive, type };
     }
 
     // 判斷是否為伊布家族（含所有進化型）
@@ -422,8 +442,10 @@ export default function PokedexContent({
                                                 💎 {formatPoints(dist.points)}
                                             </span>
                                         </p>
-                                        <p className="text-center text-[10px] font-mono">
-                                            <span className={fluct.isPositive ? 'text-green-400' : 'text-red-400'}>
+                                        <p className="text-center text-[10px] font-mono flex items-center justify-center gap-1">
+                                            {fluct.type === 'crash' && <span className="px-1 py-0.5 rounded bg-blue-500/20 text-blue-400 font-bold text-[9px]">📉 跌停</span>}
+                                            {fluct.type === 'boom' && <span className="px-1 py-0.5 rounded bg-red-500/20 text-red-400 font-bold text-[9px]">🚀 漲停</span>}
+                                            <span className={fluct.type === 'crash' ? 'text-blue-400 font-bold' : fluct.type === 'boom' ? 'text-red-400 font-bold' : fluct.isPositive ? 'text-green-400' : 'text-red-400'}>
                                                 {fluct.isPositive ? '+' : '-'}{fluct.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                             </span>
                                         </p>
