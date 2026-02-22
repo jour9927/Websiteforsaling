@@ -18,14 +18,14 @@ export async function POST(request: NextRequest) {
         const chatbotName = chatbotNameOptions[Math.floor(Math.random() * chatbotNameOptions.length)];
 
         // 隨機選擇自發性發言的策略
-        const strategies = [
-            `【驚呼價格】：針對目前的價格 ${currentPrice} 點發表看法（覺得太貴、覺得還行、或是覺得自己買不起）。`,
-            `【寶可夢點評】：針對這隻寶可夢的稀有度、價值或是外觀特色發表一句簡單的評論。`,
-            `【時間緊迫感】：針對剩餘時間 ${timeRemaining} 表達緊張、期待或是猶豫要不要下手的感覺。`,
-            `【吃瓜群眾】：表現出自己只是來湊熱鬧、看大老神仙打架的心態。`,
-            `【疑問或自言自語】：對場上的人或這隻寶可夢隨口丟出一個開放式問題，像是自言自語。`
+        const styles = [
+            "【驚呼價格】",
+            "【寶可夢點評】",
+            "【時間緊迫感】",
+            "【吃瓜群眾】",
+            "【疑問或自言自語】"
         ];
-        const selectedStrategy = strategies[Math.floor(Math.random() * strategies.length)];
+        const selectedStyle = styles[Math.floor(Math.random() * styles.length)];
 
         const systemPrompt = `你是 Pokémon 競標拍賣大廳裡的一名資深玩家或路過群眾（你的聊天室 ID 是：${chatbotName}）。
 你現在正在觀看對【${auctionTitle}】的競標。

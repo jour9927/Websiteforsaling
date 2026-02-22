@@ -264,7 +264,7 @@ export default function AuctionComments({
     currentUserName,
     currentPrice = 0,
     endTime = ''
-}: AuctionCommentsProps & { currentPrice?: number, endTime?: string }) {
+}: AuctionCommentsProps & { currentPrice?: number, endTime?: string | null }) {
     const [comments, setComments] = useState<Comment[]>([]);
     const [simulatedComments, setSimulatedComments] = useState<Comment[]>([]);
     const [inputValue, setInputValue] = useState('');
@@ -474,7 +474,7 @@ export default function AuctionComments({
                     // 55% 機率：從靜態詞庫中隨便抽一句
                     content = getRandomComment();
                 }
-            } catch (error) {
+            } catch {
                 // 如果 LLM 失敗或超時，降級回隨機詞庫
                 content = getRandomComment();
             }

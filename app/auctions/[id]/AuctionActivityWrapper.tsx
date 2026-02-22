@@ -36,21 +36,16 @@ function FloatingViewerCount() {
     );
 }
 
-type AuctionSidebarActivityProps = {
-    auctionId?: string;
+interface AuctionSidebarActivityProps {
+    auctionId: string;
     auctionTitle?: string;
-    isActive?: boolean;
-    currentUserName?: string | null;
+    isActive: boolean;
+    currentUserName?: string;
     currentPrice?: number;
-    endTime?: string;
-};
+    endTime?: string | null;
+}
 
-export function AuctionSidebarActivity({
-    auctionId,
-    auctionTitle,
-    isActive = true,
-    currentUserName
-}: AuctionSidebarActivityProps) {
+export function AuctionSidebarActivity({ auctionId, auctionTitle, isActive, currentUserName, currentPrice, endTime }: AuctionSidebarActivityProps) {
     if (!auctionId) {
         return null;
     }
