@@ -29,6 +29,7 @@ export async function GET() {
             last_check_in, 
             check_in_streak, 
             fortune_points,
+            points,
             check_in_goal_distribution_id,
             check_in_debt,
             check_in_milestone
@@ -41,6 +42,7 @@ export async function GET() {
             canCheckIn: true,
             streak: 0,
             fortunePoints: 0,
+            economyPoints: 0,
             lastCheckIn: null,
             debt: 0,
             milestone: 40,
@@ -76,6 +78,7 @@ export async function GET() {
         canCheckIn,
         streak: profile.check_in_streak || 0,
         fortunePoints: profile.fortune_points || 0,
+        economyPoints: profile.points || 0,
         lastCheckIn: profile.last_check_in,
         debt: profile.check_in_debt || 0,
         milestone: profile.check_in_milestone || 40,
@@ -101,6 +104,7 @@ export async function POST() {
             last_check_in, 
             check_in_streak, 
             fortune_points,
+            points,
             check_in_goal_distribution_id,
             check_in_debt,
             check_in_milestone
@@ -165,6 +169,23 @@ export async function POST() {
 
     const newFortunePoints = (profile?.fortune_points || 0) + bonusPoints;
 
+    // 計算經濟點數獎勵 (遊樂場與拍賣用)
+    // 基礎 100 點，連續每天 +50，第七天 1000 點，斷簽或大於 7 重算
+    let economyReward = 100;
+    const effectiveEconomicStreak = ((newStreak - 1) % 7) + 1; // 1~7 的循環
+
+    if (effectiveEconomicStreak === 7) {
+        economyReward = 1000;
+    } else if (effectiveEconomicStreak > 1) {
+        economyReward = 100 + ((effectiveEconomicStreak - 1) * 50);
+    }
+
+    if (isDoubleReward) {
+        economyReward *= 2;
+    }
+
+    const newEconomyPoints = (profile?.points || 0) + economyReward;
+
     // 檢查是否達成里程碑
     let milestoneReached = false;
     let rewardDistribution = null;
@@ -211,6 +232,7 @@ export async function POST() {
             last_check_in: now.toISOString(),
             check_in_streak: newStreak,
             fortune_points: newFortunePoints,
+            points: newEconomyPoints,
             check_in_debt: newDebt,
         })
         .eq("id", user.id);
@@ -231,9 +253,9 @@ export async function POST() {
         message += ` 連續 ${newStreak} 天`;
     }
     if (isDoubleReward) {
-        message += `，🎰 幸運雙倍！獲得 ${bonusPoints} 幸運點數！`;
+        message += `，🎰 幸運雙倍！獲得 ${bonusPoints} 幸運點數與 ${economyReward} 經濟點數！`;
     } else {
-        message += `，獲得 ${bonusPoints} 幸運點數！`;
+        message += `，獲得 ${bonusPoints} 幸運點數與 ${economyReward} 經濟點數！`;
     }
 
     if (milestoneReached && rewardDistribution) {
@@ -244,7 +266,9 @@ export async function POST() {
         success: true,
         streak: newStreak,
         fortunePoints: newFortunePoints,
+        economyPoints: newEconomyPoints,
         bonusPoints,
+        economyReward,
         debt: newDebt,
         milestoneReached,
         rewardDistribution,

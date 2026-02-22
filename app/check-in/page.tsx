@@ -41,6 +41,7 @@ type CheckInStatus = {
     canCheckIn: boolean;
     streak: number;
     fortunePoints: number;
+    economyPoints?: number;
     lastCheckIn: string | null;
     debt: number;
     goalDistribution?: Distribution;
@@ -120,6 +121,7 @@ export default function CheckInPage() {
                     canCheckIn: false,
                     streak: data.streak,
                     fortunePoints: data.fortunePoints,
+                    economyPoints: data.economyPoints,
                     debt: data.debt,
                 } : null);
                 loadData();
@@ -347,6 +349,12 @@ export default function CheckInPage() {
                             {flame.label && (
                                 <p className={`text-[10px] ${flame.color} mt-0.5`}>{flame.label}</p>
                             )}
+                        </div>
+                        <div className="p-4 text-center">
+                            <p className="text-xs uppercase tracking-wider text-white/50">經濟點數</p>
+                            <p className="mt-1 text-2xl font-bold text-yellow-400">
+                                {status?.economyPoints ?? 0} <span className="text-sm text-white/50">點</span>
+                            </p>
                         </div>
                         <div className="p-4 text-center">
                             <p className="text-xs uppercase tracking-wider text-white/50">幸運點數</p>
