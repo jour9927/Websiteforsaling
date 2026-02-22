@@ -41,7 +41,7 @@ WITH calc AS (
       WHEN distribution_method ILIKE '%現場%' OR distribution_method ILIKE '%活動%' THEN 0.12
       WHEN distribution_method ILIKE '%序號%' OR distribution_method ILIKE '%序列%' THEN 0.08
       WHEN distribution_method ILIKE '%紅外線%' THEN 0.10
-      WHEN distribution_method ILIKE '%HOME%' THEN 0.05
+      WHEN distribution_method ILIKE '%HOME%' THEN -0.05 -- 大幅降低 HOME 常駐配布的高溢價現象
       ELSE 0.03
     END as method_score,
     -- 年代加分

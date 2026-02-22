@@ -44,7 +44,7 @@ function getMethodScore(method) {
     if (method.includes('現場') || method.includes('活動')) return 0.12;
     if (method.includes('序號') || method.includes('序列')) return 0.08;
     if (method.includes('紅外線')) return 0.10;
-    if (method.includes('HOME')) return 0.05;
+    if (method.includes('HOME')) return -0.05; // 大幅降低 HOME 常駐配布的高溢價現象
     return 0.03;
 }
 
