@@ -427,8 +427,8 @@ export default function AuctionComments({
             let simulatedName = virtualUser.display_name;
 
             try {
-                if (rand < 0.2) {
-                    // 20% 機率：主動透過 LLM 生成符合當下情境的發言 (Spontaneous Chat)
+                if (rand < 0.2 && user) {
+                    // 20% 機率且「有真實登入的觀看者在場」：才主動透過 LLM 生成符合當下情境的發言 (Spontaneous Chat)
                     // 計算剩餘時間狀態字串
                     let timeState = "熱烈進行中";
                     if (endTime) {
