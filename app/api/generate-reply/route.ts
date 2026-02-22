@@ -13,30 +13,36 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
         }
 
-        // 隨機選擇回覆風格（不同的陌生人反應）
+        // 隨機抽選一位虛擬發言人的名字，讓語氣更真實
+        const chatbotNameOptions = ["小智", "色違獵人", "VGC選手", "Red", "圖鑑收集狂", "孵蛋廢人", "路人A", "大佬"];
+        const chatbotName = chatbotNameOptions[Math.floor(Math.random() * chatbotNameOptions.length)];
+
+        // 隨機選擇回覆策略（導入心理學原理）
         const styles = [
-            "簡短附和或吐槽，像在直播聊天室隨口接話，例如：「真的」「也太貴」「笑死」「懂」",
-            "分享自己的看法或經驗，但語氣淡淡的不刻意，例如：「我之前也猶豫很久」「這隻確實不錯」",
-            "隨口丟一個相關的問題，但不是刻意攀談，像是自言自語被聽到，例如：「這隻幾等啊」「OT是啥活動的」",
-            "簡短回應，帶一點幽默或自嘲，例如：「窮人只能看」「又要吃土了」「我先告辭」",
+            "【FOMO 錯失恐懼】：暗示這隻寶可夢非常稀有、錯過這次不知要等多久，製造稀缺感。例如：「這隻現在超難找，錯過真的會捶心肝...」",
+            "【社會認同 Social Proof】：提及其他人也很想要這隻、或者國外論壇行情很高，讓玩家覺得標下去是有價值的。例如：「昨天看 Reddit 也有人在懸賞這隻，難怪大家搶成這樣🔥」",
+            "【好奇心懸念 Curiosity Gap】：暗示這隻寶可夢有某種隱藏價值或特色，但不完全點破。例如：「你們有注意到這隻的隱藏亮點嗎？懂的人自然懂...」",
+            "【正向強化 Positive Reinforcement】：稱讚目前的出價者很有眼光，或是鼓勵繼續加碼。例如：「這位兄弟懂標喔，這個價位拿下絕對不虧！」",
+            "【蔡加尼克效應 (未完成感)】：針對快要結標的情境，暗示就差一點點就能拿下了，放棄很可惜。例如：「都追到這裡了，現在放棄真的好嗎？再拼一下吧！」",
+            "【幽默自嘲】：以自己沒錢或運氣不好的角度，襯托其他出價者的財力或幸運。例如：「看看這精美的價格，窮人家如我還是旁邊玩沙就好🥲」",
         ];
         const selectedStyle = styles[Math.floor(Math.random() * styles.length)];
 
-        const systemPrompt = `你是競標聊天室裡的一個路人，不認識對方。你只是剛好看到對方的留言，順口回一句。
+        const systemPrompt = `你是 Pokémon 競標拍賣大廳裡的一名資深玩家（你的聊天室 ID 是：${chatbotName}）。
+你正在觀看大家對【${auctionTitle}】的競標與討論。
 
-重要：你跟對方不熟，不要表現得很親切或太熱情。就像 Twitch 直播聊天或 PTT 推文，大家互不認識但會隨口接話。
+你的目標是：活絡競標室氣氛、刺激其他玩家的競標意願、自然地帶動情緒。
 
-語氣規則：
-- 繁體中文，簡短隨性
-- 不超過 15 個字
-- 不用 emoji、不用引號、不用驚嘆號
-- 不要主動關心對方或問私人問題
-- 不要說「歡迎」「加油」這種客套話
-- 語氣冷淡一點沒關係，真實比友善重要
+【語氣與人設規則】
+1. 使用口語化的台灣繁體中文，可以適度使用標點符號（!、?、...）和少量 Emoji，就像真人在聊天一樣。
+2. 字數控制在 10 ~ 30 字左右，不要長篇大論，要精簡有力。
+3. 根據玩家的發言內容，以及當下的競標物【${auctionTitle}】來給予回應。
+4. 如果玩家發言中有提到具體價格或動作，你的回應要盡量貼合該情境。
+5. 你必須採用以下指定的心理學策略來作為本次發言的核心驅動力：
 
-本次風格：${selectedStyle}`;
+本次採用的策略：${selectedStyle}`;
 
-        const userMsg = `[${auctionTitle}]\n有人說：${userComment}${recentChat ? `\n聊天室：\n${recentChat}` : ""}\n\n你隨口回一句。`;
+        const userMsg = `[當前競標物：${auctionTitle}]\n有一位真實玩家發言說：${userComment}${recentChat ? `\n\n（近期的聊天紀錄參考：\n${recentChat}\n）` : ""}\n\n請以你的身分（${chatbotName}）和指定策略，隨口回覆一句話。`;
 
         const response = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
