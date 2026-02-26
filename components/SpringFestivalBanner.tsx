@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 
-// 春節活動期間
-const FESTIVAL_START = new Date("2026-02-16T00:00:00+08:00");
-const FESTIVAL_END = new Date("2026-03-01T00:00:00+08:00"); // 2/29 結束 = 3/1 00:00
+// 春節活動期間（2027年農曆新年）
+const FESTIVAL_START = new Date("2027-02-06T00:00:00+08:00");
+const FESTIVAL_END = new Date("2027-02-20T00:00:00+08:00");
 
 // Day 2 競標寶可夢 GIF (PokeAPI animated sprites)
 const DAY2_POKEMON = [
@@ -70,7 +70,7 @@ export function SpringFestivalBanner() {
                                 春節特別活動
                             </h3>
                             <p className="text-xs sm:text-sm text-amber-100/70 mt-1">
-                                2026/2/16 ~ 2/29
+                                2027/2/6 ~ 2/19
                             </p>
                         </div>
 
