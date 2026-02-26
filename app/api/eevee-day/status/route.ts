@@ -76,6 +76,13 @@ export async function GET() {
         availableDistributions = distributions || [];
     }
 
+    // 🎫 VIP補考券：6點用戶在最後一天可答題2次
+    const todayStr = now.toDateString();
+    const endStr = end.toDateString();
+    const isLastDay = todayStr === endStr;
+    const hasRetakeTicket = isLastDay && (stampCount || 0) === 6;
+    const maxAttempts = hasRetakeTicket ? 2 : EEVEE_DAY_CONFIG.dailyAttempts;
+
     return NextResponse.json({
         isActive,
         hasEnded,
@@ -84,8 +91,10 @@ export async function GET() {
         stamps: stampCount || 0,
         stampsRequired: EEVEE_DAY_CONFIG.stampsRequired,
         attemptsToday: attemptsCount || 0,
-        dailyAttempts: EEVEE_DAY_CONFIG.dailyAttempts,
-        remainingAttempts: Math.max(0, EEVEE_DAY_CONFIG.dailyAttempts - (attemptsCount || 0)),
+        dailyAttempts: maxAttempts,
+        remainingAttempts: Math.max(0, maxAttempts - (attemptsCount || 0)),
+        hasRetakeTicket,
+        isLastDay,
         reward: reward || null,
         availableDistributions,
     });

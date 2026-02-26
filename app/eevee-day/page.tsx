@@ -27,6 +27,8 @@ type EventStatus = {
     attemptsToday: number;
     dailyAttempts: number;
     remainingAttempts: number;
+    hasRetakeTicket?: boolean;
+    isLastDay?: boolean;
     reward: {
         id: string;
         distribution_id: string;
@@ -171,6 +173,18 @@ export default function EeveeDayPage() {
             {/* 今日嘗試 & 開始答題 */}
             {status.isActive && (
                 <div className="glass-card p-6">
+                    {/* 🎫 VIP補考券提示 */}
+                    {status.hasRetakeTicket && (
+                        <div className="mb-4 p-3 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-400/30">
+                            <p className="text-sm text-amber-300 font-bold flex items-center gap-2">
+                                🎫 VIP 補考券已發放
+                            </p>
+                            <p className="text-xs text-amber-200/70 mt-1">
+                                因為你的努力，今天可以答題 <span className="font-bold text-amber-300">2 次</span>！把握最後機會集滿獎勵！
+                            </p>
+                        </div>
+                    )}
+
                     <div className="flex items-center justify-between mb-4">
                         <div>
                             <h3 className="text-sm font-semibold text-white/80">📝 寶可夢常識問答</h3>

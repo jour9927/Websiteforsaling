@@ -187,7 +187,7 @@ export default function QuizPage() {
                     <p className="text-white/70 text-lg mb-1">
                         {result.score} / {result.total} 題答對
                     </p>
-                    <p className="text-sm text-white/50">{result.message}</p>
+                    <p className="text-sm text-white/50 whitespace-pre-line">{result.message}</p>
 
                     {result.passed && (
                         <div className="mt-4 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">

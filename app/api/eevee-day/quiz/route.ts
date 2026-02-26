@@ -37,7 +37,21 @@ export async function GET() {
         .lt("attempted_at", tomorrow.toISOString());
 
     const attemptsToday = count || 0;
-    if (attemptsToday >= EEVEE_DAY_CONFIG.dailyAttempts) {
+
+    // 檢查是否為最後一天
+    const isLastDay = now.toDateString() === end.toDateString();
+
+    // 檢查用戶集點數
+    const { count: stampCount } = await supabase
+        .from("eevee_day_stamps")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+    // 🎫 VIP補考券：6點用戶在最後一天可答題2次
+    const maxAttempts = (isLastDay && stampCount === 6) ? 2 : EEVEE_DAY_CONFIG.dailyAttempts;
+    const hasRetakeTicket = isLastDay && stampCount === 6 && attemptsToday === 1;
+
+    if (attemptsToday >= maxAttempts) {
         return NextResponse.json({ error: "今日嘗試次數已用完" }, { status: 400 });
     }
 
@@ -57,7 +71,8 @@ export async function GET() {
         questions: questionsWithoutAnswers,
         timePerQuestion: EEVEE_DAY_CONFIG.timePerQuestion,
         passingScore: EEVEE_DAY_CONFIG.passingScore,
-        remainingAttempts: EEVEE_DAY_CONFIG.dailyAttempts - attemptsToday,
+        remainingAttempts: maxAttempts - attemptsToday,
+        hasRetakeTicket,
     });
 }
 
@@ -94,7 +109,20 @@ export async function POST(request: Request) {
         .lt("attempted_at", tomorrow.toISOString());
 
     const attemptsToday = count || 0;
-    if (attemptsToday >= EEVEE_DAY_CONFIG.dailyAttempts) {
+
+    // 檢查是否為最後一天
+    const isLastDay = now.toDateString() === end.toDateString();
+
+    // 檢查用戶集點數（提前查詢，後面需要用）
+    const { count: stampCountBefore } = await supabase
+        .from("eevee_day_stamps")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id);
+
+    // 🎫 VIP補考券：6點用戶在最後一天可答題2次
+    const maxAttempts = (isLastDay && stampCountBefore === 6) ? 2 : EEVEE_DAY_CONFIG.dailyAttempts;
+
+    if (attemptsToday >= maxAttempts) {
         return NextResponse.json({ error: "今日嘗試次數已用完" }, { status: 400 });
     }
 
@@ -139,6 +167,21 @@ export async function POST(request: Request) {
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id);
 
+    // 🎫 VIP補考券提示：如果是6點用戶第一次失敗（最後一天）
+    const hasRetakeTicket = isLastDay && stampCountBefore === 6 && attemptsToday === 0 && !passed;
+    const isLastChance = isLastDay && stampCountBefore === 6 && attemptsToday === 1 && !passed;
+
+    let message = "";
+    if (passed) {
+        message = `🎉 答對 ${score}/${EEVEE_DAY_CONFIG.questionsPerQuiz} 題，成功集得 1 點！`;
+    } else if (hasRetakeTicket) {
+        message = `答對 ${score}/${EEVEE_DAY_CONFIG.questionsPerQuiz} 題未達標準。\n\n🎫 因為你的努力，系統自動發放「VIP補考券」！\n你還有 1 次重新挑戰的機會，把握最後機會！`;
+    } else if (isLastChance) {
+        message = `答對 ${score}/${EEVEE_DAY_CONFIG.questionsPerQuiz} 題，未能完成挑戰。\n感謝你的參與，期待下次活動再見！`;
+    } else {
+        message = `答對 ${score}/${EEVEE_DAY_CONFIG.questionsPerQuiz} 題，需答對 ${EEVEE_DAY_CONFIG.passingScore} 題才能集點。`;
+    }
+
     return NextResponse.json({
         score,
         total: EEVEE_DAY_CONFIG.questionsPerQuiz,
@@ -146,9 +189,9 @@ export async function POST(request: Request) {
         results,
         stamps: stampCount || 0,
         stampsRequired: EEVEE_DAY_CONFIG.stampsRequired,
-        remainingAttempts: EEVEE_DAY_CONFIG.dailyAttempts - attemptsToday - 1,
-        message: passed
-            ? `🎉 答對 ${score}/${EEVEE_DAY_CONFIG.questionsPerQuiz} 題，成功集得 1 點！`
-            : `答對 ${score}/${EEVEE_DAY_CONFIG.questionsPerQuiz} 題，需答對 ${EEVEE_DAY_CONFIG.passingScore} 題才能集點。`,
+        remainingAttempts: maxAttempts - attemptsToday - 1,
+        hasRetakeTicket,
+        isLastChance,
+        message,
     });
 }
