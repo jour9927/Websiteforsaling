@@ -19,7 +19,7 @@ const GEN_RANGES: Record<number, { min: number; max: number }> = {
     3: { min: 650000, max: 1800000 },
     4: { min: 250000, max: 460000 },
     5: { min: 120000, max: 330000 },
-    6: { min: 50000, max: 180000 },
+    6: { min: 50000, max: 400000 },
     7: { min: 10000, max: 75000 },
     8: { min: 5000, max: 15000 },
     9: { min: 300, max: 7500 },
@@ -40,11 +40,11 @@ function hashCode(str: string): number {
 }
 
 export async function GET(request: NextRequest) {
-    // 驗證 cron secret
+    // 驗證 cron secret（未設定 CRON_SECRET 時也拒絕，防止未授權觸發）
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

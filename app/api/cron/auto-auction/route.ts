@@ -38,11 +38,11 @@ const AUCTION_DESCRIPTIONS = [
 ];
 
 export async function GET(request: NextRequest) {
-    // 驗證 cron secret
+    // 驗證 cron secret（未設定 CRON_SECRET 時也拒絕，防止未授權觸發）
     const authHeader = request.headers.get("authorization");
     const cronSecret = process.env.CRON_SECRET;
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
