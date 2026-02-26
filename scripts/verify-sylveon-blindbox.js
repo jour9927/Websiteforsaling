@@ -63,7 +63,11 @@ async function verify() {
   } else {
     console.log(`   ✅ Found ${rewards.length} reward types`);
     rewards.forEach(r => {
-      console.log(`      - ${r.pokemon_name}: ${r.remaining}/${r.quantity} available (${r.points.toLocaleString()} pts)`);
+      if (r.min_points && r.max_points) {
+        console.log(`      - ${r.pokemon_name}: ${r.remaining}/${r.quantity} available (${r.min_points.toLocaleString()}~${r.max_points.toLocaleString()} pts)`);
+      } else {
+        console.log(`      - ${r.pokemon_name}: ${r.remaining}/${r.quantity} available (${r.points.toLocaleString()} pts)`);
+      }
     });
   }
 
@@ -79,16 +83,16 @@ async function verify() {
     console.log('   ✅ Eevee: 50 boxes');
   }
 
-  if (!sylveon || sylveon.quantity !== 50 || sylveon.points !== 75000) {
+  if (!sylveon || sylveon.quantity !== 50 || sylveon.min_points !== 75000 || sylveon.max_points !== 400000) {
     console.log('   ❌ Sylveon configuration incorrect');
     allChecks = false;
   } else {
-    console.log('   ✅ Sylveon: 50 boxes, 75,000 points');
+    console.log('   ✅ Sylveon: 50 boxes, 75,000~400,000 points (random)');
   }
 
   // Check 4: Test blind_box_rewards table structure
   console.log('\n4️⃣  Checking table structure...');
-  const requiredColumns = ['id', 'event_id', 'pokemon_name', 'points', 'quantity', 'remaining'];
+  const requiredColumns = ['id', 'event_id', 'pokemon_name', 'points', 'min_points', 'max_points', 'quantity', 'remaining'];
   const hasAllColumns = rewards && requiredColumns.every(col => 
     rewards[0] && col in rewards[0]
   );
@@ -115,7 +119,7 @@ async function verify() {
     console.log(`   Launch: 2026-03-12 10:00`);
     console.log(`   Total boxes: 50`);
     console.log(`   Price: $5,990`);
-    console.log(`   Contents: 1x Eevee + 1x Sylveon (75k pts)`);
+    console.log(`   Contents: 1x Eevee + 1x Sylveon (75k~400k pts random)`);
     console.log('\n🎉 Ready to accept registrations!');
   } else {
     console.log('⚠️  Some checks failed. Please review the errors above.');

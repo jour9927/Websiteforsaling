@@ -8,7 +8,9 @@ CREATE TABLE blind_box_rewards (
   pokemon_name TEXT NOT NULL,
   pokemon_name_en TEXT,
   pokemon_dex_number INTEGER,
-  points INTEGER NOT NULL DEFAULT 0,
+  points INTEGER NOT NULL DEFAULT 0, -- Base/display points
+  min_points INTEGER, -- Minimum points for random range (null = fixed points)
+  max_points INTEGER, -- Maximum points for random range (null = fixed points)
   quantity INTEGER NOT NULL, -- Total quantity available
   remaining INTEGER NOT NULL, -- Remaining quantity
   sprite_url TEXT,
@@ -111,38 +113,54 @@ BEGIN
   WHERE id = p_event_id;
 
   -- Draw all available rewards for this event
-  FOR v_rewards_to_draw IN
-    SELECT id, pokemon_name, pokemon_name_en, pokemon_dex_number, 
-           points, sprite_url, remaining
+  FOR v_rewards_to_min_points, max_points, sprite_url, remaining
     FROM blind_box_rewards
     WHERE event_id = p_event_id
       AND remaining > 0
     ORDER BY id -- Deterministic order for consistent draws
   LOOP
-    -- Decrease remaining quantity
-    UPDATE blind_box_rewards
-    SET remaining = remaining - 1
-    WHERE id = v_rewards_to_draw.id;
+    DECLARE
+      v_actual_points INTEGER;
+      v_random_factor FLOAT;
+    BEGIN
+      -- Calculate actual points (random if range specified)
+      IF v_rewards_to_draw.min_points IS NOT NULL AND v_rewards_to_draw.max_points IS NOT NULL THEN
+        -- Generate random points within range using seed for reproducibility
+        v_random_factor := (hashtext(p_seed || v_rewards_to_draw.id::text)::bigint % 1000000) / 1000000.0;
+        v_actual_points := v_rewards_to_draw.min_points + 
+                          floor(v_random_factor * (v_rewards_to_draw.max_points - v_rewards_to_draw.min_points + 1))::integer;
+      ELSE
+        -- Use fixed points
+        v_actual_points := v_rewards_to_draw.points;
+      END IF;
 
-    -- Add to user_items
-    INSERT INTO user_items (user_id, event_id, name, quantity, notes)
-    VALUES (
-      p_user_id,
-      p_event_id,
-      v_rewards_to_draw.pokemon_name,
-      1,
-      format('從「%s」盲盒抽中', v_event_title)
-    );
+      -- Decrease remaining quantity
+      UPDATE blind_box_rewards
+      SET remaining = remaining - 1
+      WHERE id = v_rewards_to_draw.id;
 
-    -- Build item object
-    v_item_object := jsonb_build_object(
-      'pokemon_name', v_rewards_to_draw.pokemon_name,
-      'pokemon_name_en', v_rewards_to_draw.pokemon_name_en,
-      'pokemon_dex_number', v_rewards_to_draw.pokemon_dex_number,
-      'points', v_rewards_to_draw.points,
-      'sprite_url', v_rewards_to_draw.sprite_url
-    );
+      -- Add to user_items
+      INSERT INTO user_items (user_id, event_id, name, quantity, notes)
+      VALUES (
+        p_user_id,
+        p_event_id,
+        v_rewards_to_draw.pokemon_name,
+        1,
+        format('從「%s」盲盒抽中 (%s 點數)', v_event_title, v_actual_points)
+      );
 
+      -- Build item object
+      v_item_object := jsonb_build_object(
+        'pokemon_name', v_rewards_to_draw.pokemon_name,
+        'pokemon_name_en', v_rewards_to_draw.pokemon_name_en,
+        'pokemon_dex_number', v_rewards_to_draw.pokemon_dex_number,
+        'points', v_actual_points,
+        'sprite_url', v_rewards_to_draw.sprite_url
+      );
+
+      -- Add to drawn items array
+      v_drawn_items := v_drawn_items || v_item_object;
+    END
     -- Add to drawn items array
     v_drawn_items := v_drawn_items || v_item_object;
   END LOOP;
@@ -158,7 +176,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Insert Sylveon Blind Box Event
+-- Insert Sylveon Blind Box Event5,000~400,000 點數隨機
 INSERT INTO events (
   title,
   description,
@@ -176,15 +194,15 @@ INSERT INTO events (
   '仙子伊布配布盲盒',
   '每個盲盒包含 2 隻寶可夢：1 隻伊布 + 1 隻高點數仙子伊布（70,000+ 點數）！限量 50 盒，機會難得，先搶先贏！',
   '2026-03-12 10:00:00+08',
-  '2026-03-12 18:00:00+08',
-  50,
-  48,
-  5990,
-  false,
-  'published',
-  '配布活動現場',
-  'admin',
-  '需完成線上付款或現場報名'
+  '2026-03-12 18:00:00+08',min_points, max_points, quantity, remaining, sprite_url)
+-- SELECT 
+--   (SELECT id FROM events WHERE title = '仙子伊布配布盲盒' LIMIT 1),
+--   '伊布', 'Eevee', 133, 0, NULL, NULL, 50, 50,
+--   'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png'
+-- UNION ALL
+-- SELECT 
+--   (SELECT id FROM events WHERE title = '仙子伊布配布盲盒' LIMIT 1),
+--   '仙子伊布', 'Sylveon', 700, 75000, 75000, 400
 ) RETURNING id;
 
 -- Get the event_id for inserting rewards

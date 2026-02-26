@@ -60,7 +60,11 @@ async function setupSylveonBlindBox() {
     
     console.log('📦 Current rewards:');
     rewards?.forEach(r => {
-      console.log(`   - ${r.pokemon_name}: ${r.remaining}/${r.quantity} remaining (${r.points} points)`);
+      if (r.min_points && r.max_points) {
+        console.log(`   - ${r.pokemon_name}: ${r.remaining}/${r.quantity} remaining (${r.min_points.toLocaleString()}~${r.max_points.toLocaleString()} points)`);
+      } else {
+        console.log(`   - ${r.pokemon_name}: ${r.remaining}/${r.quantity} remaining (${r.points} points)`);
+      }
     });
     
     return;
@@ -74,6 +78,8 @@ async function setupSylveonBlindBox() {
       pokemon_name_en: 'Eevee',
       pokemon_dex_number: 133,
       points: 0,
+      min_points: null,
+      max_points: null,
       quantity: 50,
       remaining: 50,
       sprite_url: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/133.png',
@@ -85,10 +91,12 @@ async function setupSylveonBlindBox() {
       pokemon_name_en: 'Sylveon',
       pokemon_dex_number: 700,
       points: 75000,
+      min_points: 75000,
+      max_points: 400000,
       quantity: 50,
       remaining: 50,
       sprite_url: 'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/700.png',
-      notes: '高點數仙子伊布，每盒必得'
+      notes: '高點數仙子伊布，每盒必得，點數隨機 75,000~400,000'
     }
   ];
 
@@ -102,16 +110,20 @@ async function setupSylveonBlindBox() {
     return;
   }
 
-  console.log('✅ Successfully inserted rewards:\n');
-  insertedRewards?.forEach(r => {
-    console.log(`   📦 ${r.pokemon_name} (${r.pokemon_name_en})`);
-    console.log(`      Dex #${r.pokemon_dex_number}`);
-    console.log(`      Points: ${r.points.toLocaleString()}`);
+  coif (r.min_points && r.max_points) {
+      console.log(`      Points: ${r.min_points.toLocaleString()} ~ ${r.max_points.toLocaleString()} (random)`);
+    } else {
+      console.log(`      Points: ${r.points.toLocaleString()}`);
+    }
     console.log(`      Quantity: ${r.quantity}`);
     console.log(`      Notes: ${r.notes}\n`);
   });
 
   console.log('✨ Sylveon Blind Box Event is ready!');
+  console.log(`   Total boxes: 50`);
+  console.log(`   Offline registrations: 48`);
+  console.log(`   Price: $5,990`);
+  console.log(`   Contents: 1x Eevee + 1x Sylveon (75k~400k pts random)is ready!');
   console.log(`   Total boxes: 50`);
   console.log(`   Offline registrations: 48`);
   console.log(`   Price: $5,990`);
