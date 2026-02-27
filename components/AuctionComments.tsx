@@ -302,7 +302,7 @@ export default function AuctionComments({
         getUser();
     }, [currentUserName]);
 
-    // 載入真實留言
+    // 載入所有留言（包含真實 + DB 中的模擬留言）
     useEffect(() => {
         const loadComments = async () => {
             const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -316,14 +316,14 @@ export default function AuctionComments({
             if (data) {
                 setComments(data.map(c => ({
                     ...c,
-                    is_simulated: false,
+                    is_simulated: c.is_simulated || false,
                     is_own: authUser ? c.user_id === authUser.id : false
                 })));
             }
         };
         loadComments();
 
-        // 即時訂閱新留言
+        // 即時訂閱新留言（包含模擬留言寫入 DB 的情況）
         const channel = supabase
             .channel(`auction_comments_${auctionId}`)
             .on('postgres_changes', {
@@ -334,11 +334,19 @@ export default function AuctionComments({
             }, async (payload) => {
                 const { data: { user: authUser } } = await supabase.auth.getUser();
                 const newComment = payload.new as Comment;
-                setComments(prev => [...prev, {
-                    ...newComment,
-                    is_simulated: false,
-                    is_own: authUser ? newComment.user_id === authUser.id : false
-                }]);
+                // 如果是模擬留言（由 triggerSimulatedReply 寫入 DB），從 simulatedComments 移除對應的臨時項目
+                if (newComment.is_simulated) {
+                    setSimulatedComments(prev => prev.filter(c => c.id !== `pending-reply-${newComment.created_at}`));
+                }
+                setComments(prev => {
+                    // 避免重複（已由樂觀更新或其他途徑加入）
+                    if (prev.some(c => c.id === newComment.id)) return prev;
+                    return [...prev, {
+                        ...newComment,
+                        is_simulated: newComment.is_simulated || false,
+                        is_own: authUser ? newComment.user_id === authUser.id : false
+                    }];
+                });
             })
             .subscribe();
 
@@ -561,17 +569,46 @@ export default function AuctionComments({
                 replyContent = fallback(userName);
             }
 
-            const newReply: Comment = {
+            const replyUserName = replyUser?.display_name || '會員**';
+            const replyVirtualId = replyUser?.id;
+            const replyCreatedAt = new Date().toISOString();
+
+            // 先用臨時 ID 加入 state 立即顯示
+            const tempReply: Comment = {
                 id: `reply-${Date.now()}`,
-                user_name: replyUser?.display_name || '會員**',
-                virtual_user_id: replyUser?.id,
+                user_name: replyUserName,
+                virtual_user_id: replyVirtualId,
                 content: replyContent,
-                created_at: new Date().toISOString(),
+                created_at: replyCreatedAt,
                 is_simulated: true
             };
-            setSimulatedComments(prev => [...prev, newReply].slice(-25));
+            setSimulatedComments(prev => [...prev, tempReply].slice(-25));
+
+            // 同時寫入 DB 持久化（不等待結果）
+            supabase
+                .from('auction_comments')
+                .insert({
+                    auction_id: auctionId,
+                    user_id: null,
+                    user_name: replyUserName,
+                    content: replyContent,
+                    is_simulated: true,
+                    virtual_user_id: replyVirtualId,
+                })
+                .select()
+                .single()
+                .then(({ data, error }) => {
+                    if (!error && data) {
+                        // 用 DB 的真實 ID 替換臨時 ID
+                        setSimulatedComments(prev => prev.map(c =>
+                            c.id === tempReply.id ? { ...c, id: data.id } : c
+                        ));
+                    } else {
+                        console.warn('Failed to persist simulated reply:', error?.message);
+                    }
+                });
         }, 8000 + Math.random() * 7000); // 8-15 秒
-    }, [auctionTitle]);
+    }, [auctionTitle, auctionId]);
 
     // 送出留言
     const handleSubmit = async (e: React.FormEvent) => {
@@ -629,10 +666,12 @@ export default function AuctionComments({
         }
     };
 
-    // 合併並排序所有留言
-    const allComments = [...comments, ...simulatedComments]
+    // 合併並排序所有留言（去重：DB 中的模擬留言可能同時存在於 comments 和 simulatedComments）
+    const dbCommentIds = new Set(comments.map(c => c.id));
+    const uniqueSimulated = simulatedComments.filter(c => !dbCommentIds.has(c.id));
+    const allComments = [...comments, ...uniqueSimulated]
         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-        .slice(-25); // 只顯示最新 25 條
+        .slice(-30); // 只顯示最新 30 條
 
     // 自動捲動到最新
     useEffect(() => {

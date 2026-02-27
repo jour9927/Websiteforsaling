@@ -110,7 +110,11 @@ async function setupSylveonBlindBox() {
     return;
   }
 
-  coif (r.min_points && r.max_points) {
+  console.log('✅ Successfully inserted rewards:\n');
+  insertedRewards?.forEach(r => {
+    console.log(`   📦 ${r.pokemon_name} (${r.pokemon_name_en})`);
+    console.log(`      Dex #${r.pokemon_dex_number}`);
+    if (r.min_points && r.max_points) {
       console.log(`      Points: ${r.min_points.toLocaleString()} ~ ${r.max_points.toLocaleString()} (random)`);
     } else {
       console.log(`      Points: ${r.points.toLocaleString()}`);
@@ -123,11 +127,7 @@ async function setupSylveonBlindBox() {
   console.log(`   Total boxes: 50`);
   console.log(`   Offline registrations: 48`);
   console.log(`   Price: $5,990`);
-  console.log(`   Contents: 1x Eevee + 1x Sylveon (75k~400k pts random)is ready!');
-  console.log(`   Total boxes: 50`);
-  console.log(`   Offline registrations: 48`);
-  console.log(`   Price: $5,990`);
-  console.log(`   Launch date: 2026-03-12\n`);
+  console.log(`   Contents: 1x Eevee + 1x Sylveon (75k~400k pts random)\n`);
 }
 
 setupSylveonBlindBox()
