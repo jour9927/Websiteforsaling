@@ -30,8 +30,11 @@ const BUG_COMMENTS = [
 
 export default function EventComments() {
     const [comments, setComments] = useState<{ id: number; name: string; text: string; time: string }[]>([]);
+    const [hiddenCount, setHiddenCount] = useState(0);
 
     useEffect(() => {
+        setHiddenCount(Math.floor(Math.random() * 40) + 120); // 隨機產生 120~160 則隱藏留言
+
         // 初始載入 4-6 則留言
         const initialCount = Math.floor(Math.random() * 3) + 4;
         const initialComments = Array.from({ length: initialCount }).map((_, i) => ({
@@ -65,21 +68,30 @@ export default function EventComments() {
                 <span className="text-xs font-normal text-white/50 ml-2">即時更新中...</span>
             </h3>
             
-            <div className="space-y-4">
-                {comments.map(comment => (
-                    <div key={comment.id} className="flex gap-3 animate-fade-in">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs text-white/70">
-                            {comment.name.slice(0, 1)}
-                        </div>
-                        <div className="flex-1 rounded-2xl rounded-tl-none bg-white/5 px-4 py-3">
-                            <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm font-medium text-white/80">{comment.name}</span>
-                                <span className="text-xs text-white/40">{comment.time}</span>
+            <div className="relative">
+                <div className="space-y-4 max-h-[320px] overflow-hidden">
+                    {comments.map(comment => (
+                        <div key={comment.id} className="flex gap-3 animate-fade-in">
+                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs text-white/70">
+                                {comment.name.slice(0, 1)}
                             </div>
-                            <p className="text-sm text-white/70">{comment.text}</p>
+                            <div className="flex-1 rounded-2xl rounded-tl-none bg-white/5 px-4 py-3">
+                                <div className="flex items-center justify-between mb-1">
+                                    <span className="text-sm font-medium text-white/80">{comment.name}</span>
+                                    <span className="text-xs text-white/40">{comment.time}</span>
+                                </div>
+                                <p className="text-sm text-white/70">{comment.text}</p>
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    ))}
+                </div>
+
+                {/* 底部淡化遮罩 */}
+                <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0f172a] to-transparent flex items-end justify-center pb-2 pointer-events-none">
+                    <span className="text-xs font-medium text-white/50 bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
+                        以下還有 {hiddenCount} 則留言...
+                    </span>
+                </div>
             </div>
 
             {/* 假象留言輸入框與遮罩 */}
