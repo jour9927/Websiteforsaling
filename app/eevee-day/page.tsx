@@ -44,6 +44,16 @@ export default function EeveeDayPage() {
     const [isLoggedIn, setIsLoggedIn] = useState(true);
     const [selectingReward, setSelectingReward] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
+    const [claimedCount, setClaimedCount] = useState(0);
+    const [totalRewards] = useState(500); // 假設總共有 500 份獎勵
+
+    useEffect(() => {
+        // 產生一個看起來真實的隨機領取人數 (基於日期和時間，加上一點隨機性)
+        const today = new Date();
+        const base = 120 + today.getDate() * 3 + today.getHours() * 2;
+        const randomOffset = Math.floor(Math.random() * 15);
+        setClaimedCount(Math.min(base + randomOffset, totalRewards)); // 確保不超過總數
+    }, [totalRewards]);
 
     const loadStatus = async () => {
         try {
@@ -122,6 +132,38 @@ export default function EeveeDayPage() {
         <section className="space-y-6">
             {/* 活動 Banner */}
             <EventBanner />
+
+            {/* 假領取人數統計 (進度條版本) */}
+            {claimedCount > 0 && (
+                <div className="glass-card p-4 border border-amber-500/20 bg-gradient-to-r from-amber-500/5 via-orange-500/10 to-amber-500/5">
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                            <span className="text-lg animate-bounce">🔥</span>
+                            <p className="text-sm font-medium text-amber-200/90">
+                                獎勵兌換進度
+                            </p>
+                        </div>
+                        <p className="text-xs text-white/60">
+                            已領取 <span className="text-amber-400 font-bold text-sm">{claimedCount}</span> / {totalRewards}
+                        </p>
+                    </div>
+                    
+                    {/* 進度條外框 */}
+                    <div className="h-3 w-full bg-black/40 rounded-full overflow-hidden border border-white/10">
+                        {/* 進度條本體 */}
+                        <div 
+                            className="h-full bg-gradient-to-r from-amber-500 to-orange-400 relative transition-all duration-1000 ease-out"
+                            style={{ width: `${(claimedCount / totalRewards) * 100}%` }}
+                        >
+                            {/* 進度條上的光澤動畫 */}
+                            <div className="absolute top-0 left-0 right-0 bottom-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_2s_infinite]"></div>
+                        </div>
+                    </div>
+                    <p className="text-[10px] text-white/40 mt-2 text-right">
+                        * 獎勵數量有限，換完為止
+                    </p>
+                </div>
+            )}
 
             {/* 活動狀態 */}
             {!status.isActive && !status.hasEnded && (
