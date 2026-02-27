@@ -51,8 +51,8 @@ export default function EventComments() {
             return selected;
         };
 
-        // 初始載入 4-6 則留言
-        const initialCount = Math.floor(Math.random() * 3) + 4;
+        // 初始載入 8 則留言
+        const initialCount = 8;
         const initialComments = Array.from({ length: initialCount }).map((_, i) => ({
             id: Date.now() - i * 100000,
             name: getRandomUnique(FAKE_NAMES, usedNames),
@@ -85,7 +85,7 @@ export default function EventComments() {
             </h3>
             
             <div className="relative">
-                <div className="space-y-4 max-h-[320px] overflow-hidden">
+                <div className="space-y-4 max-h-[520px] overflow-hidden">
                     {comments.map(comment => (
                         <div key={comment.id} className="flex gap-3 animate-fade-in">
                             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs text-white/70">
