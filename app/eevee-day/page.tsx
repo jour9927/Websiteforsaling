@@ -49,9 +49,9 @@ export default function EeveeDayPage() {
 
     useEffect(() => {
         // 為了避免重整後數字變小，我們使用 localStorage 來記住使用者的最高數字
-        // 基礎數字設定在 412 (約 82.4%)
-        const base = 412;
-        const randomOffset = Math.floor(Math.random() * 8); // 0 ~ 7
+        // 因為今天是活動最後一天，設定在 485 (97%) 來製造「最後衝刺」的極限緊迫感
+        const base = 485;
+        const randomOffset = Math.floor(Math.random() * 8); // 485 ~ 492
         const newCount = Math.min(base + randomOffset, totalRewards);
         
         // 嘗試從 localStorage 讀取之前的數字
