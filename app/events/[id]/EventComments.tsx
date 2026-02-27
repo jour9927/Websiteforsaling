@@ -122,11 +122,13 @@ const BUG_COMMENTS = [
 ];
 
 // 固定 8 則靜態留言
+const STATIC_TIMES = ["剛剛", "1分鐘前", "3分鐘前", "5分鐘前", "12分鐘前", "半小時前", "1小時前", "今天稍早"];
+
 const STATIC_COMMENTS = Array.from({ length: 8 }).map((_, i) => ({
     id: i,
     name: FAKE_NAMES[i],
     text: BUG_COMMENTS[i],
-    time: `${i * 3 + 2}分鐘前`
+    time: STATIC_TIMES[i]
 }));
 
 const HIDDEN_COUNT = 143;
