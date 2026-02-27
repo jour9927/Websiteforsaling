@@ -35,12 +35,28 @@ export default function EventComments() {
     useEffect(() => {
         setHiddenCount(Math.floor(Math.random() * 40) + 120); // 隨機產生 120~160 則隱藏留言
 
+        // 為了避免重複，我們需要追蹤已經使用過的留言和名字
+        const usedNames = new Set<string>();
+        const usedComments = new Set<string>();
+
+        const getRandomUnique = (array: string[], usedSet: Set<string>) => {
+            // 如果所有選項都用過了，就清空重新開始
+            if (usedSet.size >= array.length) {
+                usedSet.clear();
+            }
+            
+            const available = array.filter(item => !usedSet.has(item));
+            const selected = available[Math.floor(Math.random() * available.length)];
+            usedSet.add(selected);
+            return selected;
+        };
+
         // 初始載入 4-6 則留言
         const initialCount = Math.floor(Math.random() * 3) + 4;
         const initialComments = Array.from({ length: initialCount }).map((_, i) => ({
             id: Date.now() - i * 100000,
-            name: FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)],
-            text: BUG_COMMENTS[Math.floor(Math.random() * BUG_COMMENTS.length)],
+            name: getRandomUnique(FAKE_NAMES, usedNames),
+            text: getRandomUnique(BUG_COMMENTS, usedComments),
             time: `${Math.floor(Math.random() * 10) + 1}分鐘前`
         }));
         setComments(initialComments);
@@ -50,8 +66,8 @@ export default function EventComments() {
             setComments(prev => {
                 const newComment = {
                     id: Date.now(),
-                    name: FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)],
-                    text: BUG_COMMENTS[Math.floor(Math.random() * BUG_COMMENTS.length)],
+                    name: getRandomUnique(FAKE_NAMES, usedNames),
+                    text: getRandomUnique(BUG_COMMENTS, usedComments),
                     time: "剛剛"
                 };
                 return [newComment, ...prev].slice(0, 8); // 最多保留 8 則
