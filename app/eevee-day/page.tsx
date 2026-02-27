@@ -48,11 +48,25 @@ export default function EeveeDayPage() {
     const [totalRewards] = useState(500); // 假設總共有 500 份獎勵
 
     useEffect(() => {
-        // 根據心理學，設定在 80%~90% 之間最能激發 FOMO (錯失恐懼症)
-        // 412 / 500 約為 82.4%
+        // 為了避免重整後數字變小，我們使用 localStorage 來記住使用者的最高數字
+        // 基礎數字設定在 412 (約 82.4%)
         const base = 412;
-        const randomOffset = Math.floor(Math.random() * 8); // 412 ~ 419 之間跳動
-        setClaimedCount(Math.min(base + randomOffset, totalRewards)); // 確保不超過總數
+        const randomOffset = Math.floor(Math.random() * 8); // 0 ~ 7
+        const newCount = Math.min(base + randomOffset, totalRewards);
+        
+        // 嘗試從 localStorage 讀取之前的數字
+        const savedCountStr = localStorage.getItem('eevee_day_claimed_count');
+        const savedCount = savedCountStr ? parseInt(savedCountStr, 10) : 0;
+        
+        // 確保數字只會增加，不會減少
+        const finalCount = Math.max(newCount, savedCount);
+        
+        // 如果新數字比舊數字大，或者還沒存過，就存起來
+        if (finalCount > savedCount) {
+            localStorage.setItem('eevee_day_claimed_count', finalCount.toString());
+        }
+        
+        setClaimedCount(finalCount);
     }, [totalRewards]);
 
     const loadStatus = async () => {
