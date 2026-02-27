@@ -72,6 +72,8 @@ export default function EventComments() {
                 };
                 return [newComment, ...prev].slice(0, 8); // 最多保留 8 則
             });
+            // 隱藏留言數也隨機增加 1~3 則
+            setHiddenCount(prev => prev + Math.floor(Math.random() * 3) + 1);
         }, 15000 + Math.random() * 15000);
 
         return () => clearInterval(interval);
