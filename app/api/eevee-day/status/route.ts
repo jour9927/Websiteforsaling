@@ -76,12 +76,12 @@ export async function GET() {
         availableDistributions = distributions || [];
     }
 
-    // 🎫 VIP補考券：6點用戶在最後一天可答題2次
+    // 🎫 VIP補考券：6點用戶在最後一天可答題3次 (給予更多機會)
     const todayStr = now.toDateString();
     const endStr = end.toDateString();
     const isLastDay = todayStr === endStr;
     const hasRetakeTicket = isLastDay && (stampCount || 0) === 6;
-    const maxAttempts = hasRetakeTicket ? 2 : EEVEE_DAY_CONFIG.dailyAttempts;
+    const maxAttempts = hasRetakeTicket ? 3 : EEVEE_DAY_CONFIG.dailyAttempts;
 
     return NextResponse.json({
         isActive,

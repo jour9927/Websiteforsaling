@@ -47,9 +47,9 @@ export async function GET() {
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id);
 
-    // 🎫 VIP補考券：6點用戶在最後一天可答題2次
-    const maxAttempts = (isLastDay && stampCount === 6) ? 2 : EEVEE_DAY_CONFIG.dailyAttempts;
-    const hasRetakeTicket = isLastDay && stampCount === 6 && attemptsToday === 1;
+    // 🎫 VIP補考券：6點用戶在最後一天可答題3次
+    const maxAttempts = (isLastDay && stampCount === 6) ? 3 : EEVEE_DAY_CONFIG.dailyAttempts;
+    const hasRetakeTicket = isLastDay && stampCount === 6 && attemptsToday < 2;
 
     if (attemptsToday >= maxAttempts) {
         return NextResponse.json({ error: "今日嘗試次數已用完" }, { status: 400 });
@@ -119,8 +119,8 @@ export async function POST(request: Request) {
         .select("*", { count: "exact", head: true })
         .eq("user_id", user.id);
 
-    // 🎫 VIP補考券：6點用戶在最後一天可答題2次
-    const maxAttempts = (isLastDay && stampCountBefore === 6) ? 2 : EEVEE_DAY_CONFIG.dailyAttempts;
+    // 🎫 VIP補考券：6點用戶在最後一天可答題3次
+    const maxAttempts = (isLastDay && stampCountBefore === 6) ? 3 : EEVEE_DAY_CONFIG.dailyAttempts;
 
     if (attemptsToday >= maxAttempts) {
         return NextResponse.json({ error: "今日嘗試次數已用完" }, { status: 400 });
