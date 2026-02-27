@@ -48,10 +48,10 @@ export default function EeveeDayPage() {
     const [totalRewards] = useState(500); // 假設總共有 500 份獎勵
 
     useEffect(() => {
-        // 產生一個看起來真實的隨機領取人數 (基於日期和時間，加上一點隨機性)
-        const today = new Date();
-        const base = 120 + today.getDate() * 3 + today.getHours() * 2;
-        const randomOffset = Math.floor(Math.random() * 15);
+        // 根據心理學，設定在 80%~90% 之間最能激發 FOMO (錯失恐懼症)
+        // 412 / 500 約為 82.4%
+        const base = 412;
+        const randomOffset = Math.floor(Math.random() * 8); // 412 ~ 419 之間跳動
         setClaimedCount(Math.min(base + randomOffset, totalRewards)); // 確保不超過總數
     }, [totalRewards]);
 
