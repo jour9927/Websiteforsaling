@@ -83,7 +83,6 @@ export default function EventComments() {
         <div className="glass-card mt-8 p-6">
             <h3 className="text-lg font-semibold text-white/90 mb-4 flex items-center gap-2">
                 <span>💬</span> 討論區
-                <span className="text-xs font-normal text-white/50 ml-2">即時更新中...</span>
             </h3>
             
             <div className="relative">
