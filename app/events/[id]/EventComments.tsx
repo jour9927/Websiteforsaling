@@ -61,22 +61,24 @@ export default function EventComments() {
         }));
         setComments(initialComments);
 
-        // 每 15-30 秒新增一則留言
-        const interval = setInterval(() => {
-            setComments(prev => {
+        // 每 15-30 秒新增一則留言，同時更新隱藏數
+        let timer: ReturnType<typeof setTimeout>;
+        const scheduleNext = () => {
+            timer = setTimeout(() => {
                 const newComment = {
                     id: Date.now(),
                     name: getRandomUnique(FAKE_NAMES, usedNames),
                     text: getRandomUnique(BUG_COMMENTS, usedComments),
                     time: "剛剛"
                 };
-                return [newComment, ...prev].slice(0, 8); // 最多保留 8 則
-            });
-            // 隱藏留言數也隨機增加 1~3 則
-            setHiddenCount(prev => prev + Math.floor(Math.random() * 3) + 1);
-        }, 15000 + Math.random() * 15000);
+                setComments(prev => [newComment, ...prev].slice(0, 8));
+                setHiddenCount(prev => prev + Math.floor(Math.random() * 3) + 1);
+                scheduleNext(); // 排下一輪
+            }, 15000 + Math.random() * 15000);
+        };
+        scheduleNext();
 
-        return () => clearInterval(interval);
+        return () => clearTimeout(timer);
     }, []);
 
     return (
