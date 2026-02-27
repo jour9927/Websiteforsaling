@@ -16,7 +16,7 @@ const BUG_COMMENTS = [
     "剩最後一個名額，但我點了沒反應 😭",
     "換了瀏覽器還是報名失敗，求救！",
     "是不是已經滿了只是數字沒更新啊？",
-    "剛剛問客服，好像是同時太多人點卡住了",
+    "剛剛問管理員，好像是同時太多人點卡住了",
     "有沒有人搶到最後一個名額啊？",
     "我點進去顯示錯誤代碼500...",
     "太扯了吧，我守在螢幕前還是點不進去",
@@ -80,6 +80,28 @@ export default function EventComments() {
                         </div>
                     </div>
                 ))}
+            </div>
+
+            {/* 假象留言輸入框與遮罩 */}
+            <div className="relative mt-6">
+                <div className="flex gap-3 opacity-40 blur-[1px] pointer-events-none">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm text-white/70">
+                        我
+                    </div>
+                    <div className="flex-1 flex items-center rounded-xl bg-white/5 px-4 py-2 border border-white/10">
+                        <span className="text-sm text-white/40">新增留言...</span>
+                    </div>
+                    <button className="rounded-xl bg-blue-500/50 px-4 py-2 text-sm font-semibold text-white/50">
+                        送出
+                    </button>
+                </div>
+                
+                {/* 遮罩層 */}
+                <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/20 backdrop-blur-[2px]">
+                    <div className="flex items-center gap-2 text-sm font-medium text-amber-300/90 bg-black/60 px-4 py-2 rounded-full border border-amber-500/30 shadow-lg">
+                        <span>🔒</span> 留言需群內成員資格
+                    </div>
+                </div>
             </div>
         </div>
     );
