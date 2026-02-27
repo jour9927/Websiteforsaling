@@ -272,12 +272,16 @@ export default function AuctionComments({
     const [user, setUser] = useState<{ id: string; name: string } | null>(null);
     const commentsEndRef = useRef<HTMLDivElement>(null);
 
-    // 追蹤已回覆的真實用戶（每人只回一次）
-    const repliedUsersRef = useRef<Set<string>>(new Set());
+    // 追蹤已回覆的真實用戶（每人回覆次數限制）
+    const repliedUsersRef = useRef<Map<string, number>>(new Map());
     // 追蹤模擬用戶（用於相互 @）
     const activeSimUsersRef = useRef<VirtualProfile[]>([]);
     // 快取的虛擬用戶列表
     const virtualProfilesRef = useRef<VirtualProfile[]>([]);
+    // 追蹤是否已初始化模擬留言（避免重複初始化）
+    const simulationInitializedRef = useRef(false);
+    // 用 ref 追蹤最新的 comments（避免 useEffect 依賴 comments state）
+    const commentsRef = useRef<Comment[]>([]);
 
     // 取得當前用戶
     useEffect(() => {
@@ -343,9 +347,24 @@ export default function AuctionComments({
         };
     }, [auctionId]);
 
+    // 同步 comments 到 ref（讓 useEffect 內部讀最新值，不觸發重跑）
+    useEffect(() => {
+        commentsRef.current = comments;
+    }, [comments]);
+
+    // 同步 simulatedComments 到 ref
+    const simulatedCommentsRef = useRef<Comment[]>([]);
+    useEffect(() => {
+        simulatedCommentsRef.current = simulatedComments;
+    }, [simulatedComments]);
+
     // 初始模擬留言 + 定時新增
     useEffect(() => {
         if (!isActive) return;
+
+        // 避免重複初始化（例如 React StrictMode 或依賴變化重跑）
+        if (simulationInitializedRef.current) return;
+        simulationInitializedRef.current = true;
 
         // 建立基於競標ID + 日期的種子隨機
         const today = new Date().toISOString().split('T')[0];
@@ -437,8 +456,8 @@ export default function AuctionComments({
                         else if (remainingMs > 300000) timeState = "剛開局不久";
                     }
 
-                    // 收集最近聊天上下文
-                    const recentChatCtx = [...comments, ...simulatedComments]
+                    // 收集最近聊天上下文（使用 ref 讀取最新值）
+                    const recentChatCtx = [...commentsRef.current, ...simulatedCommentsRef.current]
                         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                         .slice(-3)
                         .map(c => `${c.user_name}: ${c.content}`)
@@ -493,17 +512,19 @@ export default function AuctionComments({
         }, 15000 + Math.random() * 20000);
 
         return () => clearInterval(interval);
-    }, [isActive, auctionId, auctionTitle, currentPrice, endTime, comments]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isActive, auctionId]);
 
-    // 觸發模擬 @回覆（延遲 8-15 秒，只回一次，使用 LLM 生成）
+    // 觸發模擬 @回覆（延遲 8-15 秒，每個用戶最多回覆 3 次，使用 LLM 生成）
     const triggerSimulatedReply = useCallback((userName: string, userComment: string) => {
-        // 檢查是否已回覆過這個用戶
-        if (repliedUsersRef.current.has(userName)) {
-            return; // 已回覆過，不再回覆
+        // 每個用戶最多被回覆 3 次
+        const replyCount = repliedUsersRef.current.get(userName) || 0;
+        if (replyCount >= 3) {
+            return;
         }
 
-        // 標記為已回覆
-        repliedUsersRef.current.add(userName);
+        // 更新回覆計數
+        repliedUsersRef.current.set(userName, replyCount + 1);
 
         // 延遲 8-15 秒後回覆
         setTimeout(async () => {
@@ -511,8 +532,8 @@ export default function AuctionComments({
             let replyContent: string;
 
             try {
-                // 收集最近的聊天上下文
-                const allChats = [...comments, ...simulatedComments]
+                // 收集最近的聊天上下文（使用 ref 讀取最新值）
+                const allChats = [...commentsRef.current, ...simulatedCommentsRef.current]
                     .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
                     .slice(-5)
                     .map(c => `${c.user_name}: ${c.content}`)
@@ -548,9 +569,9 @@ export default function AuctionComments({
                 created_at: new Date().toISOString(),
                 is_simulated: true
             };
-            setSimulatedComments(prev => [...prev, newReply].slice(-12));
+            setSimulatedComments(prev => [...prev, newReply].slice(-25));
         }, 8000 + Math.random() * 7000); // 8-15 秒
-    }, [auctionTitle, comments, simulatedComments]);
+    }, [auctionTitle]);
 
     // 送出留言
     const handleSubmit = async (e: React.FormEvent) => {
