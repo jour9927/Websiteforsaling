@@ -122,7 +122,7 @@ const BUG_COMMENTS = [
 ];
 
 // 固定 8 則靜態留言
-const STATIC_TIMES = ["今天稍早", "今天稍早", "今天稍早", "今天稍早", "今天稍早", "今天稍早", "今天稍早", "今天稍早"];
+const STATIC_TIMES = ["昨天", "昨天", "昨天", "昨天", "昨天", "昨天", "昨天", "昨天"];
 
 const STATIC_COMMENTS = Array.from({ length: 8 }).map((_, i) => ({
     id: i,
