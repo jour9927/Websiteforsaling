@@ -1,7 +1,3 @@
-"use client";
-
-import { useState, useEffect } from "react";
-
 const FAKE_NAMES = [
     "王**", "李**", "張**", "陳**", "林**", "黃**", "吳**", "周**",
     "謝**", "趙**", "徐**", "馬**", "朱**", "胡**", "高**", "羅**",
@@ -125,58 +121,19 @@ const BUG_COMMENTS = [
     "如果搶不到我真的會哭出來"
 ];
 
+// 固定 8 則靜態留言
+const STATIC_COMMENTS = Array.from({ length: 8 }).map((_, i) => ({
+    id: i,
+    name: FAKE_NAMES[i],
+    text: BUG_COMMENTS[i],
+    time: `${i * 3 + 2}分鐘前`
+}));
+
+const HIDDEN_COUNT = 143;
+
 export default function EventComments() {
-    const [comments, setComments] = useState<{ id: number; name: string; text: string; time: string }[]>([]);
-    const [hiddenCount, setHiddenCount] = useState(0);
-
-    useEffect(() => {
-        setHiddenCount(Math.floor(Math.random() * 40) + 120); // 隨機產生 120~160 則隱藏留言
-
-        // 為了避免重複，我們需要追蹤已經使用過的留言和名字
-        const usedNames = new Set<string>();
-        const usedComments = new Set<string>();
-
-        const getRandomUnique = (array: string[], usedSet: Set<string>) => {
-            // 如果所有選項都用過了，就清空重新開始
-            if (usedSet.size >= array.length) {
-                usedSet.clear();
-            }
-            
-            const available = array.filter(item => !usedSet.has(item));
-            const selected = available[Math.floor(Math.random() * available.length)];
-            usedSet.add(selected);
-            return selected;
-        };
-
-        // 初始載入 8 則留言
-        const initialCount = 8;
-        const initialComments = Array.from({ length: initialCount }).map((_, i) => ({
-            id: Date.now() - i * 100000,
-            name: getRandomUnique(FAKE_NAMES, usedNames),
-            text: getRandomUnique(BUG_COMMENTS, usedComments),
-            time: `${Math.floor(Math.random() * 10) + 1}分鐘前`
-        }));
-        setComments(initialComments);
-
-        // 每 15-30 秒新增一則留言，同時更新隱藏數
-        let timer: ReturnType<typeof setTimeout>;
-        const scheduleNext = () => {
-            timer = setTimeout(() => {
-                const newComment = {
-                    id: Date.now(),
-                    name: getRandomUnique(FAKE_NAMES, usedNames),
-                    text: getRandomUnique(BUG_COMMENTS, usedComments),
-                    time: "剛剛"
-                };
-                setComments(prev => [newComment, ...prev].slice(0, 8));
-                setHiddenCount(prev => prev + Math.floor(Math.random() * 3) + 1);
-                scheduleNext(); // 排下一輪
-            }, 15000 + Math.random() * 15000);
-        };
-        scheduleNext();
-
-        return () => clearTimeout(timer);
-    }, []);
+    const comments = STATIC_COMMENTS;
+    const hiddenCount = HIDDEN_COUNT;
 
     return (
         <div className="glass-card mt-8 p-6">
