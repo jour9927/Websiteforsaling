@@ -49,9 +49,9 @@ export default function EeveeDayPage() {
 
     useEffect(() => {
         // 為了避免重整後數字變小，我們使用 localStorage 來記住使用者的最高數字
-        // 恢復為 412~419 的漸進式區間
-        const base = 412;
-        const randomOffset = Math.floor(Math.random() * 8); // 412 ~ 419
+        // 改為 472~479 的區間
+        const base = 472;
+        const randomOffset = Math.floor(Math.random() * 8); // 472 ~ 479
         const newCount = Math.min(base + randomOffset, totalRewards);
         
         // 嘗試從 localStorage 讀取之前的數字
@@ -59,7 +59,7 @@ export default function EeveeDayPage() {
         let savedCount = savedCountStr ? parseInt(savedCountStr, 10) : 0;
         
         // 如果之前存的數字太高（例如之前測試的 485+），強制重置回目前的區間
-        if (savedCount > 450) {
+        if (savedCount > 480) {
             savedCount = 0;
         }
         
