@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
         }
 
         // 隨機抽選一位虛擬發言人的名字
-        const chatbotNameOptions = ["小智", "色違獵人", "VGC選手", "Red", "圖鑑收集狂", "孵蛋廢人", "路人A", "大佬", "新手報到", "想抽籤的非洲人"];
+        const chatbotNameOptions = ["王**", "李**", "張**", "陳**", "林**", "黃**", "周**", "謝**", "劉**", "趙**", "江**", "羅**", "L***", "K***", "M***", "S***", "T***", "A***", "J***", "D***", "會員#0892", "會員#1234", "會員#3456", "會員#5678", "會員#7890", "會員#0321", "會員#4399", "會員#9527"];
         const chatbotName = chatbotNameOptions[Math.floor(Math.random() * chatbotNameOptions.length)];
 
         // 隨機選擇自發性發言的策略
