@@ -49,14 +49,19 @@ export default function EeveeDayPage() {
 
     useEffect(() => {
         // 為了避免重整後數字變小，我們使用 localStorage 來記住使用者的最高數字
-        // 因為今天是活動最後一天，設定在 485 (97%) 來製造「最後衝刺」的極限緊迫感
-        const base = 485;
-        const randomOffset = Math.floor(Math.random() * 8); // 485 ~ 492
+        // 恢復為 412~419 的漸進式區間
+        const base = 412;
+        const randomOffset = Math.floor(Math.random() * 8); // 412 ~ 419
         const newCount = Math.min(base + randomOffset, totalRewards);
         
         // 嘗試從 localStorage 讀取之前的數字
         const savedCountStr = localStorage.getItem('eevee_day_claimed_count');
-        const savedCount = savedCountStr ? parseInt(savedCountStr, 10) : 0;
+        let savedCount = savedCountStr ? parseInt(savedCountStr, 10) : 0;
+        
+        // 如果之前存的數字太高（例如之前測試的 485+），強制重置回目前的區間
+        if (savedCount > 450) {
+            savedCount = 0;
+        }
         
         // 確保數字只會增加，不會減少
         const finalCount = Math.max(newCount, savedCount);
