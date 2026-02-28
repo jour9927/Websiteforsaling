@@ -174,6 +174,23 @@ function SortableWishlistItem({
     );
 }
 
+type Registration = {
+    id: string;
+    status: string;
+    registered_at: string;
+    events: RegistrationEvent | RegistrationEvent[] | null;
+};
+
+type RegistrationEvent = {
+    id: string;
+    title: string;
+    image_url: string | null;
+    visual_card_url: string | null;
+    start_date: string | null;
+    end_date: string | null;
+    estimated_value: number | null;
+};
+
 type PersonalSpaceContentProps = {
     user: User;
     profile: Profile | null;
@@ -188,6 +205,7 @@ type PersonalSpaceContentProps = {
     publicPerceptions?: PublicPerception[];
     distributionStats?: { count: number; totalPoints: number };
     topDistributions?: FeaturedDistribution[];
+    registrations?: Registration[];
 };
 
 type FeaturedDistribution = {
@@ -225,6 +243,7 @@ export function PersonalSpaceContent({
     publicPerceptions = [],
     distributionStats,
     topDistributions = [],
+    registrations = [],
 }: PersonalSpaceContentProps) {
     const { maintenanceMode: COMMENTS_MAINTENANCE_MODE } = useMaintenanceMode();
     const router = useRouter();
@@ -830,6 +849,77 @@ export function PersonalSpaceContent({
                         </button>
                     </div>
                 </div>
+            )}
+
+            {/* 📋 參加紀錄 */}
+            {registrations.length > 0 && (
+                <section className="glass-card p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-white">📋 參加紀錄</h2>
+                        <span className="text-xs text-white/40">共 {registrations.length} 場活動</span>
+                    </div>
+                    <div className="space-y-3">
+                        {registrations.map((reg) => {
+                            const event = (Array.isArray(reg.events) ? reg.events[0] : reg.events) as RegistrationEvent | null;
+                            if (!event) return null;
+                            const imageUrl = event.visual_card_url || event.image_url;
+                            const regDate = new Date(reg.registered_at);
+                            const startDate = event.start_date ? new Date(event.start_date) : null;
+                            const endDate = event.end_date ? new Date(event.end_date) : null;
+                            const now = new Date();
+                            const isPast = endDate && endDate < now;
+                            const isOngoing = startDate && endDate && startDate <= now && now <= endDate;
+
+                            return (
+                                <Link
+                                    key={reg.id}
+                                    href={`/events/${event.id}` as never}
+                                    className="flex items-center gap-3 rounded-xl bg-white/5 p-3 hover:bg-white/10 transition group"
+                                >
+                                    {/* 活動圖片 */}
+                                    <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-white/10">
+                                        {imageUrl ? (
+                                            <Image
+                                                src={imageUrl}
+                                                alt={event.title}
+                                                fill
+                                                className="object-cover"
+                                            />
+                                        ) : (
+                                            <div className="flex h-full items-center justify-center text-xl">🎫</div>
+                                        )}
+                                    </div>
+                                    {/* 資訊 */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-medium text-white truncate group-hover:text-amber-200 transition">
+                                            {event.title}
+                                        </p>
+                                        <div className="flex items-center gap-2 mt-1">
+                                            <span className="text-[11px] text-white/40">
+                                                {regDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'short', day: 'numeric' })} 報名
+                                            </span>
+                                            {startDate && (
+                                                <span className="text-[11px] text-white/30">
+                                                    · {startDate.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {/* 狀態標籤 */}
+                                    <div className="flex-shrink-0">
+                                        {isOngoing ? (
+                                            <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-medium text-green-300">進行中</span>
+                                        ) : isPast ? (
+                                            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/40">已結束</span>
+                                        ) : (
+                                            <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-medium text-blue-300">即將開始</span>
+                                        )}
+                                    </div>
+                                </Link>
+                            );
+                        })}
+                    </div>
+                </section>
             )}
 
             {/* 願望清單 */}

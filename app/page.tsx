@@ -144,7 +144,7 @@ export default async function HomePage() {
     }));
   }
 
-  // 載入用戶收藏（用於精選展示）
+  // 載入用戶收藏（用於統計）
   const { data: userItems } = await supabase
     .from("user_items")
     .select(`
@@ -152,6 +152,17 @@ export default async function HomePage() {
       events (id, title, image_url, visual_card_url, estimated_value, series_tag)
     `)
     .eq("user_id", user.id);
+
+  // 載入用戶參加紀錄
+  const { data: userRegistrations } = await supabase
+    .from("registrations")
+    .select(`
+      id, status, registered_at,
+      events (id, title, image_url, visual_card_url, start_date, end_date, estimated_value)
+    `)
+    .eq("user_id", user.id)
+    .eq("status", "confirmed")
+    .order("registered_at", { ascending: false });
 
   // 載入配布圖鑑收藏（帶完整配布資料）
   const { data: userDistributions } = await supabase
@@ -229,6 +240,7 @@ export default async function HomePage() {
         publicPerceptions={publicPerceptions || []}
         distributionStats={distributionStats}
         topDistributions={topDistributions}
+        registrations={userRegistrations || []}
       />
     </div>
   );

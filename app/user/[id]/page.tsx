@@ -415,6 +415,17 @@ export default async function UserProfilePage({ params }: Props) {
     `)
         .eq("user_id", userId);
 
+    // 載入用戶參加紀錄
+    const { data: userRegistrations } = await supabase
+        .from("registrations")
+        .select(`
+      id, status, registered_at,
+      events (id, title, image_url, visual_card_url, start_date, end_date, estimated_value)
+    `)
+        .eq("user_id", userId)
+        .eq("status", "confirmed")
+        .order("registered_at", { ascending: false });
+
     // 載入配布圖鑑收藏（帶完整配布資料）
     const { data: userDistributions } = await supabase
         .from("user_distributions")
@@ -480,6 +491,7 @@ export default async function UserProfilePage({ params }: Props) {
             }
             distributionStats={distributionStats}
             topDistributions={topDistributions}
+            registrations={userRegistrations || []}
         />
     );
 }
