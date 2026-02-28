@@ -16,8 +16,28 @@ function isUUID(str: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 }
 
+// 確保色違寶可夢使用正確的 shiny sprite URL
+function getSpriteUrl(dist: { pokemon_sprite_url?: string; is_shiny?: boolean }): string | undefined {
+    if (!dist.pokemon_sprite_url) return undefined;
+    if (dist.is_shiny && !dist.pokemon_sprite_url.includes('/shiny/')) {
+        return dist.pokemon_sprite_url.replace('/sprites/pokemon/', '/sprites/pokemon/shiny/');
+    }
+    return dist.pokemon_sprite_url;
+}
+
+type FeaturedDist = {
+    id: string;
+    pokemon_name: string;
+    pokemon_name_en?: string;
+    pokemon_sprite_url?: string;
+    points?: number;
+    generation: number;
+    is_shiny?: boolean;
+    event_name?: string;
+};
+
 // 虛擬用戶完整頁面元件（與真實用戶一樣豐富）
-function VirtualUserPage({ profile, virtualId, featuredEvents }: {
+function VirtualUserPage({ profile, virtualId, featuredDistributions }: {
     virtualId: string;
     profile: {
         display_name: string;
@@ -33,18 +53,13 @@ function VirtualUserPage({ profile, virtualId, featuredEvents }: {
         popularity_score?: number;
         followers_count?: number;
     };
-    featuredEvents: Array<{
-        id: string;
-        title: string;
-        image_url: string | null;
-        visual_card_url: string | null;
-    }>;
+    featuredDistributions: FeaturedDist[];
 }) {
-    // 假的願望清單
-    const fakeWishlists = featuredEvents.slice(0, 3).map((event, index) => ({
+    // 假的願望清單（用配布寶可夢）
+    const fakeWishlists = featuredDistributions.slice(0, 3).map((dist, index) => ({
         id: `wish-${index}`,
-        title: event.title,
-        image: event.visual_card_url || event.image_url,
+        title: dist.pokemon_name,
+        image: getSpriteUrl(dist) || null,
         note: ['超想要！', '夢寐以求', '求收'][index] || null
     }));
 
@@ -129,39 +144,62 @@ function VirtualUserPage({ profile, virtualId, featuredEvents }: {
                 </div>
             </section>
 
-            {/* 精選收藏展示 */}
+            {/* 精選收藏展示：配布寶可夢貴重程度前 10 名 */}
             <section className="glass-card p-6">
-                <h2 className="mb-4 text-lg font-semibold text-white">🏆 精選收藏</h2>
-                {featuredEvents.length > 0 ? (
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold text-white">🏆 精選收藏</h2>
+                    <Link
+                        href="/pokedex"
+                        className="text-sm text-white/60 hover:text-white transition"
+                    >
+                        查看配布圖鑑 →
+                    </Link>
+                </div>
+                {featuredDistributions.length > 0 ? (
                     <div className="grid grid-cols-5 gap-3 md:grid-cols-10">
-                        {featuredEvents.slice(0, 10).map((event, index) => {
-                            const imageUrl = event.visual_card_url || event.image_url;
+                        {featuredDistributions.map((dist, index) => {
+                            const spriteUrl = getSpriteUrl(dist);
                             return (
                                 <div
-                                    key={event.id}
-                                    className="group relative aspect-square overflow-hidden rounded-lg bg-white/10"
+                                    key={dist.id}
+                                    className="group relative aspect-square overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/10 hover:ring-amber-400/50 transition-all"
                                 >
-                                    {imageUrl ? (
+                                    {spriteUrl ? (
                                         <Image
-                                            src={imageUrl}
-                                            alt={event.title || "收藏"}
+                                            src={spriteUrl}
+                                            alt={dist.pokemon_name}
                                             fill
-                                            className="object-cover transition group-hover:scale-110"
+                                            className="object-contain p-1 transition group-hover:scale-110"
                                         />
                                     ) : (
-                                        <div className="flex h-full items-center justify-center text-2xl">
-                                            🎴
-                                        </div>
+                                        <div className="flex h-full items-center justify-center text-2xl">🐾</div>
                                     )}
-                                    <div className="absolute left-1 top-1 rounded-full bg-black/50 px-1.5 text-xs text-white">
+                                    {/* 排名徽章 */}
+                                    <div className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                                        index === 0 ? "bg-amber-500 text-black" :
+                                        index === 1 ? "bg-gray-300 text-black" :
+                                        index === 2 ? "bg-amber-700 text-white" :
+                                        "bg-black/60 text-amber-300"
+                                    }`}>
                                         #{index + 1}
+                                    </div>
+                                    {/* 異色標記 */}
+                                    {dist.is_shiny && (
+                                        <div className="absolute right-1 top-1 text-[12px]">✨</div>
+                                    )}
+                                    {/* Hover overlay */}
+                                    <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/30 to-transparent p-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                        <p className="truncate text-[10px] font-medium text-white leading-tight">{dist.pokemon_name}</p>
+                                        {(dist.points || 0) > 0 && (
+                                            <p className="text-[9px] text-amber-400 font-semibold">{(dist.points || 0).toLocaleString()} pts</p>
+                                        )}
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
                 ) : (
-                    <p className="text-center text-white/50">尚未有收藏</p>
+                    <p className="text-center text-white/50">尚未收集配布寶可夢</p>
                 )}
             </section>
 
@@ -267,15 +305,22 @@ export default async function UserProfilePage({ params }: Props) {
             .single();
 
         if (virtualProfile) {
-            // 是虛擬用戶，抓取活動作為精選收藏
-            const { data: events } = await supabase
-                .from("events")
-                .select("id, title, image_url, visual_card_url")
-                .eq("status", "published")
-                .order("created_at", { ascending: false })
-                .limit(10);
+            // 是虛擬用戶，抽取隨機配布寶可夢作為精選收藏
+            // 用 virtualId 的 hash 作為種子，確保同一虛擬用戶每次看到的配布相同
+            const { data: allDists } = await supabase
+                .from("distributions")
+                .select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, points, generation, is_shiny, event_name")
+                .gt("points", 0)
+                .order("points", { ascending: false });
 
-            return <VirtualUserPage virtualId={idOrUsername} profile={virtualProfile} featuredEvents={events || []} />;
+            // 確定性隨機：用 virtualId 生成種子
+            const seed = idOrUsername.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
+            const shuffled = (allDists || []).map((d, i) => ({ d, sort: Math.sin(seed * (i + 1)) }));
+            shuffled.sort((a, b) => a.sort - b.sort);
+            const featured = shuffled.slice(0, 10).map(s => s.d)
+                .sort((a, b) => (b.points || 0) - (a.points || 0));
+
+            return <VirtualUserPage virtualId={idOrUsername} profile={virtualProfile} featuredDistributions={featured} />;
         }
     }
 
