@@ -82,7 +82,7 @@ export default function ShopContent({
 
     // 篩選
     const filteredDistributions = useMemo(() => {
-        let result = distributions.filter((dist) => {
+        const result = distributions.filter((dist) => {
             if (selectedGen && dist.generation !== selectedGen) return false;
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
