@@ -370,10 +370,10 @@ export default async function UserProfilePage({ params }: Props) {
     `)
         .eq("user_id", userId);
 
-    // 載入配布圖鑑收藏
+    // 載入配布圖鑑收藏（帶完整配布資料）
     const { data: userDistributions } = await supabase
         .from("user_distributions")
-        .select("distribution_id, distributions(points)")
+        .select("distribution_id, distributions(id, pokemon_name, pokemon_name_en, pokemon_sprite_url, points, generation, is_shiny, event_name, game_titles)")
         .eq("user_id", userId);
 
     const distributionStats = {
@@ -383,6 +383,16 @@ export default async function UserProfilePage({ params }: Props) {
             return sum + ((dist as { points?: number })?.points || 0);
         }, 0) || 0,
     };
+
+    // 精選配布：按 points 最高取前 10 筆
+    const topDistributions = (userDistributions || [])
+        .map(ud => {
+            const dist = Array.isArray(ud.distributions) ? ud.distributions[0] : ud.distributions;
+            return dist as { id: string; pokemon_name: string; pokemon_name_en?: string; pokemon_sprite_url?: string; points?: number; generation: number; is_shiny?: boolean; event_name?: string; game_titles?: string[] } | null;
+        })
+        .filter((d): d is NonNullable<typeof d> => d !== null && (d.points || 0) > 0)
+        .sort((a, b) => (b.points || 0) - (a.points || 0))
+        .slice(0, 10);
 
     // 載入所有可願望的活動（如果是自己的頁面才需要）
     const { data: allEvents } = await supabase
@@ -424,6 +434,7 @@ export default async function UserProfilePage({ params }: Props) {
                 (recentVisitors?.map((v: any) => v.visitor).filter(Boolean) || []) as any
             }
             distributionStats={distributionStats}
+            topDistributions={topDistributions}
         />
     );
 }

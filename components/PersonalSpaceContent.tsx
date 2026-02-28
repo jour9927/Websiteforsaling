@@ -187,6 +187,19 @@ type PersonalSpaceContentProps = {
     publicImage?: PublicImage | null;
     publicPerceptions?: PublicPerception[];
     distributionStats?: { count: number; totalPoints: number };
+    topDistributions?: FeaturedDistribution[];
+};
+
+type FeaturedDistribution = {
+    id: string;
+    pokemon_name: string;
+    pokemon_name_en?: string;
+    pokemon_sprite_url?: string;
+    points?: number;
+    generation: number;
+    is_shiny?: boolean;
+    event_name?: string;
+    game_titles?: string[];
 };
 
 export function PersonalSpaceContent({
@@ -202,6 +215,7 @@ export function PersonalSpaceContent({
     publicImage,
     publicPerceptions = [],
     distributionStats,
+    topDistributions = [],
 }: PersonalSpaceContentProps) {
     const { maintenanceMode: COMMENTS_MAINTENANCE_MODE } = useMaintenanceMode();
     const router = useRouter();
@@ -209,7 +223,7 @@ export function PersonalSpaceContent({
     const [replyTo, setReplyTo] = useState<string | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [showWishlistModal, setShowWishlistModal] = useState(false);
-    const [featuredPreview, setFeaturedPreview] = useState<{ title: string; imageUrl: string | null; value: number; series: string | null; quantity: number } | null>(null);
+    const [featuredPreview, setFeaturedPreview] = useState<FeaturedDistribution | null>(null);
 
     // 願望清單本地狀態（用於排序）
     const [localWishlists, setLocalWishlists] = useState(wishlists);
@@ -454,14 +468,7 @@ export function PersonalSpaceContent({
     const totalItems = itemCount + (distributionStats?.count || 0);
     const totalValue = itemValue + (distributionStats?.totalPoints || 0);
 
-    // 取得精選展示的收藏（按估值最高排序，取前 10 筆）
-    const featuredItems = [...userItems]
-        .sort((a, b) => {
-            const aEvent = Array.isArray(a.events) ? a.events[0] : a.events;
-            const bEvent = Array.isArray(b.events) ? b.events[0] : b.events;
-            return ((bEvent?.estimated_value || 0) * b.quantity) - ((aEvent?.estimated_value || 0) * a.quantity);
-        })
-        .slice(0, 10);
+    // 精選配布已由 Server Component 傳入 topDistributions
 
     // 提交留言
     const handleSubmitComment = async () => {
@@ -692,110 +699,118 @@ export function PersonalSpaceContent({
                 </div>
             </section>
 
-            {/* 精選收藏展示 */}
+            {/* 精選收藏展示：已收集的寶可夢貴重程度前 10 名 */}
             <section className="glass-card p-6">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-lg font-semibold text-white">🏆 精選收藏</h2>
                     <Link
-                        href="/collection"
+                        href="/pokedex"
                         className="text-sm text-white/60 hover:text-white transition"
                     >
-                        查看完整收藏 →
+                        查看配布圖鑑 →
                     </Link>
                 </div>
-                {featuredItems.length > 0 ? (
+                {topDistributions.length > 0 ? (
                     <div className="grid grid-cols-5 gap-3 md:grid-cols-10">
-                        {featuredItems.map((item, index) => {
-                            const event = Array.isArray(item.events) ? item.events[0] : item.events;
-                            const imageUrl = event?.visual_card_url || event?.image_url || null;
-                            const value = (event?.estimated_value || 0) * item.quantity;
-                            return (
-                                <div
-                                    key={item.id}
-                                    className="group relative aspect-square overflow-hidden rounded-lg bg-white/10 cursor-pointer ring-1 ring-white/10 hover:ring-amber-400/50 transition-all"
-                                    onClick={() => setFeaturedPreview({
-                                        title: event?.title || "收藏",
-                                        imageUrl,
-                                        value,
-                                        series: event?.series_tag || null,
-                                        quantity: item.quantity,
-                                    })}
-                                >
-                                    {imageUrl ? (
-                                        <Image
-                                            src={imageUrl}
-                                            alt={event?.title || "收藏"}
-                                            fill
-                                            className="object-cover transition group-hover:scale-110"
-                                        />
-                                    ) : (
-                                        <div className="flex h-full items-center justify-center text-2xl">
-                                            🎴
-                                        </div>
-                                    )}
-                                    {/* 排名徽章 */}
-                                    <div className="absolute left-1 top-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
-                                        #{index + 1}
-                                    </div>
-                                    {/* 數量徽章 */}
-                                    {item.quantity > 1 && (
-                                        <div className="absolute right-1 top-1 rounded-full bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-black">
-                                            ×{item.quantity}
-                                        </div>
-                                    )}
-                                    {/* Hover overlay：名稱 + 估值 */}
-                                    <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/30 to-transparent p-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                                        <p className="truncate text-[11px] font-medium text-white leading-tight">{event?.title}</p>
-                                        {value > 0 && (
-                                            <p className="text-[10px] text-amber-400 font-semibold">¥{value.toLocaleString()}</p>
-                                        )}
-                                    </div>
+                        {topDistributions.map((dist, index) => (
+                            <div
+                                key={dist.id}
+                                className="group relative aspect-square overflow-hidden rounded-xl bg-white/10 cursor-pointer ring-1 ring-white/10 hover:ring-amber-400/50 transition-all"
+                                onClick={() => setFeaturedPreview(dist)}
+                            >
+                                {/* 寶可夢圖片 */}
+                                {dist.pokemon_sprite_url ? (
+                                    <Image
+                                        src={dist.pokemon_sprite_url}
+                                        alt={dist.pokemon_name}
+                                        fill
+                                        className="object-contain p-1 transition group-hover:scale-110"
+                                    />
+                                ) : (
+                                    <div className="flex h-full items-center justify-center text-2xl">🐾</div>
+                                )}
+                                {/* 排名徽章 */}
+                                <div className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
+                                    index === 0 ? "bg-amber-500 text-black" :
+                                    index === 1 ? "bg-gray-300 text-black" :
+                                    index === 2 ? "bg-amber-700 text-white" :
+                                    "bg-black/60 text-amber-300"
+                                }`}>
+                                    #{index + 1}
                                 </div>
-                            );
-                        })}
+                                {/* 異色標記 */}
+                                {dist.is_shiny && (
+                                    <div className="absolute right-1 top-1 text-[12px]">✨</div>
+                                )}
+                                {/* Hover overlay：名稱 + 點數 */}
+                                <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/30 to-transparent p-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                    <p className="truncate text-[10px] font-medium text-white leading-tight">{dist.pokemon_name}</p>
+                                    {(dist.points || 0) > 0 && (
+                                        <p className="text-[9px] text-amber-400 font-semibold">{(dist.points || 0).toLocaleString()} pts</p>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 ) : (
-                    <p className="text-center text-white/50">尚未有收藏</p>
+                    <p className="text-center text-white/50">尚未收集配布寶可夢</p>
                 )}
             </section>
 
-            {/* 精選收藏大圖彈窗 */}
+            {/* 精選收藏彈窗：配布詳情 */}
             {featuredPreview && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
                     onClick={() => setFeaturedPreview(null)}
                 >
                     <div
-                        className="relative w-full max-w-sm rounded-2xl overflow-hidden bg-gray-900 border border-white/10 shadow-2xl"
+                        className="relative w-full max-w-xs rounded-2xl overflow-hidden bg-gray-900 border border-white/10 shadow-2xl"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {/* 大圖 */}
-                        <div className="relative aspect-[3/4] w-full">
-                            {featuredPreview.imageUrl ? (
+                        {/* 寶可夢圖片 */}
+                        <div className="relative aspect-square w-full bg-gradient-to-br from-white/10 to-white/5">
+                            {featuredPreview.pokemon_sprite_url ? (
                                 <Image
-                                    src={featuredPreview.imageUrl}
-                                    alt={featuredPreview.title}
+                                    src={featuredPreview.pokemon_sprite_url}
+                                    alt={featuredPreview.pokemon_name}
                                     fill
-                                    className="object-cover"
+                                    className="object-contain p-4"
                                 />
                             ) : (
-                                <div className="flex h-full items-center justify-center bg-white/5 text-6xl">🎴</div>
+                                <div className="flex h-full items-center justify-center text-6xl">🐾</div>
+                            )}
+                            {featuredPreview.is_shiny && (
+                                <div className="absolute left-3 top-3 rounded-full bg-yellow-500/20 px-2 py-0.5 text-xs text-yellow-300">✨ 異色</div>
                             )}
                         </div>
                         {/* 資訊 */}
-                        <div className="p-4 space-y-1">
-                            <h3 className="text-lg font-semibold text-white">{featuredPreview.title}</h3>
-                            <div className="flex items-center gap-3 text-sm">
-                                {featuredPreview.value > 0 && (
-                                    <span className="text-amber-400 font-semibold">估值 ¥{featuredPreview.value.toLocaleString()}</span>
-                                )}
-                                {featuredPreview.quantity > 1 && (
-                                    <span className="text-white/60">×{featuredPreview.quantity}</span>
-                                )}
-                                {featuredPreview.series && (
-                                    <span className="text-white/40 text-xs">{featuredPreview.series}</span>
+                        <div className="p-4 space-y-2">
+                            <div>
+                                <h3 className="text-lg font-semibold text-white">{featuredPreview.pokemon_name}</h3>
+                                {featuredPreview.pokemon_name_en && (
+                                    <p className="text-xs text-white/40">{featuredPreview.pokemon_name_en}</p>
                                 )}
                             </div>
+                            <div className="flex flex-wrap items-center gap-2 text-sm">
+                                {(featuredPreview.points || 0) > 0 && (
+                                    <span className="rounded-full bg-amber-500/20 px-2.5 py-0.5 text-amber-300 font-semibold text-xs">
+                                        {(featuredPreview.points || 0).toLocaleString()} pts
+                                    </span>
+                                )}
+                                <span className="rounded-full bg-white/10 px-2 py-0.5 text-white/60 text-xs">
+                                    第 {featuredPreview.generation} 世代
+                                </span>
+                            </div>
+                            {featuredPreview.event_name && (
+                                <p className="text-xs text-white/50">🎟️ {featuredPreview.event_name}</p>
+                            )}
+                            {featuredPreview.game_titles && featuredPreview.game_titles.length > 0 && (
+                                <div className="flex flex-wrap gap-1">
+                                    {featuredPreview.game_titles.map((g, i) => (
+                                        <span key={i} className="rounded bg-indigo-500/20 px-1.5 py-0.5 text-[10px] text-indigo-300">🎮 {g}</span>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                         {/* 關閉鈕 */}
                         <button
