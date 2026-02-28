@@ -858,14 +858,13 @@ export function PersonalSpaceContent({
                         <h2 className="text-lg font-semibold text-white">📋 參加紀錄</h2>
                         <span className="text-xs text-white/40">共 {registrations.length} 場活動</span>
                     </div>
-                    <div className="space-y-3">
+                    <div className="grid grid-cols-5 gap-3 md:grid-cols-10">
                         {registrations.map((reg) => {
                             const event = (Array.isArray(reg.events) ? reg.events[0] : reg.events) as RegistrationEvent | null;
                             if (!event) return null;
                             const imageUrl = event.visual_card_url || event.image_url;
-                            const regDate = new Date(reg.registered_at);
-                            const startDate = event.start_date ? new Date(event.start_date) : null;
                             const endDate = event.end_date ? new Date(event.end_date) : null;
+                            const startDate = event.start_date ? new Date(event.start_date) : null;
                             const now = new Date();
                             const isPast = endDate && endDate < now;
                             const isOngoing = startDate && endDate && startDate <= now && now <= endDate;
@@ -874,45 +873,34 @@ export function PersonalSpaceContent({
                                 <Link
                                     key={reg.id}
                                     href={`/events/${event.id}` as never}
-                                    className="flex items-center gap-3 rounded-xl bg-white/5 p-3 hover:bg-white/10 transition group"
+                                    className="group relative aspect-square overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/10 hover:ring-amber-400/50 transition-all"
                                 >
                                     {/* 活動圖片 */}
-                                    <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-white/10">
-                                        {imageUrl ? (
-                                            <Image
-                                                src={imageUrl}
-                                                alt={event.title}
-                                                fill
-                                                className="object-cover"
-                                            />
+                                    {imageUrl ? (
+                                        <Image
+                                            src={imageUrl}
+                                            alt={event.title}
+                                            fill
+                                            className="object-cover transition group-hover:scale-110"
+                                        />
+                                    ) : (
+                                        <div className="flex h-full items-center justify-center text-2xl">🎫</div>
+                                    )}
+                                    {/* 狀態徽章 */}
+                                    <div className="absolute left-1 top-1">
+                                        {isOngoing ? (
+                                            <span className="rounded-full bg-green-500/80 px-1.5 py-0.5 text-[9px] font-bold text-white shadow">進行中</span>
+                                        ) : isPast ? (
+                                            <span className="rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white/60">已結束</span>
                                         ) : (
-                                            <div className="flex h-full items-center justify-center text-xl">🎫</div>
+                                            <span className="rounded-full bg-blue-500/80 px-1.5 py-0.5 text-[9px] font-bold text-white shadow">即將</span>
                                         )}
                                     </div>
-                                    {/* 資訊 */}
-                                    <div className="flex-1 min-w-0">
-                                        <p className="text-sm font-medium text-white truncate group-hover:text-amber-200 transition">
-                                            {event.title}
-                                        </p>
-                                        <div className="flex items-center gap-2 mt-1">
-                                            <span className="text-[11px] text-white/40">
-                                                {regDate.toLocaleDateString('zh-TW', { year: 'numeric', month: 'short', day: 'numeric' })} 報名
-                                            </span>
-                                            {startDate && (
-                                                <span className="text-[11px] text-white/30">
-                                                    · {startDate.toLocaleDateString('zh-TW', { month: 'short', day: 'numeric' })}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    {/* 狀態標籤 */}
-                                    <div className="flex-shrink-0">
-                                        {isOngoing ? (
-                                            <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-[10px] font-medium text-green-300">進行中</span>
-                                        ) : isPast ? (
-                                            <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-medium text-white/40">已結束</span>
-                                        ) : (
-                                            <span className="rounded-full bg-blue-500/20 px-2 py-0.5 text-[10px] font-medium text-blue-300">即將開始</span>
+                                    {/* Hover overlay：活動名稱 */}
+                                    <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/30 to-transparent p-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                        <p className="truncate text-[10px] font-medium text-white leading-tight">{event.title}</p>
+                                        {(event.estimated_value || 0) > 0 && (
+                                            <p className="text-[9px] text-amber-400 font-semibold">${(event.estimated_value || 0).toLocaleString()}</p>
                                         )}
                                     </div>
                                 </Link>
