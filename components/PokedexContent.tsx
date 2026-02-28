@@ -401,6 +401,20 @@ export default function PokedexContent({
                                 ) : "—"}
                             </p>
 
+                            {/* 遊戲版本 */}
+                            {dist.game_titles && dist.game_titles.length > 0 && (
+                                <div className="mt-1.5 flex flex-wrap justify-center gap-1 px-1">
+                                    {dist.game_titles.map((title, i) => (
+                                        <span
+                                            key={i}
+                                            className="inline-block px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/15 text-indigo-300/80 border border-indigo-500/20 leading-tight"
+                                        >
+                                            🎮 {title}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+
                             {/* 獲取方式 */}
                             <div className="mt-1.5 text-center">
                                 <span className={`inline-block px-2 py-0.5 rounded text-xs ${dist.distribution_method?.includes("序號") ? "bg-blue-500/20 text-blue-400" :
