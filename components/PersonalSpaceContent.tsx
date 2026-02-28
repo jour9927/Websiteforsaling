@@ -202,6 +202,15 @@ type FeaturedDistribution = {
     game_titles?: string[];
 };
 
+// 確保色違寶可夢使用正確的 shiny sprite URL
+function getDistSpriteUrl(dist: FeaturedDistribution): string | undefined {
+    if (!dist.pokemon_sprite_url) return undefined;
+    if (dist.is_shiny && !dist.pokemon_sprite_url.includes('/shiny/')) {
+        return dist.pokemon_sprite_url.replace('/sprites/pokemon/', '/sprites/pokemon/shiny/');
+    }
+    return dist.pokemon_sprite_url;
+}
+
 export function PersonalSpaceContent({
     user,
     profile,
@@ -719,9 +728,9 @@ export function PersonalSpaceContent({
                                 onClick={() => setFeaturedPreview(dist)}
                             >
                                 {/* 寶可夢圖片 */}
-                                {dist.pokemon_sprite_url ? (
+                                {getDistSpriteUrl(dist) ? (
                                     <Image
-                                        src={dist.pokemon_sprite_url}
+                                        src={getDistSpriteUrl(dist)!}
                                         alt={dist.pokemon_name}
                                         fill
                                         className="object-contain p-1 transition group-hover:scale-110"
@@ -769,9 +778,9 @@ export function PersonalSpaceContent({
                     >
                         {/* 寶可夢圖片 */}
                         <div className="relative aspect-square w-full bg-gradient-to-br from-white/10 to-white/5">
-                            {featuredPreview.pokemon_sprite_url ? (
+                            {getDistSpriteUrl(featuredPreview) ? (
                                 <Image
-                                    src={featuredPreview.pokemon_sprite_url}
+                                    src={getDistSpriteUrl(featuredPreview)!}
                                     alt={featuredPreview.pokemon_name}
                                     fill
                                     className="object-contain p-4"

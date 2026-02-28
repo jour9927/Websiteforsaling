@@ -35,6 +35,15 @@ interface PokedexContentProps {
     userId?: string;
 }
 
+// 確保色違寶可夢使用正確的 shiny sprite URL
+function getSpriteUrl(dist: Distribution): string | undefined {
+    if (!dist.pokemon_sprite_url) return undefined;
+    if (dist.is_shiny && !dist.pokemon_sprite_url.includes('/shiny/')) {
+        return dist.pokemon_sprite_url.replace('/sprites/pokemon/', '/sprites/pokemon/shiny/');
+    }
+    return dist.pokemon_sprite_url;
+}
+
 // 世代顏色
 const genColors: Record<number, string> = {
     1: "from-red-500 to-red-700",
@@ -320,9 +329,9 @@ export default function PokedexContent({
                             <div className="w-16 h-16 mx-auto mb-2 relative">
                                 <div className={`w-full h-full rounded-full bg-gradient-to-br ${genColors[dist.generation] || "from-gray-500 to-gray-700"} p-1`}>
                                     <div className="w-full h-full rounded-full bg-slate-800 flex items-center justify-center overflow-hidden">
-                                        {dist.pokemon_sprite_url ? (
+                                        {getSpriteUrl(dist) ? (
                                             <img
-                                                src={dist.pokemon_sprite_url}
+                                                src={getSpriteUrl(dist)}
                                                 alt={dist.pokemon_name}
                                                 className="w-12 h-12 object-contain"
                                                 referrerPolicy="no-referrer"
