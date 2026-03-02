@@ -165,7 +165,7 @@ export default async function ProfilePage() {
 
       {/* 幸運點數（如果有） */}
       {(profile?.fortune_points || 0) > 0 && (
-        <div className="glass-card flex items-center justify-between p-4">
+        <div className="glass-card flex items-center justify-between p-4 mb-3">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🍀</span>
             <div>
@@ -176,6 +176,41 @@ export default async function ProfilePage() {
           <p className="text-2xl font-bold text-amber-400">
             {profile?.fortune_points || 0}
           </p>
+        </div>
+      )}
+
+      {/* 虛擬票券區塊 */}
+      {((profile?.lottery_tickets || 0) > 0 || (profile?.blindbox_coupons || 0) > 0) && (
+        <div className="flex flex-col gap-3 mb-3">
+            {(profile?.lottery_tickets || 0) > 0 && (
+            <div className="glass-card flex items-center justify-between p-4 border border-rose-500/30 bg-rose-500/5">
+                <div className="flex items-center gap-3">
+                <span className="text-2xl">🎟️</span>
+                <div>
+                    <p className="text-sm font-medium text-white">特選抽獎券</p>
+                    <p className="text-xs text-white/50">可用於參與限定活動抽獎</p>
+                </div>
+                </div>
+                <p className="text-2xl font-bold text-rose-400">
+                {profile?.lottery_tickets || 0} <span className="text-sm font-normal text-rose-400/70">張</span>
+                </p>
+            </div>
+            )}
+            
+            {(profile?.blindbox_coupons || 0) > 0 && (
+            <div className="glass-card flex items-center justify-between p-4 border border-cyan-500/30 bg-cyan-500/5">
+                <div className="flex items-center gap-3">
+                <span className="text-2xl">🎫</span>
+                <div>
+                    <p className="text-sm font-medium text-white">$1000 盲盒抵用券</p>
+                    <p className="text-xs text-white/50">購買精選盲盒時折抵使用</p>
+                </div>
+                </div>
+                <p className="text-2xl font-bold text-cyan-400">
+                {profile?.blindbox_coupons || 0} <span className="text-sm font-normal text-cyan-400/70">張</span>
+                </p>
+            </div>
+            )}
         </div>
       )}
 

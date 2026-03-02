@@ -72,6 +72,8 @@ type Profile = {
     username: string | null;
     total_views: number | null;
     today_views: number | null;
+    lottery_tickets?: number;
+    blindbox_coupons?: number;
 };
 
 type Visitor = {
@@ -639,6 +641,18 @@ export function PersonalSpaceContent({
                                     ${totalValue.toLocaleString()}
                                 </span>
                             </div>
+                            {((profile?.lottery_tickets || 0) > 0) && (
+                            <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 px-3 py-2">
+                                <span className="text-rose-200/80 text-xs">🎟️</span>
+                                <span className="ml-2 font-semibold text-rose-400">{profile?.lottery_tickets} <span className="text-[10px] font-normal opacity-70">張</span></span>
+                            </div>
+                            )}
+                            {((profile?.blindbox_coupons || 0) > 0) && (
+                            <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 px-3 py-2">
+                                <span className="text-cyan-200/80 text-xs">🎫</span>
+                                <span className="ml-2 font-semibold text-cyan-400">{profile?.blindbox_coupons} <span className="text-[10px] font-normal opacity-70">張</span></span>
+                            </div>
+                            )}
                         </div>
 
                         {/* 公開 ID 和分享 */}
