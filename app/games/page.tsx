@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PartyPopper, Zap, Ticket } from "lucide-react";
+import { PartyPopper, Zap, Ticket, RotateCcw } from "lucide-react";
 
 export const metadata = {
     title: "遊樂場 | Pokémon 配布點數系統",
@@ -19,7 +19,25 @@ export default function GamesHubPage() {
                 </p>
             </header>
 
-            <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
+                {/* 🎡 30週年特別企劃：時光輪盤 */}
+                <Link href="/games/roulette" className="group">
+                    <div className="glass-card h-full p-6 transition-all duration-300 hover:scale-[1.02] hover:bg-white/10 hover:shadow-xl hover:shadow-rose-500/20 border-2 border-rose-500/30 hover:border-rose-500/50 flex flex-col items-center text-center relative overflow-hidden">
+                        <div className="absolute top-2 right-2 px-2 py-0.5 bg-rose-500/80 text-[10px] font-bold text-white rounded-full">30週年</div>
+                        <div className="h-20 w-20 rounded-2xl bg-gradient-to-br from-rose-500 to-orange-600 flex items-center justify-center mb-6 shadow-lg shadow-rose-500/30 group-hover:animate-spin">
+                            <RotateCcw className="w-10 h-10 text-white" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-white mb-2">🎡 時光輪盤</h2>
+                        <h3 className="text-sm text-rose-300 font-semibold mb-4 uppercase tracking-wider">Anniversary Roulette</h3>
+                        <p className="text-sm text-white/70 flex-grow">
+                            消耗 1 張時光抽獎券，轉動命運的輪盤！有 1% 機率拿到 3000 點大賞，5% 拿到 1996 點特賞（紀念初代發售年）！
+                        </p>
+                        <div className="mt-6 w-full py-2 bg-rose-500/10 rounded-lg text-xs text-rose-300 font-medium">
+                            🎫 需要抽獎券（每日打卡獲得）
+                        </div>
+                    </div>
+                </Link>
+
                 {/* 遊戲一：膽小鬼測試 (Crash Game) */}
                 <Link href="/games/crash" className="group">
                     <div className="glass-card h-full p-6 transition-all duration-300 hover:scale-[1.02] hover:bg-white/10 hover:shadow-xl hover:shadow-purple-500/20 border-2 border-transparent hover:border-purple-500/30 flex flex-col items-center text-center">
