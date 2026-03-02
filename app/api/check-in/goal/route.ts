@@ -10,7 +10,7 @@ const REWARD_TIERS = {
         requiredStreak: 12,
         requiredPoints: null,
         allowedGenerations: [9],
-        description: "連續簽到 12 天可選擇第 9 世代寶可夢"
+        description: "連續簽到 12 天可選擇第 9 世代寶可夢 或 抽獎券"
     },
     tier_40: {
         name: "40天獎勵",
@@ -24,7 +24,7 @@ const REWARD_TIERS = {
         requiredStreak: null,
         requiredPoints: 120,
         allowedGenerations: [6, 7, 8, 9],
-        description: "累積 120 幸運點數可選擇第 6-9 世代寶可夢"
+        description: "累積 120 幸運點數可選擇第 6-9 世代寶可夢 或 $1000 盲盒抵用卷"
     }
 };
 
@@ -105,7 +105,19 @@ export async function GET(request: Request) {
             .in("generation", tierConfig.allowedGenerations)
             .order("generation", { ascending: true })
             .order("pokemon_name", { ascending: true });
-        distributions = data;
+        
+        let allDistributions = data || [];
+        
+        // 方案 B：手動從 Distributions 撈出新增的卷虛擬物件，並視 tier 插入前排
+        if (tier === 'tier_12') {
+             const { data: ticket } = await supabase.from('distributions').select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny, generation, original_trainer, event_name").eq('id', '00000000-0000-0000-0000-000000000001');
+             if(ticket && ticket.length > 0) allDistributions = [...ticket, ...allDistributions];
+        } else if (tier === 'tier_points') {
+             const { data: coupon } = await supabase.from('distributions').select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny, generation, original_trainer, event_name").eq('id', '00000000-0000-0000-0000-000000000002');
+             if(coupon && coupon.length > 0) allDistributions = [...coupon, ...allDistributions];
+        }
+
+        distributions = allDistributions;
     }
 
     // 查詢已設定的目標寶可夢詳情

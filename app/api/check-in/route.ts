@@ -32,7 +32,9 @@ export async function GET() {
             points,
             check_in_goal_distribution_id,
             check_in_debt,
-            check_in_milestone
+            check_in_milestone,
+            lottery_tickets,
+            blindbox_coupons
         `)
         .eq("id", user.id)
         .single();
@@ -107,7 +109,9 @@ export async function POST() {
             points,
             check_in_goal_distribution_id,
             check_in_debt,
-            check_in_milestone
+            check_in_milestone,
+            lottery_tickets,
+            blindbox_coupons
         `)
         .eq("id", user.id)
         .single();
@@ -133,6 +137,8 @@ export async function POST() {
     let newStreak = profile?.check_in_streak || 0;
     let newDebt = profile?.check_in_debt || 0;
     const milestone = profile?.check_in_milestone || 40;
+    let newLotteryTickets = profile?.lottery_tickets || 0;
+    let newBlindboxCoupons = profile?.blindbox_coupons || 0;
 
     if (profile?.last_check_in) {
         const lastCheckIn = new Date(profile.last_check_in);
@@ -201,16 +207,25 @@ export async function POST() {
             .single();
         rewardDistribution = dist;
 
-        // 新增到用戶的配布圖鑑
-        await supabase
-            .from("user_distributions")
-            .upsert({
-                user_id: user.id,
-                distribution_id: profile.check_in_goal_distribution_id,
-                notes: `連續簽到 ${milestone} 天獎勵`
-            }, {
-                onConflict: "user_id,distribution_id"
-            });
+        const isLotteryTicket = profile.check_in_goal_distribution_id === '00000000-0000-0000-0000-000000000001';
+        const isBlindboxCoupon = profile.check_in_goal_distribution_id === '00000000-0000-0000-0000-000000000002';
+
+        if (isLotteryTicket) {
+            newLotteryTickets += 1;
+        } else if (isBlindboxCoupon) {
+            newBlindboxCoupons += 1;
+        } else {
+            // 新增到用戶的配布圖鑑
+            await supabase
+                .from("user_distributions")
+                .upsert({
+                    user_id: user.id,
+                    distribution_id: profile.check_in_goal_distribution_id,
+                    notes: `連續簽到 ${milestone} 天獎勵`
+                }, {
+                    onConflict: "user_id,distribution_id"
+                });
+        }
 
         // 記錄獎勵
         await supabase
@@ -234,6 +249,8 @@ export async function POST() {
             fortune_points: newFortunePoints,
             points: newEconomyPoints,
             check_in_debt: newDebt,
+            lottery_tickets: newLotteryTickets,
+            blindbox_coupons: newBlindboxCoupons,
         })
         .eq("id", user.id);
 
