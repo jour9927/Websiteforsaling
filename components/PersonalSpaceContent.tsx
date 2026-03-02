@@ -995,7 +995,7 @@ export function PersonalSpaceContent({
 
                                     {/* 參與人數 */}
                                     <span className="text-xs text-white/40 whitespace-nowrap pl-2">
-                                        參與 {p.participation_rate} 人
+                                        共 {p.participation_rate} 人投票
                                     </span>
                                 </div>
                             </div>
