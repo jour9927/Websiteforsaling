@@ -43,8 +43,9 @@ export default function RouletteGame({ initialTickets, initialPoints }: { initia
         router.refresh();
       }, 2000);
 
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: Error | unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      alert(errorMsg);
       setSpinning(false);
       setLoading(false);
     }

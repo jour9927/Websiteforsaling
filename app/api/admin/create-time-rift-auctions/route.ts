@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/auth";
 
 // 此 API 供管理員直接創建一批「30週年時空裂縫」專屬的夢幻/超大牌精靈競標
-export async function POST(req: NextRequest) {
+export async function POST(_req: NextRequest) {
   try {
     const supabase = createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -62,7 +62,8 @@ export async function POST(req: NextRequest) {
       count: auctionsData.length
     });
 
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: Error | unknown) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    return NextResponse.json({ error: errorMsg }, { status: 500 });
   }
 }

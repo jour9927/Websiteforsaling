@@ -1,0 +1,33 @@
+  ▲ Next.js 14.2.33
+  - Environments: .env.local
+  - Experiments (use with caution):
+    · typedRoutes
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+
+Failed to compile.
+
+./app/admin/announcements/page.tsx
+44:6  Warning: React Hook useEffect has a missing dependency: 'loadAll'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/admin/bids/page.tsx
+40:8  Warning: React Hook useEffect has a missing dependency: 'loadBids'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/api/admin/create-time-rift-auctions/route.ts
+5:28  Error: 'req' is defined but never used.  @typescript-eslint/no-unused-vars
+65:19  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./app/api/games/roulette/route.ts
+4:28  Error: 'req' is defined but never used.  @typescript-eslint/no-unused-vars
+85:19  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./components/SimulatedActivity.tsx
+240:8  Warning: React Hook useEffect has a missing dependency: 'RANDOM_COMMENTS'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./components/games/RouletteGame.tsx
+46:19  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
