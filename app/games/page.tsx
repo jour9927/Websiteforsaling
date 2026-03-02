@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { PartyPopper, Zap, Ticket, RotateCcw } from "lucide-react";
+import { PartyPopper, Zap, Ticket } from "lucide-react";
+// [30週年活動] 討論中，暫時隱藏
+// import { RotateCcw } from "lucide-react";
 
 export const metadata = {
     title: "遊樂場 | Pokémon 配布點數系統",
@@ -19,8 +21,8 @@ export default function GamesHubPage() {
                 </p>
             </header>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-6xl mx-auto">
-                {/* 🎡 30週年特別企劃：時光輪盤 */}
+            <div className="grid gap-6 md:grid-cols-3 max-w-5xl mx-auto">
+                {/* [30週年活動] 討論中，暫時隱藏
                 <Link href="/games/roulette" className="group">
                     <div className="glass-card h-full p-6 transition-all duration-300 hover:scale-[1.02] hover:bg-white/10 hover:shadow-xl hover:shadow-rose-500/20 border-2 border-rose-500/30 hover:border-rose-500/50 flex flex-col items-center text-center relative overflow-hidden">
                         <div className="absolute top-2 right-2 px-2 py-0.5 bg-rose-500/80 text-[10px] font-bold text-white rounded-full">30週年</div>
@@ -37,6 +39,7 @@ export default function GamesHubPage() {
                         </div>
                     </div>
                 </Link>
+                */}
 
                 {/* 遊戲一：膽小鬼測試 (Crash Game) */}
                 <Link href="/games/crash" className="group">
