@@ -56,15 +56,15 @@ export function classifyDistributionsByTier<
 }
 
 export const guideBooks: GuideBook[] = [
-    // ── 第一世代 ──
+    // ── 第一世代 (赤綠 30 週年紀念) ──
     {
         id: "gen1-rare",
-        title: "第1世代・SSR",
-        subtitle: "關都地區最珍貴的配布",
+        title: "赤綠30週年・SSR",
+        subtitle: "關都赤綠最珍貴的傳說",
         generation: 1,
         tier: "rare",
         description:
-            "收錄關都地區點數最高的頂級配布寶可夢。超夢、夢幻等傳說級配布，每一隻都是無價的珍藏。",
+            "1996 赤綠 30 週年紀念特別版圖鑑！收錄關都地區點數最高的頂級配布寶可夢。超夢、夢幻等傳說級配布，每一隻都是無價的珍藏。",
         coverImage: "/guides/gen1_legendary.png",
         themeGradient: "from-amber-500 to-yellow-600",
         themeColor: "amber",
@@ -72,12 +72,12 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen1-premium",
-        title: "第1世代・SR",
-        subtitle: "關都地區的優質收藏",
+        title: "赤綠30週年・SR",
+        subtitle: "關都赤綠的優質回憶",
         generation: 1,
         tier: "premium",
         description:
-            "中等稀有度的關都配布紀錄。每一筆都有其獨特的故事和收藏價值。",
+            "赤綠 30 週年紀念！中等稀有度的關都配布紀錄。重溫1996年初代發售時的熱血與感動。",
         coverImage: "/guides/gen1_classic.png",
         themeGradient: "from-purple-500 to-pink-600",
         themeColor: "purple",
@@ -85,12 +85,12 @@ export const guideBooks: GuideBook[] = [
     },
     {
         id: "gen1-common",
-        title: "第1世代・R",
-        subtitle: "關都地區的基礎配布",
+        title: "赤綠30週年・R",
+        subtitle: "關都赤綠的啟程足跡",
         generation: 1,
         tier: "common",
         description:
-            "關都地區較常見的配布紀錄。雖不稀有，卻是每位訓練家旅程的基石。",
+            "赤綠 30 週年紀念！關都地區基礎配布紀錄。致敬夢想開始的真新鎮，是每位訓練家旅程的基石。",
         coverImage: "/guides/gen1_classic.png",
         themeGradient: "from-slate-400 to-slate-600",
         themeColor: "slate",
@@ -453,7 +453,7 @@ export const genNames: Record<number, string> = {
 
 // 世代遊戲名稱
 export const genGames: Record<number, string> = {
-    1: "紅・綠・藍・黃 / Let's Go",
+    1: "赤・綠・藍・黃 (30 週年紀念) / Let's Go",
     2: "金・銀・水晶",
     3: "紅寶石・藍寶石・綠寶石",
     4: "鑽石・珍珠・白金 / BDSP / PLA",
