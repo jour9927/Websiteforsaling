@@ -266,9 +266,172 @@ export function PersonalSpaceContent({
         })
     );
 
-    // ===== 留言/訪客：直接使用 DB 資料（虛擬留言由 cron 寫入 DB） =====
-    const displayTotalViews = profile?.total_views || 0;
-    const displayTodayViews = profile?.today_views || 0;
+    // ===== 虛擬互動系統 =====
+    // 虛擬用戶名稱池（60+）
+    const VIRTUAL_NAMES = [
+        // 中文姓氏
+        "王**", "李**", "陳**", "林**", "張**", "黃**", "劉**", "楊**",
+        "吳**", "蔡**", "謝**", "趙**", "周**", "徐**", "馬**", "朱**",
+        "胡**", "高**", "羅**", "曾**", "郭**", "孫**", "蘇**", "葉**",
+        "江**", "彭**", "鄧**", "余**", "唐**", "鄭**", "藩**", "豬**",
+        // 英文縮寫
+        "P***", "S***", "M***", "T***", "A***", "K***", "R***",
+        "J***", "D***", "C***", "L***", "H***", "N***", "Y***",
+        "W***", "B***", "G***", "E***", "F***", "V***",
+        // 暱稱風格
+        "小**", "大**", "阿**", "小米*", "小魚*", "小竹*",
+        "小木*", "天**", "星**", "雲**", "雨**", "風**",
+    ];
+
+    // 虛擬留言池（80+）
+    const VIRTUAL_COMMENTS = [
+        // 稱讚收藏
+        "收藏好漂亮！🌟",
+        "太強了吧這收藏！",
+        "收藏家 respect 🫡",
+        "這收藏過份了吧",
+        "看到你的收藏我自殎了",
+        "收藏超豐富的！",
+        "每隻都好棒",
+        "哇這個收藏太厉害了",
+        "作為收藏家太佩服了",
+        "音樂盒跟收藏都很棒耒",
+        // 表達羨慕
+        "大佬帶帶我 🙏",
+        "好羨慕你的收藏",
+        "你的願望清單我都想要 😂",
+        "我也想要這些配布啊",
+        "羨慕到哭",
+        "看你的收藏我老了十歲",
+        "你怎麼這麼多稀有的",
+        "天呀這收藏值多少",
+        // 問候/交流
+        "什麼時候再上新的？",
+        "可以交流一下嗎？",
+        "有沒有興趣交換？",
+        "你平常都玩哪一代？",
+        "有沒有推薦的配布？",
+        "你是從什麼時候開始收的？",
+        "請問這隻是哪裡來的？",
+        "你的配布都是自己收的嗎",
+        // 新手/報到
+        "新手報到！學習中 📚",
+        "路過留言～",
+        "期待你的新增收藏 👀",
+        "第一次來報到",
+        "常常來看看 👋",
+        "你好～我也是新人",
+        "朋友推薦過來的",
+        "終於找到同好了",
+        // 對話/雜談
+        "這個配布我也有！",
+        "我們口味很像耒",
+        "你也喜歡這隻嗎",
+        "哈哈哈 太可愛了",
+        "好可愛的收藏頁面",
+        "用心經營的空間耒",
+        "每次來都有新發現",
+        "你的頁面好好看",
+        // 配布/遊戲相關
+        "最近有什麼好配布嗎？",
+        "最喜歡哪隻？",
+        "有沒有稀有配布推薦",
+        "最近競標好激烈",
+        "這場活動你也有參加嗎？",
+        "分享一下收藏心得吧",
+        "封面圖好漂亮",
+        "這隻的設計好精緻",
+        // 情緒型
+        "呵呵 好開心",
+        "哈哈 +1",
+        "笑死",
+        "我懂了",
+        "Good taste!",
+        "Nice collection!",
+        "👍👍",
+        "贏🤯",
+        // 小話/生活
+        "今天運氣如何",
+        "剛競標完過來看",
+        "睛前最想要的配布",
+        "先收藏了 有空再來看",
+        "富籍祭的配布你有嗎",
+        "下次競標見！",
+        "我最近也開始收了",
+        "想跟你一樣有這麼多收藏",
+        "這是我見過最豐富的收藏了",
+        "尤其是那隻！太酷了",
+        "哇塞尔派的感覺",
+        "随缘看看",
+    ];
+
+    // 使用「用戶 ID + 日期」生成確定性的隨機數（每天變化，但同一天內一致）
+    const hashCode = (str: string) => {
+        let hash = 0;
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) - hash) + str.charCodeAt(i);
+            hash |= 0;
+        }
+        return Math.abs(hash);
+    };
+
+    // 加入日期讓每天產生不同結果（以上午 11:00 為分界點）
+    const now = new Date();
+    // 如果現在時間早於 11:00，就用昨天的日期
+    const adjustedDate = new Date(now);
+    if (now.getHours() < 11) {
+        adjustedDate.setDate(adjustedDate.getDate() - 1);
+    }
+    const todayKey = adjustedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    const userHash = hashCode(user.id + todayKey);
+
+    // 生成虛擬訪客（2-5 位）
+    const virtualVisitorCount = 2 + (userHash % 4);
+    const virtualVisitors = Array.from({ length: virtualVisitorCount }, (_, i) => {
+        const nameIndex = (userHash + i * 7) % VIRTUAL_NAMES.length;
+        const virtualId = `virtual-${userHash}-${i}`;
+        return {
+            id: virtualId,
+            full_name: VIRTUAL_NAMES[nameIndex],
+            username: null,
+            isVirtual: true,
+        };
+    });
+
+    // 生成虛擬留言（1-3 則）
+    const virtualCommentCount = 1 + (userHash % 3);
+    const virtualComments = Array.from({ length: virtualCommentCount }, (_, i) => {
+        const nameIndex = (userHash + i * 11) % VIRTUAL_NAMES.length;
+        const commentIndex = (userHash + i * 13) % VIRTUAL_COMMENTS.length;
+        const daysAgo = (userHash + i * 5) % 14 + 1; // 1-14 天前
+        const createdDate = new Date();
+        createdDate.setDate(createdDate.getDate() - daysAgo);
+
+        return {
+            id: `virtual-comment-${userHash}-${i}`,
+            content: VIRTUAL_COMMENTS[commentIndex],
+            created_at: createdDate.toISOString(),
+            commenter: {
+                id: `virtual-${userHash}-${i}`,
+                full_name: VIRTUAL_NAMES[nameIndex],
+            },
+            isVirtual: true,
+        };
+    });
+
+    // 合併真實和虛擬訪客
+    const allVisitors = [...recentVisitors, ...virtualVisitors];
+
+    // 合併真實和虛擬留言，按時間排序（新的在前）
+    const allComments = [...comments, ...virtualComments].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    // 虛擬瀏覽量統計（加到真實數據上）
+    const virtualTotalViews = 50 + (userHash % 150); // 50-199
+    const virtualTodayViews = 2 + (userHash % 8); // 2-9
+    const displayTotalViews = (profile?.total_views || 0) + virtualTotalViews;
+    const displayTodayViews = (profile?.today_views || 0) + virtualTodayViews;
 
     // 處理願望清單排序
     const handleWishlistDragEnd = async (event: DragEndEvent) => {
@@ -542,12 +705,12 @@ export function PersonalSpaceContent({
                             </div>
 
                             {/* 今天有誰看過你 */}
-                            {recentVisitors.length > 0 ? (
+                            {allVisitors.length > 0 ? (
                                 <div className="rounded-xl bg-white/5 p-3">
                                     <p className="text-sm font-medium text-white/80 mb-2">👀 今天有誰看過你</p>
                                     <div className="flex items-center gap-2">
                                         <div className="flex -space-x-2 flex-1">
-                                            {recentVisitors.slice(0, 6).map((visitor: { id: string; full_name?: string | null; username?: string | null; isVirtual?: boolean }) => (
+                                            {allVisitors.slice(0, 6).map((visitor: { id: string; full_name?: string | null; username?: string | null; isVirtual?: boolean }) => (
                                                 <Link
                                                     key={visitor.id}
                                                     href={visitor.isVirtual ? "#" : `/user/${visitor.username || visitor.id}`}
@@ -558,13 +721,13 @@ export function PersonalSpaceContent({
                                                     {(visitor.full_name || "?").slice(0, 1).toUpperCase()}
                                                 </Link>
                                             ))}
-                                            {recentVisitors.length > 6 && (
+                                            {allVisitors.length > 6 && (
                                                 <div className="relative h-9 w-9 rounded-full bg-white/20 flex items-center justify-center text-xs font-medium text-white ring-2 ring-slate-800">
-                                                    +{recentVisitors.length - 6}
+                                                    +{allVisitors.length - 6}
                                                 </div>
                                             )}
                                         </div>
-                                        <span className="text-xs text-white/40 whitespace-nowrap">共 {recentVisitors.length} 人</span>
+                                        <span className="text-xs text-white/40 whitespace-nowrap">共 {allVisitors.length} 人</span>
                                     </div>
                                 </div>
                             ) : (
@@ -907,16 +1070,16 @@ export function PersonalSpaceContent({
                     </div>
 
                     {/* 留言列表 - 討論串結構 */}
-                    {comments.length > 0 ? (
+                    {allComments.length > 0 ? (
                         <div className="space-y-3">
                             {/* 先顯示頂層留言（沒有 parent_id 的） */}
-                            {comments
+                            {allComments
                                 .filter((c: Comment & { isVirtual?: boolean }) => !c.parent_id)
                                 .map((comment: Comment & { isVirtual?: boolean }) => {
                                     const isVirtualComment = comment.isVirtual || comment.is_virtual;
                                     const canDelete = !isVirtualComment && (currentUserId === comment.commenter?.id || isOwnProfile);
                                     // 找出這則留言的回覆
-                                    const replies = comments.filter((c: Comment & { isVirtual?: boolean }) => c.parent_id === comment.id);
+                                    const replies = allComments.filter((c: Comment & { isVirtual?: boolean }) => c.parent_id === comment.id);
 
                                     return (
                                         <div key={comment.id}>
