@@ -19,7 +19,7 @@ const primaryLinks = [
   // { label: "🏪 商店", href: "/shop" as Route }, // 暫時隱藏
   { label: "配布圖鑑", href: "/pokedex" as Route },
   { label: "📚 圖鑑書架", href: "/guides" as Route },
-  { label: "🎮 遊樂場", href: "/games" as Route },
+  // { label: "🎮 遊樂場", href: "/games" as Route }, // 暫時隱藏
   // { label: "簽到", href: "/check-in" as Route }, // 暫時隱藏，開發中
   // { label: "公告", href: "/announcements" as Route }, // 已併入活動頁
   { label: "管理員平台", href: "/admin" as Route }
