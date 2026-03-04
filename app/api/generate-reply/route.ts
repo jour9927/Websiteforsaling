@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const { userComment, auctionTitle, recentChat } = await request.json();
+        const { userComment, auctionTitle, recentChat, userSummary, userCollectionCount } = await request.json();
 
         if (!userComment || !auctionTitle) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -28,6 +28,15 @@ export async function POST(request: NextRequest) {
         ];
         const selectedStyle = styles[Math.floor(Math.random() * styles.length)];
 
+        // 組裝用戶摘要上下文（如果有的話）
+        let userContext = "";
+        if (userSummary || userCollectionCount) {
+            userContext = `\n\n【關於這位玩家的背景】`;
+            if (userSummary) userContext += `\n- 自我介紹：${userSummary}`;
+            if (userCollectionCount) userContext += `\n- 已收藏 ${userCollectionCount} 隻配布`;
+            userContext += `\n（你可以根據這些資訊，讓回覆更自然、更有針對性。例如收藏多的可以稱讚「大佬」，新手可以鼓勵。但不要刻意提到你知道對方的資料，要像是從對方的發言判斷出來的。）`;
+        }
+
         const systemPrompt = `你是 Pokémon 競標拍賣大廳裡的一名資深玩家（你的聊天室 ID 是：${chatbotName}）。
 你正在觀看大家對【${auctionTitle}】的競標與討論。
 
@@ -41,7 +50,7 @@ export async function POST(request: NextRequest) {
 5. 視情況隨口加上一句語助詞或一個 emoji 即可（如：笑死、靠、真假、喔、這到底... 😂）。
 6. 你必須採用以下指定的心理學策略來作為本次發言的核心驅動力：
 
-本次採用的策略：${selectedStyle}`;
+本次採用的策略：${selectedStyle}${userContext}`;
 
         const userMsg = `[當前競標物：${auctionTitle}]\n有一位真實玩家發言說：${userComment}${recentChat ? `\n\n（近期的聊天紀錄參考：\n${recentChat}\n）` : ""}\n\n請以你的身分（${chatbotName}）和指定策略，隨口回覆一句話。`;
 
