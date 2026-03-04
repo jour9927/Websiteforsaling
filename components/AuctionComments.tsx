@@ -310,15 +310,22 @@ export default function AuctionComments({
                     .map(c => `${c.user_name}: ${c.content}`)
                     .join('\n');
 
-                // 查詢目標用戶的收藏摘要（用於 LLM 客製化）
+                // 查詢目標用戶的收藏摘要 + AI 個人化設定
                 let userSummary = '';
+                let customSystemPrompt = '';
                 const { data: targetProfile } = await supabase
                     .from('profiles')
-                    .select('full_name, bio')
+                    .select('full_name, bio, ai_system_prompt, ai_user_summary')
                     .eq('full_name', userName)
                     .single();
-                if (targetProfile?.bio) {
+                if (targetProfile?.ai_user_summary) {
+                    // 優先使用管理員手動設定的摘要
+                    userSummary = targetProfile.ai_user_summary;
+                } else if (targetProfile?.bio) {
                     userSummary = targetProfile.bio;
+                }
+                if (targetProfile?.ai_system_prompt) {
+                    customSystemPrompt = targetProfile.ai_system_prompt;
                 }
                 // 查詢用戶的收藏數量
                 const { count: collectionCount } = await supabase
@@ -335,6 +342,7 @@ export default function AuctionComments({
                         recentChat: allChats,
                         userSummary: userSummary || undefined,
                         userCollectionCount: collectionCount || undefined,
+                        customSystemPrompt: customSystemPrompt || undefined,
                     }),
                 });
 

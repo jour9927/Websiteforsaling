@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const { userComment, auctionTitle, recentChat, userSummary, userCollectionCount } = await request.json();
+        const { userComment, auctionTitle, recentChat, userSummary, userCollectionCount, customSystemPrompt } = await request.json();
 
         if (!userComment || !auctionTitle) {
             return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -30,7 +30,11 @@ export async function POST(request: NextRequest) {
 
         // 組裝用戶摘要上下文（如果有的話）
         let userContext = "";
-        if (userSummary || userCollectionCount) {
+        if (customSystemPrompt) {
+            // 管理員對此用戶設定了專屬指令，優先使用
+            userContext = `\n\n【管理員對此用戶的專屬指令】\n${customSystemPrompt}`;
+            if (userCollectionCount) userContext += `\n- 已收藏 ${userCollectionCount} 隻配布`;
+        } else if (userSummary || userCollectionCount) {
             userContext = `\n\n【關於這位玩家的背景】`;
             if (userSummary) userContext += `\n- 自我介紹：${userSummary}`;
             if (userCollectionCount) userContext += `\n- 已收藏 ${userCollectionCount} 隻配布`;
