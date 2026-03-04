@@ -107,19 +107,21 @@ export default function AdminVirtualCommentsPage() {
         setSuccess("");
 
         try {
-            const { error } = await supabase.from("profile_comments").insert({
-                profile_user_id: selectedUser,
-                commenter_id: null,
-                virtual_commenter_id: selectedVirtualUser,
-                is_virtual: true,
-                content: commentContent.trim(),
+            const res = await fetch("/api/admin/virtual-comments", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    profile_user_id: selectedUser,
+                    virtual_commenter_id: selectedVirtualUser,
+                    content: commentContent.trim(),
+                }),
             });
-
-            if (error) throw error;
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error || "發送失敗");
 
             setSuccess("留言發送成功！");
             setCommentContent("");
-            loadData(); // 重新載入
+            loadData();
         } catch (err) {
             setError(err instanceof Error ? err.message : "發送失敗");
         } finally {
@@ -131,12 +133,14 @@ export default function AdminVirtualCommentsPage() {
         if (!confirm("確定要刪除這則留言嗎？")) return;
 
         try {
-            const { error } = await supabase
-                .from("profile_comments")
-                .delete()
-                .eq("id", commentId);
+            const res = await fetch("/api/admin/virtual-comments", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ commentId }),
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error || "刪除失敗");
 
-            if (error) throw error;
             setSuccess("留言已刪除");
             loadData();
         } catch (err) {
