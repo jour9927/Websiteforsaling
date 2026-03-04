@@ -88,10 +88,12 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "No reply generated" }, { status: 502 });
         }
 
-        // 清理回覆（去掉可能的引號、多餘空白）
+        // 清理回覆（去掉可能的引號、多餘空白、HTML 標籤）
         const cleanReply = reply
             .replace(/^[「『"'"]+/, "")
             .replace(/[」』"'"]+$/, "")
+            .replace(/<[^>]*>/g, "")   // 移除 HTML 標籤
+            .replace(/\*+/g, "")       // 移除 markdown 粗體
             .trim()
             .slice(0, 50); // 限制長度
 

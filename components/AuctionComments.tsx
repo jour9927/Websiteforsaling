@@ -313,11 +313,28 @@ export default function AuctionComments({
                 // 查詢目標用戶的收藏摘要 + AI 個人化設定
                 let userSummary = '';
                 let customSystemPrompt = '';
-                const { data: targetProfile } = await supabase
+
+                // 先嘗試含 AI 欄位的查詢；若欄位尚未建立（migration 未跑）則降級
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                let targetProfile: any = null;
+                const { data: fullData, error: fullErr } = await supabase
                     .from('profiles')
                     .select('full_name, bio, ai_system_prompt, ai_user_summary')
                     .eq('full_name', userName)
                     .single();
+
+                if (fullErr && !fullData) {
+                    // 可能是 ai_ 欄位不存在，降級到基本查詢
+                    const { data: basicData } = await supabase
+                        .from('profiles')
+                        .select('full_name, bio')
+                        .eq('full_name', userName)
+                        .single();
+                    targetProfile = basicData;
+                } else {
+                    targetProfile = fullData;
+                }
+
                 if (targetProfile?.ai_user_summary) {
                     // 優先使用管理員手動設定的摘要
                     userSummary = targetProfile.ai_user_summary;

@@ -28,13 +28,30 @@ export default function AdminAISettingsPage() {
 
     const loadProfiles = async () => {
         try {
-            const { data, error } = await supabase
+            // 先嘗試含 AI 欄位；若 migration 未跑則降級
+            let data: Profile[] | null = null;
+            const { data: fullData, error: fullErr } = await supabase
                 .from("profiles")
                 .select("id, email, full_name, role, ai_system_prompt, ai_user_summary")
                 .neq("role", "admin")
                 .order("full_name", { ascending: true });
 
-            if (error) throw error;
+            if (fullErr && !fullData) {
+                // 欄位可能尚未建立
+                const { data: basicData } = await supabase
+                    .from("profiles")
+                    .select("id, email, full_name, role")
+                    .neq("role", "admin")
+                    .order("full_name", { ascending: true });
+                data = (basicData || []).map(p => ({
+                    ...p,
+                    ai_system_prompt: null,
+                    ai_user_summary: null,
+                }));
+            } else {
+                data = fullData;
+            }
+
             setProfiles(data || []);
         } catch (err) {
             console.error("載入失敗:", err);

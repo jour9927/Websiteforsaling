@@ -82,6 +82,8 @@ ${recentChat ? `- 最近聊天室的氣氛：\n${recentChat}` : ""}
         const cleanReply = reply
             .replace(/^[「『"'"]+/, "")
             .replace(/[」』"'"]+$/, "")
+            .replace(/<[^>]*>/g, "")   // 移除 HTML 標籤
+            .replace(/\*+/g, "")       // 移除 markdown 粗體
             .trim()
             .slice(0, 50);
 
