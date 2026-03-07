@@ -352,16 +352,16 @@ export function PersonalSpaceContent({
         };
     });
 
-    // LLM 收藏感知留言（30% 機率，用 state 管理）
+    // LLM 收藏感知留言（有 ai_user_summary → 70%，無 → 30%）
     const [llmComment, setLlmComment] = useState<{
         id: string; content: string; created_at: string;
         commenter: { id: string; full_name: string }; isVirtual: true;
     } | null>(null);
 
     useEffect(() => {
-        // 30% 機率且有精選收藏時才觸發 LLM
         if (topDistributions.length === 0) return;
-        const shouldUseLlm = (userHash % 10) < 3; // 確定性 30%
+        const llmThreshold = profile?.ai_user_summary ? 7 : 3; // 有 summary → 70%, 無 → 30%
+        const shouldUseLlm = (userHash % 10) < llmThreshold;
         if (!shouldUseLlm) return;
 
         const collectionCtx = buildCollectionContext(topDistributions, 5);
