@@ -23,8 +23,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { DailyCheckInWidget } from "@/components/DailyCheckInWidget";
-import { MaintenanceOverlay } from "@/components/MaintenanceOverlay";
-import { useMaintenanceMode } from "@/components/MaintenanceContext";
+
 import { MySocialStats } from "@/components/MySocialStats";
 import { sampleWithoutRepeat, PERSONAL_SPACE_COMMENTS, getCollectionAwareComment, buildCollectionContext } from "@/lib/commentFallbackPool";
 
@@ -250,7 +249,6 @@ export function PersonalSpaceContent({
     topDistributions = [],
     registrations = [],
 }: PersonalSpaceContentProps) {
-    const { maintenanceMode: COMMENTS_MAINTENANCE_MODE } = useMaintenanceMode();
     const router = useRouter();
     const [newComment, setNewComment] = useState("");
     const [replyTo, setReplyTo] = useState<string | null>(null);
@@ -1007,16 +1005,7 @@ export function PersonalSpaceContent({
 
             {/* 留言區 */}
             <section className="glass-card p-6 relative overflow-hidden">
-                {/* 維護遮罩 */}
-                {COMMENTS_MAINTENANCE_MODE && (
-                    <div className="absolute inset-0 z-10">
-                        <MaintenanceOverlay
-                            title="維護中"
-                            message="留言區暫時不予開放"
-                        />
-                    </div>
-                )}
-                <div className={COMMENTS_MAINTENANCE_MODE ? "blur-sm pointer-events-none select-none" : ""}>
+                <div>
                     <h2 className="mb-4 text-lg font-semibold text-white">💬 留言區</h2>
 
                     {/* 留言輸入 */}
