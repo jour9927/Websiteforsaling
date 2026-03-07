@@ -219,11 +219,23 @@ export default async function HomePage() {
     .eq("user_id", user.id)
     .order("sort_order");
 
+  // 載入最近訪客（真實用戶，最多 10 位）
+  const { data: recentVisitorRows } = await supabase
+    .from("profile_visits")
+    .select("visitor:visitor_id (id, full_name, username)")
+    .eq("profile_user_id", user.id)
+    .not("visitor_id", "is", null)
+    .order("visited_at", { ascending: false })
+    .limit(10);
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recentVisitors = (recentVisitorRows?.map((v: any) => v.visitor).filter(Boolean) || []) as any;
+
   return (
     <div className="flex flex-col gap-8">
       {/* 管理員維護過罩開關 */}
       <MaintenanceToggle />
-      
+
       {/* [30週年活動] 討論中，暫時隱藏 */}
       {/* <Anniversary30thBanner totalBoxCount={totalBoxCount || 0} /> */}
 
@@ -254,6 +266,7 @@ export default async function HomePage() {
         distributionStats={distributionStats}
         topDistributions={topDistributions}
         registrations={userRegistrations || []}
+        recentVisitors={recentVisitors}
       />
     </div>
   );

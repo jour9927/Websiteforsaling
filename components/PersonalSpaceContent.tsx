@@ -408,11 +408,11 @@ export function PersonalSpaceContent({
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
-    // 虛擬瀏覽量統計（加到真實數據上）
-    const virtualTotalViews = 50 + (userHash % 150); // 50-199
-    const virtualTodayViews = 2 + (userHash % 8); // 2-9
+    // 瀏覽量統計
+    const virtualTotalViews = 50 + (userHash % 150); // 固定虛擬基底
     const displayTotalViews = (profile?.total_views || 0) + virtualTotalViews;
-    const displayTodayViews = (profile?.today_views || 0) + virtualTodayViews;
+    // ✨ 今日訪問 = 訪客列表總人數（保持一致）
+    const displayTodayViews = allVisitors.length;
 
     // 處理願望清單排序
     const handleWishlistDragEnd = async (event: DragEndEvent) => {
@@ -694,8 +694,8 @@ export function PersonalSpaceContent({
                                             {allVisitors.slice(0, 6).map((visitor: { id: string; full_name?: string | null; username?: string | null; isVirtual?: boolean }) => (
                                                 <Link
                                                     key={visitor.id}
-                                                    href={visitor.isVirtual ? "#" : `/user/${visitor.username || visitor.id}`}
-                                                    className="relative h-9 w-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white ring-2 ring-slate-800 transition hover:scale-110 hover:z-10"
+                                                    href={visitor.isVirtual ? '#' : `/user/${visitor.username || visitor.id}`}
+                                                    className={`relative h-9 w-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white ring-2 ring-slate-800 transition hover:scale-110 hover:z-10 ${visitor.isVirtual ? 'cursor-default' : 'cursor-pointer'}`}
                                                     title={visitor.full_name || "訪客"}
                                                     onClick={(e) => visitor.isVirtual && e.preventDefault()}
                                                 >
