@@ -138,6 +138,90 @@ export async function GET(request: NextRequest) {
                 .neq("id", "00000000-0000-0000-0000-000000000000");
         }
 
+        // 7. 為有 ai_user_summary 的「重點用戶」每日生成一則 LLM 留言
+        let llmCommentsAdded = 0;
+        const { data: featuredProfiles } = await supabase
+            .from("profiles")
+            .select("id, full_name, ai_user_summary, ai_system_prompt, bio")
+            .not("ai_user_summary", "is", null);
+
+        if (featuredProfiles && featuredProfiles.length > 0 && process.env.GEMINI_API_KEY) {
+            for (const fp of featuredProfiles) {
+                try {
+                    // 取得該用戶的精選收藏（前 5 名）
+                    const { data: topDists } = await supabase
+                        .from("user_distributions")
+                        .select("distributions(pokemon_name, points, is_shiny, event_name)")
+                        .eq("user_id", fp.id)
+                        .order("distributions(points)", { ascending: false })
+                        .limit(5);
+
+                    let collectionContext = "";
+                    if (topDists && topDists.length > 0) {
+                        const items = topDists.map((ud, i) => {
+                            const d = Array.isArray(ud.distributions) ? ud.distributions[0] : ud.distributions;
+                            if (!d) return null;
+                            const dist = d as { pokemon_name: string; points?: number; is_shiny?: boolean; event_name?: string };
+                            const parts: string[] = [];
+                            if (dist.is_shiny) parts.push("✨色違");
+                            if (dist.points) parts.push(`${dist.points}pts`);
+                            if (dist.event_name) parts.push(dist.event_name);
+                            const detail = parts.length > 0 ? `(${parts.join(", ")})` : "";
+                            return `#${i + 1} ${dist.pokemon_name}${detail}`;
+                        }).filter(Boolean);
+                        if (items.length > 0) {
+                            collectionContext = `精選收藏：${items.join(", ")}`;
+                        }
+                    }
+
+                    // 呼叫 LLM API（內部呼叫，用絕對 URL）
+                    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+                        ? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
+                        : "http://localhost:3000";
+
+                    const llmRes = await fetch(`${baseUrl}/api/generate-homepage-comment`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            collectionContext,
+                            userSummary: fp.ai_user_summary || fp.bio || "",
+                        }),
+                    });
+
+                    if (llmRes.ok) {
+                        const llmData = await llmRes.json();
+                        if (llmData.reply) {
+                            // 隨機選一個虛擬用戶作為留言者
+                            const randomVirtual = virtualProfiles[Math.floor(Math.random() * virtualProfiles.length)];
+                            const commentTime = new Date();
+                            // 隨機設定為今天的某個時間（1-12 小時前）
+                            commentTime.setHours(commentTime.getHours() - Math.floor(Math.random() * 12) - 1);
+
+                            const { error: llmInsertErr } = await supabase
+                                .from("profile_comments")
+                                .insert({
+                                    profile_user_id: fp.id,
+                                    commenter_id: null,
+                                    virtual_commenter_id: randomVirtual.id,
+                                    is_virtual: true,
+                                    content: llmData.reply,
+                                    created_at: commentTime.toISOString(),
+                                });
+
+                            if (llmInsertErr) {
+                                console.error(`LLM comment insert error for ${fp.full_name}:`, llmInsertErr);
+                            } else {
+                                llmCommentsAdded++;
+                                console.log(`LLM comment added for ${fp.full_name}: "${llmData.reply}"`);
+                            }
+                        }
+                    }
+                } catch (llmErr) {
+                    console.error(`LLM comment error for ${fp.full_name}:`, llmErr);
+                }
+            }
+        }
+
         // 8. 清理 7 天以上的虛擬留言（跳過有真實回覆的討論串）
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
@@ -158,9 +242,10 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            message: `Added ${visits.length} visits and ${comments.length} comments, cleaned old records (7+ days)`,
+            message: `Added ${visits.length} visits, ${comments.length} comments, ${llmCommentsAdded} LLM comments, cleaned old records (7+ days)`,
             totalVisits: visits.length,
             totalComments: comments.length,
+            llmComments: llmCommentsAdded,
             timestamp: now.toISOString(),
         });
 
