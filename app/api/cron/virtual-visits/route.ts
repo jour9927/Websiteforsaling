@@ -1,24 +1,16 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
+import { CRON_VIRTUAL_COMMENTS } from "@/lib/commentFallbackPool";
 
-// 虛擬留言池
-const VIRTUAL_COMMENTS = [
-    "收藏好漂亮！🌟",
-    "大佬帶帶我 🙏",
-    "什麼時候再上新的？",
-    "好羨慕你的收藏",
-    "這個配布我也有！",
-    "可以交流一下嗎？",
-    "新手報到！學習中 📚",
-    "你的願望清單我都想要 😂",
-    "收藏家 respect 🫡",
-    "路過留言～",
-    "太強了吧這收藏！",
-    "期待你的新增收藏 👀",
-    "真羨慕你的收藏量！",
-    "剛入坑的新人來學習了",
-    "收藏真的太讚了！",
-];
+// 每次 Cron 執行時 shuffle 留言池，確保同一批次不重複
+function shuffleArray<T>(arr: T[]): T[] {
+    const shuffled = [...arr];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+}
 
 export async function GET(request: NextRequest) {
     // 驗證 cron secret（未設定 CRON_SECRET 時也拒絕，防止未授權觸發）
@@ -63,6 +55,10 @@ export async function GET(request: NextRequest) {
         const comments = [];
         const viewUpdates = [];
 
+        // Shuffle 留言池，依序取用確保不重複
+        const shuffledComments = shuffleArray(CRON_VIRTUAL_COMMENTS);
+        let commentPoolIndex = 0;
+
         for (const profile of profiles) {
             // 隨機決定這個用戶今天獲得多少虛擬訪問（1-5）
             const visitCount = Math.floor(Math.random() * 5) + 1;
@@ -81,17 +77,17 @@ export async function GET(request: NextRequest) {
                 });
             }
 
-            // 隨機決定是否留言（30% 機率）
-            if (Math.random() < 0.3) {
+            // 隨機決定是否留言（30% 機率），且池中仍有未用過的留言
+            if (Math.random() < 0.3 && commentPoolIndex < shuffledComments.length) {
                 const commenter = shuffledVirtual[0]; // 用第一個訪客來留言
-                const randomComment = VIRTUAL_COMMENTS[Math.floor(Math.random() * VIRTUAL_COMMENTS.length)];
+                const selectedComment = shuffledComments[commentPoolIndex++];
 
                 comments.push({
                     profile_user_id: profile.id,
                     commenter_id: null,
                     virtual_commenter_id: commenter.id,
                     is_virtual: true,
-                    content: randomComment,
+                    content: selectedComment,
                     created_at: now.toISOString(),
                 });
             }

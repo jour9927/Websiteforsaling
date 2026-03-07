@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -26,6 +26,7 @@ import { DailyCheckInWidget } from "@/components/DailyCheckInWidget";
 import { MaintenanceOverlay } from "@/components/MaintenanceOverlay";
 import { useMaintenanceMode } from "@/components/MaintenanceContext";
 import { MySocialStats } from "@/components/MySocialStats";
+import { sampleWithoutRepeat, PERSONAL_SPACE_COMMENTS, getCollectionAwareComment, buildCollectionContext } from "@/lib/commentFallbackPool";
 
 type Event = {
     id: string;
@@ -74,6 +75,8 @@ type Profile = {
     today_views: number | null;
     lottery_tickets?: number;
     blindbox_coupons?: number;
+    ai_user_summary?: string | null;
+    ai_system_prompt?: string | null;
 };
 
 type Visitor = {
@@ -283,87 +286,8 @@ export function PersonalSpaceContent({
         "小木*", "天**", "星**", "雲**", "雨**", "風**",
     ];
 
-    // 虛擬留言池（80+）
-    const VIRTUAL_COMMENTS = [
-        // 稱讚收藏
-        "收藏好漂亮！🌟",
-        "太強了吧這收藏！",
-        "收藏家 respect 🫡",
-        "這收藏過份了吧",
-        "看到你的收藏我自愧不如",
-        "收藏超豐富的！",
-        "每隻都好棒",
-        "哇這個收藏太厲害了",
-        "作為收藏家太佩服了",
-        "整理得好用心耶",
-        // 表達羨慕
-        "大佬帶帶我 🙏",
-        "好羨慕你的收藏",
-        "你的願望清單我都想要 😂",
-        "我也想要這些配布啊",
-        "羨慕到哭",
-        "看你的收藏我老了十歲",
-        "你怎麼這麼多稀有的",
-        "天呀這收藏值多少",
-        // 問候/交流
-        "什麼時候再上新的？",
-        "可以交流一下嗎？",
-        "有沒有興趣交換？",
-        "你平常都玩哪一代？",
-        "有沒有推薦的配布？",
-        "你是從什麼時候開始收的？",
-        "請問這隻是哪裡來的？",
-        "你的配布都是自己收的嗎",
-        // 新手/報到
-        "新手報到！學習中 📚",
-        "路過留言～",
-        "期待你的新增收藏 👀",
-        "第一次來報到",
-        "常常來看看 👋",
-        "你好～我也是新人",
-        "朋友推薦過來的",
-        "終於找到同好了",
-        // 對話/雜談
-        "這個配布我也有！",
-        "我們口味很像耶",
-        "你也喜歡這隻嗎",
-        "哈哈哈 太可愛了",
-        "好可愛的收藏頁面",
-        "用心經營的空間耶",
-        "每次來都有新發現",
-        "你的頁面好好看",
-        // 配布/遊戲相關
-        "最近有什麼好配布嗎？",
-        "最喜歡哪隻？",
-        "有沒有稀有配布推薦",
-        "最近競標好激烈",
-        "這場活動你也有參加嗎？",
-        "分享一下收藏心得吧",
-        "封面圖好漂亮",
-        "這隻的設計好精緻",
-        // 情緒型
-        "呵呵 好開心",
-        "哈哈 +1",
-        "笑死",
-        "我懂了",
-        "Good taste!",
-        "Nice collection!",
-        "👍👍",
-        "贏🤯",
-        // 小話/生活
-        "今天運氣如何",
-        "剛競標完過來看",
-        "目前最想要的配布是哪隻",
-        "先收藏了 有空再來看",
-        "最近活動的配布你有嗎",
-        "下次競標見！",
-        "我最近也開始收了",
-        "想跟你一樣有這麼多收藏",
-        "這是我見過最豐富的收藏了",
-        "尤其是那隻！太酷了",
-        "哇塞 超有品味的感覺",
-        "隨緣逛逛",
-    ];
+    // 虛擬留言池（從共享池匯入）
+    // 使用「用戶 ID + 日期」做確定性不重複抽樣
 
     // 使用「用戶 ID + 日期」生成確定性的隨機數（每天變化，但同一天內一致）
     const hashCode = (str: string) => {
@@ -398,18 +322,27 @@ export function PersonalSpaceContent({
         };
     });
 
-    // 生成虛擬留言（1-3 則）
+    // 生成虛擬留言（1-3 則，確定性且不重複）
     const virtualCommentCount = 1 + (userHash % 3);
-    const virtualComments = Array.from({ length: virtualCommentCount }, (_, i) => {
+    const sampledComments = sampleWithoutRepeat(PERSONAL_SPACE_COMMENTS, virtualCommentCount, userHash);
+
+    // 如果有精選收藏，用收藏模板替換掉最後一條留言（更自然）
+    if (topDistributions.length > 0 && sampledComments.length > 0) {
+        const collectionComment = getCollectionAwareComment(topDistributions);
+        if (collectionComment) {
+            sampledComments[sampledComments.length - 1] = collectionComment;
+        }
+    }
+
+    const initialVirtualComments = sampledComments.map((content, i) => {
         const nameIndex = (userHash + i * 11) % VIRTUAL_NAMES.length;
-        const commentIndex = (userHash + i * 13) % VIRTUAL_COMMENTS.length;
         const daysAgo = (userHash + i * 5) % 14 + 1; // 1-14 天前
         const createdDate = new Date();
         createdDate.setDate(createdDate.getDate() - daysAgo);
 
         return {
             id: `virtual-comment-${userHash}-${i}`,
-            content: VIRTUAL_COMMENTS[commentIndex],
+            content,
             created_at: createdDate.toISOString(),
             commenter: {
                 id: `virtual-${userHash}-${i}`,
@@ -418,6 +351,56 @@ export function PersonalSpaceContent({
             isVirtual: true,
         };
     });
+
+    // LLM 收藏感知留言（30% 機率，用 state 管理）
+    const [llmComment, setLlmComment] = useState<{
+        id: string; content: string; created_at: string;
+        commenter: { id: string; full_name: string }; isVirtual: true;
+    } | null>(null);
+
+    useEffect(() => {
+        // 30% 機率且有精選收藏時才觸發 LLM
+        if (topDistributions.length === 0) return;
+        const shouldUseLlm = (userHash % 10) < 3; // 確定性 30%
+        if (!shouldUseLlm) return;
+
+        const collectionCtx = buildCollectionContext(topDistributions, 5);
+        const userSummary = profile?.ai_user_summary || profile?.bio || '';
+        const llmNameIndex = (userHash + 99) % VIRTUAL_NAMES.length;
+
+        fetch('/api/generate-homepage-comment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                collectionContext: collectionCtx,
+                userSummary: userSummary,
+            }),
+        })
+            .then(res => res.ok ? res.json() : null)
+            .then(data => {
+                if (data?.reply) {
+                    const createdDate = new Date();
+                    createdDate.setDate(createdDate.getDate() - 1);
+                    setLlmComment({
+                        id: `llm-comment-${userHash}`,
+                        content: data.reply,
+                        created_at: createdDate.toISOString(),
+                        commenter: {
+                            id: `llm-${userHash}`,
+                            full_name: data.simulatedName || VIRTUAL_NAMES[llmNameIndex],
+                        },
+                        isVirtual: true,
+                    });
+                }
+            })
+            .catch(() => { /* LLM 失敗，靜默降級 */ });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user.id]);
+
+    // 合併虛擬留言（pool + LLM）
+    const virtualComments = llmComment
+        ? [llmComment, ...initialVirtualComments]
+        : initialVirtualComments;
 
     // 合併真實和虛擬訪客
     const allVisitors = [...recentVisitors, ...virtualVisitors];
@@ -642,16 +625,16 @@ export function PersonalSpaceContent({
                                 </span>
                             </div>
                             {((profile?.lottery_tickets || 0) > 0) && (
-                            <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 px-3 py-2">
-                                <span className="text-rose-200/80 text-xs">🎟️</span>
-                                <span className="ml-2 font-semibold text-rose-400">{profile?.lottery_tickets} <span className="text-[10px] font-normal opacity-70">張</span></span>
-                            </div>
+                                <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 px-3 py-2">
+                                    <span className="text-rose-200/80 text-xs">🎟️</span>
+                                    <span className="ml-2 font-semibold text-rose-400">{profile?.lottery_tickets} <span className="text-[10px] font-normal opacity-70">張</span></span>
+                                </div>
                             )}
                             {((profile?.blindbox_coupons || 0) > 0) && (
-                            <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 px-3 py-2">
-                                <span className="text-cyan-200/80 text-xs">🎫</span>
-                                <span className="ml-2 font-semibold text-cyan-400">{profile?.blindbox_coupons} <span className="text-[10px] font-normal opacity-70">張</span></span>
-                            </div>
+                                <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 px-3 py-2">
+                                    <span className="text-cyan-200/80 text-xs">🎫</span>
+                                    <span className="ml-2 font-semibold text-cyan-400">{profile?.blindbox_coupons} <span className="text-[10px] font-normal opacity-70">張</span></span>
+                                </div>
                             )}
                         </div>
 
@@ -772,12 +755,11 @@ export function PersonalSpaceContent({
                                     <div className="flex h-full items-center justify-center text-2xl">🐾</div>
                                 )}
                                 {/* 排名徽章 */}
-                                <div className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                                    index === 0 ? "bg-amber-500 text-black" :
+                                <div className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${index === 0 ? "bg-amber-500 text-black" :
                                     index === 1 ? "bg-gray-300 text-black" :
-                                    index === 2 ? "bg-amber-700 text-white" :
-                                    "bg-black/60 text-amber-300"
-                                }`}>
+                                        index === 2 ? "bg-amber-700 text-white" :
+                                            "bg-black/60 text-amber-300"
+                                    }`}>
                                     #{index + 1}
                                 </div>
                                 {/* 異色標記 */}
@@ -859,7 +841,7 @@ export function PersonalSpaceContent({
                             onClick={() => setFeaturedPreview(null)}
                             className="absolute right-3 top-3 rounded-full bg-black/60 p-1.5 text-white/80 hover:text-white transition"
                         >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
                         </button>
                     </div>
                 </div>

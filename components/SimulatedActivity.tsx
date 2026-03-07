@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { HomepageFallbackPoolManager } from "@/lib/commentFallbackPool";
 
 // 模擬暱稱庫（55+）
 const FAKE_NAMES = [
@@ -126,112 +127,78 @@ export function SimulatedWatchers({ baseCount = 12 }: { baseCount?: number }) {
 
 export function SimulatedRecentActivity() {
     const [activities, setActivities] = useState<{ id: number; name: string; comment: string; time: string }[]>([]);
+    const poolRef = useRef<HomepageFallbackPoolManager | null>(null);
+    const activitiesRef = useRef<{ id: number; name: string; comment: string; time: string }[]>([]);
 
-    // 隨機留言庫（80+）
-    const RANDOM_COMMENTS = [
-        // 興奮/想要
-        "好可愛！想要",
-        "這隻超稀有的",
-        "太讚了吧",
-        "這配布很難得欸",
-        "我也想要 😭",
-        "這個必須搶",
-        "天啊這個閃光太美了",
-        "我的最愛！",
-        "難得看到這隻",
-        "機不可失",
-        "夢寐以求的配布",
-        "尖叫！！！",
-        "終於等到了",
-        "不搶對不起自己",
-        "心跳加速中",
-        "這隻我等好久了",
-        "太美了吧",
-        "我的天 居然有這隻",
-        // 評價/稱讚
-        "性價比很高",
-        "價格還可以接受",
-        "這隻配招很棒",
-        "收藏價值很高",
-        "品相不錯",
-        "經典中的經典",
-        "完美的配布",
-        "光看就很開心",
-        "值得收藏",
-        "這個OT很有意義",
-        "好可愛啊啊啊",
-        "絕版了吧這隻",
-        // 觀望/猶豫
-        "等等再看看",
-        "有點猶豫",
-        "好猶豫要不要下手",
-        "先觀望一下",
-        "錢包在顫抖",
-        "理智跟我說不要",
-        "猶豫就會敗北",
-        "內心好掙扎",
-        "先看看風向",
-        "還在考慮中",
-        "忍住忍住",
-        // 競標相關
-        "衝了衝了",
-        "最後一分鐘再來",
-        "好緊張",
-        "競標好刺激",
-        "加油大家",
-        "求讓 🙏",
-        "已關注 ❤️",
-        "這場好卷",
-        "價格戰開始了",
-        "穩住 不要衝動",
-        "加價了加價了",
-        "被搶了 😤",
-        "最後衝刺！",
-        "倒數計時中",
-        "快結束了！",
-        "拜託讓我",
-        // 社群/閒聊
-        "新手入坑中",
-        "有人要一起買嗎",
-        "這隻我收了好久",
-        "大家晚安",
-        "來了來了",
-        "報到報到",
-        "每天都要來看看",
-        "又來逛了",
-        "今天有什麼好物",
-        "邊吃飯邊逛",
-        "午休時間來看看",
-        "回家第一件事就是開這個",
-        "這個月預算要爆了",
-        "又要剁手了",
-        "收藏控報到",
-        "好無聊 來看看",
-        "今天運氣好嗎",
-        "期待今天的場次",
-        "又是美好的一天",
-        "最近好多好物上架",
-        "哈哈我又來了",
-    ];
+    // 同步 activities 到 ref（讓定時器內部讀最新值）
+    useEffect(() => {
+        activitiesRef.current = activities;
+    }, [activities]);
 
     useEffect(() => {
-        // 初始化 3 個留言
-        const getRandomComment = () => RANDOM_COMMENTS[Math.floor(Math.random() * RANDOM_COMMENTS.length)];
+        // 初始化 pool（只建一次）
+        if (!poolRef.current) {
+            poolRef.current = new HomepageFallbackPoolManager();
+        }
+        const pool = poolRef.current;
+
+        // 初始化 3 個留言（從 pool 取，不重複）
+        const c1 = pool.getComment();
+        const c2 = pool.getComment();
+        const c3 = pool.getComment();
 
         const initialActivities = [
-            { id: 1, name: FAKE_NAMES[0], comment: getRandomComment(), time: "2分鐘前" },
-            { id: 2, name: FAKE_NAMES[3], comment: getRandomComment(), time: "5分鐘前" },
-            { id: 3, name: FAKE_NAMES[6], comment: getRandomComment(), time: "8分鐘前" },
+            { id: 1, name: FAKE_NAMES[0], comment: c1 || "嗨嗨 👋", time: "2分鐘前" },
+            { id: 2, name: FAKE_NAMES[3], comment: c2 || "來了來了", time: "5分鐘前" },
+            { id: 3, name: FAKE_NAMES[6], comment: c3 || "又來逛了", time: "8分鐘前" },
         ];
         setActivities(initialActivities);
 
         // 每 15-35 秒新增一個留言
-        const interval = setInterval(() => {
+        const interval = setInterval(async () => {
+            // 池枯竭則停止
+            if (pool.isExhausted) {
+                clearInterval(interval);
+                return;
+            }
+
             const name = FAKE_NAMES[Math.floor(Math.random() * FAKE_NAMES.length)];
-            const comment = RANDOM_COMMENTS[Math.floor(Math.random() * RANDOM_COMMENTS.length)];
+            let comment: string | null = null;
+            let displayName = name;
+
+            // 20% 機率使用 LLM 生成
+            if (Math.random() < 0.2) {
+                try {
+                    const recentCtx = activitiesRef.current
+                        .slice(0, 3)
+                        .map(a => `${a.name}: ${a.comment}`)
+                        .join('\n');
+
+                    const res = await fetch('/api/generate-homepage-comment', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ recentChat: recentCtx }),
+                    });
+
+                    if (res.ok) {
+                        const data = await res.json();
+                        comment = data.reply;
+                        if (data.simulatedName) displayName = data.simulatedName;
+                    }
+                } catch {
+                    // LLM 失敗，降級到 fallback 池
+                }
+            }
+
+            // LLM 未成功則從 pool 取（不重複）
+            if (!comment) {
+                comment = pool.getComment();
+            }
+
+            if (!comment) return; // 池空了
 
             setActivities(prev => {
-                const newActivity = { id: Date.now(), name, comment, time: "剛剛" };
+                const newActivity = { id: Date.now(), name: displayName, comment: comment!, time: "剛剛" };
                 return [newActivity, ...prev.slice(0, 4)]; // 保持最多 5 個
             });
         }, 15000 + Math.random() * 20000);
