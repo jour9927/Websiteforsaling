@@ -37,7 +37,7 @@ type FeaturedDist = {
 };
 
 // 虛擬用戶完整頁面元件（與真實用戶一樣豐富）
-function VirtualUserPage({ profile, virtualId, featuredDistributions }: {
+function VirtualUserPage({ profile, virtualId, featuredDistributions, events }: {
     virtualId: string;
     profile: {
         display_name: string;
@@ -54,7 +54,12 @@ function VirtualUserPage({ profile, virtualId, featuredDistributions }: {
         followers_count?: number;
     };
     featuredDistributions: FeaturedDist[];
+    events: { id: string; title: string; image_url?: string; visual_card_url?: string; start_date?: string; end_date?: string; estimated_value?: number }[];
 }) {
+    // 根據精選收藏計算真實的收藏數量和資產估值
+    const totalCollectionCount = featuredDistributions.length + (profile.collection_count || 0);
+    const totalAssetValue = featuredDistributions.reduce((sum, d) => sum + (d.points || 0), 0);
+
     // 假的願望清單（用配布寶可夢）
     const fakeWishlists = featuredDistributions.slice(0, 3).map((dist, index) => ({
         id: `wish-${index}`,
@@ -119,12 +124,12 @@ function VirtualUserPage({ profile, virtualId, featuredDistributions }: {
                             </div>
                             <div className="rounded-lg bg-white/10 px-3 py-2">
                                 <span className="text-white/60">收藏數量</span>
-                                <span className="ml-2 font-semibold text-green-400">{profile.collection_count}</span>
+                                <span className="ml-2 font-semibold text-green-400">{totalCollectionCount}</span>
                             </div>
                             <div className="rounded-lg bg-white/10 px-3 py-2">
                                 <span className="text-white/60">資產估值</span>
                                 <span className="ml-2 font-semibold text-amber-400">
-                                    ${(profile.total_value || profile.collection_count * 150).toLocaleString()}
+                                    ${totalAssetValue.toLocaleString()}
                                 </span>
                             </div>
                         </div>
@@ -203,6 +208,60 @@ function VirtualUserPage({ profile, virtualId, featuredDistributions }: {
                     <p className="text-center text-white/50">尚未收集配布寶可夢</p>
                 )}
             </section>
+
+            {/* 📋 參加紀錄 */}
+            {events.length > 0 && (
+                <section className="glass-card p-6">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-white">📋 參加紀錄</h2>
+                        <span className="text-xs text-white/40">共 {events.length} 場活動</span>
+                    </div>
+                    <div className="grid grid-cols-5 gap-3 md:grid-cols-10">
+                        {events.map((event) => {
+                            const imageUrl = event.visual_card_url || event.image_url;
+                            const endDate = event.end_date ? new Date(event.end_date) : null;
+                            const startDate = event.start_date ? new Date(event.start_date) : null;
+                            const now = new Date();
+                            const isPast = endDate && endDate < now;
+                            const isOngoing = startDate && endDate && startDate <= now && now <= endDate;
+
+                            return (
+                                <Link
+                                    key={event.id}
+                                    href={`/events/${event.id}` as never}
+                                    className="group relative aspect-square overflow-hidden rounded-xl bg-white/10 ring-1 ring-white/10 hover:ring-amber-400/50 transition-all"
+                                >
+                                    {imageUrl ? (
+                                        <Image
+                                            src={imageUrl}
+                                            alt={event.title}
+                                            fill
+                                            className="object-cover transition group-hover:scale-110"
+                                        />
+                                    ) : (
+                                        <div className="flex h-full items-center justify-center text-2xl">🎫</div>
+                                    )}
+                                    <div className="absolute left-1 top-1">
+                                        {isOngoing ? (
+                                            <span className="rounded-full bg-green-500/80 px-1.5 py-0.5 text-[9px] font-bold text-white shadow">進行中</span>
+                                        ) : isPast ? (
+                                            <span className="rounded-full bg-black/60 px-1.5 py-0.5 text-[9px] font-bold text-white/60">已結束</span>
+                                        ) : (
+                                            <span className="rounded-full bg-blue-500/80 px-1.5 py-0.5 text-[9px] font-bold text-white shadow">即將</span>
+                                        )}
+                                    </div>
+                                    <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/30 to-transparent p-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                                        <p className="truncate text-[10px] font-medium text-white leading-tight">{event.title}</p>
+                                        {(event.estimated_value || 0) > 0 && (
+                                            <p className="text-[9px] text-amber-400 font-semibold">${(event.estimated_value || 0).toLocaleString()}</p>
+                                        )}
+                                    </div>
+                                </Link>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
 
             {/* 願望清單 */}
             <section className="glass-card p-6">
@@ -321,7 +380,14 @@ export default async function UserProfilePage({ params }: Props) {
             const featured = shuffled.slice(0, 10).map(s => s.d)
                 .sort((a, b) => (b.points || 0) - (a.points || 0));
 
-            return <VirtualUserPage virtualId={idOrUsername} profile={virtualProfile} featuredDistributions={featured} />;
+            // 載入所有活動作為虛擬用戶的參加紀錄（虛擬用戶基本上都參與過）
+            const { data: allEvents } = await supabase
+                .from("events")
+                .select("id, title, image_url, visual_card_url, start_date, end_date, estimated_value")
+                .eq("status", "published")
+                .order("created_at", { ascending: false });
+
+            return <VirtualUserPage virtualId={idOrUsername} profile={virtualProfile} featuredDistributions={featured} events={allEvents || []} />;
         }
     }
 
