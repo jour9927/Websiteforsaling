@@ -58,6 +58,7 @@ type Comment = {
     is_virtual?: boolean;
     has_real_reply?: boolean;
     commenter: { id: string; full_name: string | null } | null;
+    virtual_commenter?: { id: string; display_name: string } | null;
 };
 
 type Profile = {
@@ -1036,12 +1037,12 @@ export function PersonalSpaceContent({
                                             {/* 頂層留言 */}
                                             <div className="flex gap-3 rounded-lg bg-white/5 p-3">
                                                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-400 to-purple-500 text-sm font-bold text-white">
-                                                    {(comment.commenter?.full_name || "匿").slice(0, 1).toUpperCase()}
+                                                    {(comment.commenter?.full_name || comment.virtual_commenter?.display_name || "匿").slice(0, 1).toUpperCase()}
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center justify-between gap-2">
                                                         <span className="text-sm font-medium text-white truncate">
-                                                            {comment.commenter?.full_name || "匿名"}
+                                                            {comment.commenter?.full_name || comment.virtual_commenter?.display_name || "匿名"}
                                                         </span>
                                                         <div className="flex items-center gap-2">
                                                             <span className="text-xs text-white/40 shrink-0">
@@ -1064,7 +1065,7 @@ export function PersonalSpaceContent({
                                                         <button
                                                             onClick={() => {
                                                                 setReplyTo(comment.id);
-                                                                setNewComment(`@${comment.commenter?.full_name || "匿名"} `);
+                                                                setNewComment(`@${comment.commenter?.full_name || comment.virtual_commenter?.display_name || "匿名"} `);
                                                             }}
                                                             className="mt-2 text-xs text-blue-300/60 hover:text-blue-300"
                                                         >

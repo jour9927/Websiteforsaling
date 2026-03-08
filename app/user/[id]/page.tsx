@@ -394,12 +394,16 @@ export default async function UserProfilePage({ params }: Props) {
         .eq("user_id", userId)
         .order("priority", { ascending: false });
 
-    // 載入目標用戶的留言
-    const { data: comments } = await supabase
+    // Admin client 繞過 RLS（用於配布和留言查詢）
+    const adminSupabase = createAdminSupabaseClient();
+
+    // 載入目標用戶的留言（包含真實 + 虛擬留言）
+    const { data: comments } = await adminSupabase
         .from("profile_comments")
         .select(`
       *,
-      commenter:commenter_id (id, full_name)
+      commenter:commenter_id (id, full_name),
+      virtual_commenter:virtual_commenter_id (id, display_name)
     `)
         .eq("profile_user_id", userId)
         .order("created_at", { ascending: false })
@@ -426,7 +430,6 @@ export default async function UserProfilePage({ params }: Props) {
         .order("registered_at", { ascending: false });
 
     // 載入配布圖鑑收藏（用 admin client 繞過 RLS，讓其他人也能看到收藏）
-    const adminSupabase = createAdminSupabaseClient();
     const { data: userDistributions } = await adminSupabase
         .from("user_distributions")
         .select("distribution_id, distributions(id, pokemon_name, pokemon_name_en, pokemon_sprite_url, points, generation, is_shiny, event_name, game_titles)")
