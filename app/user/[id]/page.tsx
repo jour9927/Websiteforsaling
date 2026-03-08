@@ -175,12 +175,11 @@ function VirtualUserPage({ profile, virtualId, featuredDistributions }: {
                                         <div className="flex h-full items-center justify-center text-2xl">🐾</div>
                                     )}
                                     {/* 排名徽章 */}
-                                    <div className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                                        index === 0 ? "bg-amber-500 text-black" :
+                                    <div className={`absolute left-1 top-1 rounded-full px-1.5 py-0.5 text-[10px] font-bold ${index === 0 ? "bg-amber-500 text-black" :
                                         index === 1 ? "bg-gray-300 text-black" :
-                                        index === 2 ? "bg-amber-700 text-white" :
-                                        "bg-black/60 text-amber-300"
-                                    }`}>
+                                            index === 2 ? "bg-amber-700 text-white" :
+                                                "bg-black/60 text-amber-300"
+                                        }`}>
                                         #{index + 1}
                                     </div>
                                     {/* 異色標記 */}
@@ -457,15 +456,79 @@ export default async function UserProfilePage({ params }: Props) {
         .eq("status", "published")
         .order("created_at", { ascending: false });
 
-    // 載入最近訪客（最多 10 位）
-    const { data: recentVisitors } = await supabase
+    // 計算今日起始時間
+    const todayStartDate = new Date();
+    todayStartDate.setHours(0, 0, 0, 0);
+    const todayISOStr = todayStartDate.toISOString();
+
+    // 載入今日真實訪客（最多 10 位）
+    const { data: realVisitorRows } = await supabase
         .from("profile_visits")
-        .select(`
-            visitor:visitor_id (id, full_name, username)
-        `)
+        .select("visitor:visitor_id (id, full_name, username)")
         .eq("profile_user_id", userId)
+        .not("visitor_id", "is", null)
+        .gte("visited_at", todayISOStr)
         .order("visited_at", { ascending: false })
         .limit(10);
+
+    // 載入今日 cron 虛擬訪客（如果 cron 有跑的話）
+    const { data: cronVisitorRows } = await supabase
+        .from("profile_visits")
+        .select("virtual_visitor:virtual_visitor_id (id, display_name)")
+        .eq("profile_user_id", userId)
+        .not("virtual_visitor_id", "is", null)
+        .gte("visited_at", todayISOStr)
+        .order("visited_at", { ascending: false })
+        .limit(10);
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const realVisitors = (realVisitorRows?.map((v: any) => v.visitor).filter(Boolean) || []).map((v: any) => ({
+        ...v,
+        isVirtual: false,
+    }));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const cronVisitors = (cronVisitorRows?.map((v: any) => v.virtual_visitor).filter(Boolean) || []).map((v: any) => ({
+        id: v.id,
+        full_name: v.display_name,
+        username: null,
+        isVirtual: true,
+    }));
+
+    // 如果 cron 沒有跑，使用 server-side fallback（從 virtual_profiles 表隨機挑選）
+    let fallbackVisitors: { id: string; full_name: string; username: null; isVirtual: true }[] = [];
+    if (cronVisitors.length === 0) {
+        const { data: allVirtualProfiles } = await supabase
+            .from("virtual_profiles")
+            .select("id, display_name")
+            .limit(20);
+
+        if (allVirtualProfiles && allVirtualProfiles.length > 0) {
+            const todayKey = todayStartDate.toISOString().split('T')[0];
+            let hash = 0;
+            const seed = userId + todayKey;
+            for (let i = 0; i < seed.length; i++) {
+                hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+                hash |= 0;
+            }
+            hash = Math.abs(hash);
+
+            const count = 2 + (hash % 4);
+            const shuffled = [...allVirtualProfiles].sort((a, b) => {
+                const ha = Math.abs(Math.sin(hash * a.id.charCodeAt(0)) * 10000);
+                const hb = Math.abs(Math.sin(hash * b.id.charCodeAt(0)) * 10000);
+                return ha - hb;
+            });
+
+            fallbackVisitors = shuffled.slice(0, count).map(vp => ({
+                id: vp.id,
+                full_name: vp.display_name,
+                username: null,
+                isVirtual: true as const,
+            }));
+        }
+    }
+
+    const recentVisitors = [...realVisitors, ...cronVisitors, ...fallbackVisitors];
 
     // 建立虛擬用戶物件給 PersonalSpaceContent
     const targetUser = {
@@ -485,10 +548,7 @@ export default async function UserProfilePage({ params }: Props) {
             allEvents={allEvents || []}
             isOwnProfile={isOwnProfile}
             currentUserId={currentUser?.id}
-            recentVisitors={
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (recentVisitors?.map((v: any) => v.visitor).filter(Boolean) || []) as any
-            }
+            recentVisitors={recentVisitors}
             distributionStats={distributionStats}
             topDistributions={topDistributions}
             registrations={userRegistrations || []}

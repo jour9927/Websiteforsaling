@@ -219,17 +219,83 @@ export default async function HomePage() {
     .eq("user_id", user.id)
     .order("sort_order");
 
-  // 載入最近訪客（真實用戶，最多 10 位）
-  const { data: recentVisitorRows } = await supabase
+  // 計算今日起始時間
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayISO = todayStart.toISOString();
+
+  // 載入今日真實訪客（最多 10 位）
+  const { data: realVisitorRows } = await supabase
     .from("profile_visits")
     .select("visitor:visitor_id (id, full_name, username)")
     .eq("profile_user_id", user.id)
     .not("visitor_id", "is", null)
+    .gte("visited_at", todayISO)
+    .order("visited_at", { ascending: false })
+    .limit(10);
+
+  // 載入今日 cron 虛擬訪客（如果 cron 有跑的話）
+  const { data: cronVisitorRows } = await supabase
+    .from("profile_visits")
+    .select("virtual_visitor:virtual_visitor_id (id, display_name)")
+    .eq("profile_user_id", user.id)
+    .not("virtual_visitor_id", "is", null)
+    .gte("visited_at", todayISO)
     .order("visited_at", { ascending: false })
     .limit(10);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const recentVisitors = (recentVisitorRows?.map((v: any) => v.visitor).filter(Boolean) || []) as any;
+  const realVisitors = (realVisitorRows?.map((v: any) => v.visitor).filter(Boolean) || []).map((v: any) => ({
+    ...v,
+    isVirtual: false,
+  }));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cronVisitors = (cronVisitorRows?.map((v: any) => v.virtual_visitor).filter(Boolean) || []).map((v: any) => ({
+    id: v.id,
+    full_name: v.display_name,
+    username: null,
+    isVirtual: true,
+  }));
+
+  // 如果 cron 沒有跑（沒有 DB 虛擬訪客），使用 server-side fallback
+  // 從 virtual_profiles 表隨機挑選 2-5 位，用確定性 hash 保證同一天內一致
+  let fallbackVisitors: { id: string; full_name: string; username: null; isVirtual: true }[] = [];
+  if (cronVisitors.length === 0) {
+    const { data: allVirtualProfiles } = await supabase
+      .from("virtual_profiles")
+      .select("id, display_name")
+      .limit(20);
+
+    if (allVirtualProfiles && allVirtualProfiles.length > 0) {
+      // 確定性 hash：用戶 ID + 今日日期
+      const todayKey = todayStart.toISOString().split('T')[0];
+      let hash = 0;
+      const seed = user.id + todayKey;
+      for (let i = 0; i < seed.length; i++) {
+        hash = ((hash << 5) - hash) + seed.charCodeAt(i);
+        hash |= 0;
+      }
+      hash = Math.abs(hash);
+
+      const count = 2 + (hash % 4); // 2-5 位
+      // 用 hash 做確定性 shuffle
+      const shuffled = [...allVirtualProfiles].sort((a, b) => {
+        const ha = Math.abs(Math.sin(hash * a.id.charCodeAt(0)) * 10000);
+        const hb = Math.abs(Math.sin(hash * b.id.charCodeAt(0)) * 10000);
+        return ha - hb;
+      });
+
+      fallbackVisitors = shuffled.slice(0, count).map(vp => ({
+        id: vp.id,
+        full_name: vp.display_name,
+        username: null,
+        isVirtual: true as const,
+      }));
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recentVisitors = [...realVisitors, ...cronVisitors, ...fallbackVisitors] as any;
 
   return (
     <div className="flex flex-col gap-8">

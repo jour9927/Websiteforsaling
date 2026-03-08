@@ -82,6 +82,7 @@ type Visitor = {
     id: string;
     full_name: string | null;
     username: string | null;
+    isVirtual?: boolean;
 };
 
 type PublicImage = {
@@ -268,24 +269,18 @@ export function PersonalSpaceContent({
     );
 
     // ===== 虛擬互動系統 =====
-    // 虛擬用戶名稱池（60+）
+    // 虛擬用戶名稱池（用於留言系統）
     const VIRTUAL_NAMES = [
-        // 中文姓氏
         "王**", "李**", "陳**", "林**", "張**", "黃**", "劉**", "楊**",
         "吳**", "蔡**", "謝**", "趙**", "周**", "徐**", "馬**", "朱**",
         "胡**", "高**", "羅**", "曾**", "郭**", "孫**", "蘇**", "葉**",
         "江**", "彭**", "鄧**", "余**", "唐**", "鄭**", "藩**", "豬**",
-        // 英文縮寫
         "P***", "S***", "M***", "T***", "A***", "K***", "R***",
         "J***", "D***", "C***", "L***", "H***", "N***", "Y***",
         "W***", "B***", "G***", "E***", "F***", "V***",
-        // 暱稱風格
         "小**", "大**", "阿**", "小米*", "小魚*", "小竹*",
         "小木*", "天**", "星**", "雲**", "雨**", "風**",
     ];
-
-    // 虛擬留言池（從共享池匯入）
-    // 使用「用戶 ID + 日期」做確定性不重複抽樣
 
     // 使用「用戶 ID + 日期」生成確定性的隨機數（每天變化，但同一天內一致）
     const hashCode = (str: string) => {
@@ -299,26 +294,12 @@ export function PersonalSpaceContent({
 
     // 加入日期讓每天產生不同結果（以上午 11:00 為分界點）
     const now = new Date();
-    // 如果現在時間早於 11:00，就用昨天的日期
     const adjustedDate = new Date(now);
     if (now.getHours() < 11) {
         adjustedDate.setDate(adjustedDate.getDate() - 1);
     }
-    const todayKey = adjustedDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    const todayKey = adjustedDate.toISOString().split('T')[0];
     const userHash = hashCode(user.id + todayKey);
-
-    // 生成虛擬訪客（2-5 位）
-    const virtualVisitorCount = 2 + (userHash % 4);
-    const virtualVisitors = Array.from({ length: virtualVisitorCount }, (_, i) => {
-        const nameIndex = (userHash + i * 7) % VIRTUAL_NAMES.length;
-        const virtualId = `virtual-${userHash}-${i}`;
-        return {
-            id: virtualId,
-            full_name: VIRTUAL_NAMES[nameIndex],
-            username: null,
-            isVirtual: true,
-        };
-    });
 
     // 生成虛擬留言（1-3 則，確定性且不重複）
     const virtualCommentCount = 1 + (userHash % 3);
@@ -400,17 +381,16 @@ export function PersonalSpaceContent({
         ? [llmComment, ...initialVirtualComments]
         : initialVirtualComments;
 
-    // 合併真實和虛擬訪客
-    const allVisitors = [...recentVisitors, ...virtualVisitors];
+    // 訪客列表直接使用 server 傳入的資料（包含真實 + DB 虛擬訪客）
+    const allVisitors = recentVisitors;
 
     // 合併真實和虛擬留言，按時間排序（新的在前）
     const allComments = [...comments, ...virtualComments].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
-    // 瀏覽量統計
-    const virtualTotalViews = 50 + (userHash % 150); // 固定虛擬基底
-    const displayTotalViews = (profile?.total_views || 0) + virtualTotalViews;
+    // 瀏覽量統計（使用 DB 真實值，不再加前端虛擬基底）
+    const displayTotalViews = profile?.total_views || 0;
     // ✨ 今日訪問 = 訪客列表總人數（保持一致）
     const displayTodayViews = allVisitors.length;
 
@@ -694,10 +674,9 @@ export function PersonalSpaceContent({
                                             {allVisitors.slice(0, 6).map((visitor: { id: string; full_name?: string | null; username?: string | null; isVirtual?: boolean }) => (
                                                 <Link
                                                     key={visitor.id}
-                                                    href={visitor.isVirtual ? '#' : `/user/${visitor.username || visitor.id}`}
-                                                    className={`relative h-9 w-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white ring-2 ring-slate-800 transition hover:scale-110 hover:z-10 ${visitor.isVirtual ? 'cursor-default' : 'cursor-pointer'}`}
+                                                    href={`/user/${visitor.username || visitor.id}`}
+                                                    className="relative h-9 w-9 rounded-full bg-gradient-to-br from-pink-400 to-purple-500 flex items-center justify-center text-xs font-bold text-white ring-2 ring-slate-800 transition hover:scale-110 hover:z-10 cursor-pointer"
                                                     title={visitor.full_name || "訪客"}
-                                                    onClick={(e) => visitor.isVirtual && e.preventDefault()}
                                                 >
                                                     {(visitor.full_name || "?").slice(0, 1).toUpperCase()}
                                                 </Link>

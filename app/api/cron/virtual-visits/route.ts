@@ -59,6 +59,10 @@ export async function GET(request: NextRequest) {
         const shuffledComments = shuffleArray(CRON_VIRTUAL_COMMENTS);
         let commentPoolIndex = 0;
 
+        // 計算今日日期（用於查詢已存在的虛擬訪問）
+        const todayDate = now.toISOString().split('T')[0]; // YYYY-MM-DD
+        const todayStart = `${todayDate}T00:00:00.000Z`;
+
         for (const profile of profiles) {
             // 隨機決定這個用戶今天獲得多少虛擬訪問（1-5）
             const visitCount = Math.floor(Math.random() * 5) + 1;
@@ -67,7 +71,24 @@ export async function GET(request: NextRequest) {
             const shuffledVirtual = [...virtualProfiles].sort(() => Math.random() - 0.5);
             const selectedVisitors = shuffledVirtual.slice(0, visitCount);
 
-            for (const visitor of selectedVisitors) {
+            // 查詢該用戶今日已有的虛擬訪問（避免重複累加瀏覽計數）
+            const { data: existingVisits } = await supabase
+                .from("profile_visits")
+                .select("virtual_visitor_id")
+                .eq("profile_user_id", profile.id)
+                .eq("is_virtual", true)
+                .gte("visited_at", todayStart);
+
+            const existingVisitorIds = new Set(
+                (existingVisits || []).map(v => v.virtual_visitor_id)
+            );
+
+            // 只保留今日尚未訪問過的虛擬訪客
+            const newVisitors = selectedVisitors.filter(
+                visitor => !existingVisitorIds.has(visitor.id)
+            );
+
+            for (const visitor of newVisitors) {
                 visits.push({
                     profile_user_id: profile.id,
                     visitor_id: null,
@@ -92,10 +113,13 @@ export async function GET(request: NextRequest) {
                 });
             }
 
-            viewUpdates.push({
-                id: profile.id,
-                addViews: selectedVisitors.length,
-            });
+            // 只為新增的訪問累加瀏覽計數（避免重複計算）
+            if (newVisitors.length > 0) {
+                viewUpdates.push({
+                    id: profile.id,
+                    addViews: newVisitors.length,
+                });
+            }
         }
 
         // 4. 批次插入訪問記錄
