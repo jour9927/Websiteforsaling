@@ -27,7 +27,7 @@ import { CSS } from "@dnd-kit/utilities";
 
 import { MySocialStats } from "@/components/MySocialStats";
 import { SocialStats } from "@/components/SocialStats";
-import { sampleWithoutRepeat, PERSONAL_SPACE_COMMENTS, getCollectionAwareComment, buildCollectionContext } from "@/lib/commentFallbackPool";
+import { sampleWithoutRepeat, PERSONAL_SPACE_COMMENTS, getCollectionAwareComment, buildCollectionContext, NEGATIVE_COMMENTS } from "@/lib/commentFallbackPool";
 
 type Event = {
     id: string;
@@ -332,8 +332,14 @@ export function PersonalSpaceContent({
             createdDate.setDate(createdDate.getDate() - daysAgo);
 
             // 隨機但確定性的讚數
-            const deterministicLikes = 15 + ((userHash + i * 7) % 35); // 15-49 讚
-            const deterministicDislikes = ((userHash + i * 3) % 3); // 0-2 倒讚
+            let deterministicLikes = 15 + ((userHash + i * 7) % 35); // 15-49 讚
+            let deterministicDislikes = ((userHash + i * 3) % 3); // 0-2 倒讚
+
+            // 如果是被判定為負面/酸民留言，倒讚應該要比讚多
+            if (NEGATIVE_COMMENTS.includes(content)) {
+                deterministicLikes = ((userHash + i * 2) % 5); // 0-4 讚
+                deterministicDislikes = 15 + ((userHash + i * 7) % 35); // 15-49 倒讚
+            }
 
             return {
                 id: `virtual-comment-${userHash}-${i}`,

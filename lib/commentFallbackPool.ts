@@ -339,7 +339,7 @@ export const PERSONAL_SPACE_COMMENTS: string[] = [
 ];
 
 // ── 負面 / 質疑 / 酸葡萄（供少量混入，提升真實感）──
-const NEGATIVE_COMMENTS = [
+export const NEGATIVE_COMMENTS = [
     "這價格太盤了吧，誰買得下去",
     "現在改造獸那麼多，這隻來源真的乾淨嗎？",
     "這配布數值有點可撥，純看外觀而已",
