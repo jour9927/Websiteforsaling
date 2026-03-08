@@ -338,6 +338,22 @@ export const PERSONAL_SPACE_COMMENTS: string[] = [
     "這精選收藏擺出來，誰與爭鋒啊",
 ];
 
+// ── 負面 / 質疑 / 酸葡萄（供少量混入，提升真實感）──
+const NEGATIVE_COMMENTS = [
+    "這價格太盤了吧，誰買得下去",
+    "現在改造獸那麼多，這隻來源真的乾淨嗎？",
+    "這配布數值有點可撥，純看外觀而已",
+    "這隻也拿出來炫耀？路邊隨便抓都比較好",
+    "只有我是覺得這隻很普通嗎...",
+    "這活動當初隨便點都有，不懂在貴什麼",
+    "感覺這排版有點亂，找隻寶可夢找半天",
+    "這隻退環境很久了，現在根本上不了場",
+    "這樓也太會吹了吧，根本沒那麼神",
+    "這種大量亂發的配布有什麼好收藏的",
+    "炫富文無誤 (酸",
+    "這圖鑑看起來像適用魔法變出來的 🙄",
+];
+
 /**
  * 從個人空間留言池中做確定性不重複抽樣
  * 使用 hash 產生的種子來決定抽取順序，確保：
@@ -366,7 +382,18 @@ export function sampleWithoutRepeat(
     }
 
     // 取前 count 個不重複的結果
-    return indices.slice(0, count).map(i => pool[i]);
+    const results = indices.slice(0, count).map(i => pool[i]);
+
+    // 約 10% 的機率，將其中一條留言替換為負面留言（增加真實的論壇感）
+    if (results.length > 0 && nextRand() < 0.1) {
+        // 決定替換哪一條 (隨機)
+        const replaceIdx = Math.floor(nextRand() * results.length);
+        // 決定使用哪一條負面留言
+        const negIdx = Math.floor(nextRand() * NEGATIVE_COMMENTS.length);
+        results[replaceIdx] = NEGATIVE_COMMENTS[negIdx];
+    }
+
+    return results;
 }
 
 // ══════════════════════════════════════════════
