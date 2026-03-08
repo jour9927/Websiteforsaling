@@ -174,10 +174,9 @@ export async function GET(request: NextRequest) {
                         }
                     }
 
-                    // 呼叫 LLM API（內部呼叫，用絕對 URL）
-                    const baseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-                        ? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000")
-                        : "http://localhost:3000";
+                    // 呼叫 LLM API（用請求自己的 origin 來構建 URL）
+                    const requestUrl = new URL(request.url);
+                    const baseUrl = requestUrl.origin;
 
                     const llmRes = await fetch(`${baseUrl}/api/generate-homepage-comment`, {
                         method: "POST",
