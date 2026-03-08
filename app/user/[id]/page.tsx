@@ -480,6 +480,20 @@ export default async function UserProfilePage({ params }: Props) {
         .eq("status", "published")
         .order("created_at", { ascending: false });
 
+    // 載入公眾形象名
+    const { data: publicImage } = await supabase
+        .from("public_images")
+        .select("nickname, approval_rate")
+        .eq("user_id", userId)
+        .single();
+
+    // 載入公眾認知
+    const { data: publicPerceptions } = await supabase
+        .from("public_perceptions")
+        .select("id, content, agree_rate, disagree_rate, participation_rate")
+        .eq("user_id", userId)
+        .order("sort_order");
+
     // 計算今日起始時間
     const todayStartDate = new Date();
     todayStartDate.setHours(0, 0, 0, 0);
@@ -572,6 +586,8 @@ export default async function UserProfilePage({ params }: Props) {
             allEvents={allEvents || []}
             isOwnProfile={isOwnProfile}
             currentUserId={currentUser?.id}
+            publicImage={publicImage}
+            publicPerceptions={publicPerceptions || []}
             recentVisitors={recentVisitors}
             distributionStats={distributionStats}
             topDistributions={topDistributions}
