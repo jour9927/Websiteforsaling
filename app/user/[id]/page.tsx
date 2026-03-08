@@ -1,4 +1,4 @@
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createServerSupabaseClient, createAdminSupabaseClient } from "@/lib/auth";
 import { notFound } from "next/navigation";
 import { PersonalSpaceContent } from "@/components/PersonalSpaceContent";
 import Link from "next/link";
@@ -425,8 +425,9 @@ export default async function UserProfilePage({ params }: Props) {
         .eq("status", "confirmed")
         .order("registered_at", { ascending: false });
 
-    // 載入配布圖鑑收藏（帶完整配布資料）
-    const { data: userDistributions } = await supabase
+    // 載入配布圖鑑收藏（用 admin client 繞過 RLS，讓其他人也能看到收藏）
+    const adminSupabase = createAdminSupabaseClient();
+    const { data: userDistributions } = await adminSupabase
         .from("user_distributions")
         .select("distribution_id, distributions(id, pokemon_name, pokemon_name_en, pokemon_sprite_url, points, generation, is_shiny, event_name, game_titles)")
         .eq("user_id", userId);
