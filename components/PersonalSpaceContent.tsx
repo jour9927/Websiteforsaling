@@ -25,6 +25,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { DailyCheckInWidget } from "@/components/DailyCheckInWidget";
 
 import { MySocialStats } from "@/components/MySocialStats";
+import { SocialStats } from "@/components/SocialStats";
 import { sampleWithoutRepeat, PERSONAL_SPACE_COMMENTS, getCollectionAwareComment, buildCollectionContext } from "@/lib/commentFallbackPool";
 
 type Event = {
@@ -77,6 +78,8 @@ type Profile = {
     blindbox_coupons?: number;
     ai_user_summary?: string | null;
     ai_system_prompt?: string | null;
+    followers_count?: number | null;
+    popularity_score?: number | null;
 };
 
 type Visitor = {
@@ -547,6 +550,20 @@ export function PersonalSpaceContent({
                         <div className="mb-4">
                             <h3 className="text-sm font-medium text-white/60 mb-3">📊 我的社交數據</h3>
                             <MySocialStats userId={user.id} />
+                        </div>
+                        <hr className="border-white/10 mb-6" />
+                    </>
+                )}
+                {!isOwnProfile && (
+                    <>
+                        <div className="mb-4">
+                            <h3 className="text-sm font-medium text-white/60 mb-3">📊 社交數據</h3>
+                            <SocialStats
+                                userId={user.id}
+                                isOwnProfile={false}
+                                initialFollowers={profile?.followers_count || 0}
+                                initialPopularity={profile?.popularity_score || 0}
+                            />
                         </div>
                         <hr className="border-white/10 mb-6" />
                     </>
