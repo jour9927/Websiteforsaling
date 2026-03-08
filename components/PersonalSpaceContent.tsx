@@ -669,7 +669,9 @@ export function PersonalSpaceContent({
                                 </>
                             )}
                         </div>
-                        <p className="mt-1 text-sm text-white/60">{user.email}</p>
+                        {isOwnProfile && user.email && (
+                            <p className="mt-1 text-sm text-white/60">{user.email}</p>
+                        )}
 
                         {profile?.bio && (
                             <p className="mt-3 text-sm text-white/80">{profile.bio}</p>
