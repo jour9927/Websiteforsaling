@@ -15,6 +15,8 @@ type RankingUser = {
 export function PopularityWidget() {
     const [topUsers, setTopUsers] = useState<RankingUser[]>([]);
     const [loading, setLoading] = useState(true);
+    const [myRank, setMyRank] = useState<number | null>(null);
+    const [myScore, setMyScore] = useState<number | null>(null);
 
     useEffect(() => {
         async function loadTop3() {
@@ -24,6 +26,8 @@ export function PopularityWidget() {
                 if (data.rankings) {
                     setTopUsers(data.rankings.slice(0, 3));
                 }
+                if (data.myRank) setMyRank(data.myRank);
+                if (data.myScore !== null && data.myScore !== undefined) setMyScore(data.myScore);
             } catch (error) {
                 console.error("Load top3 error:", error);
             } finally {
@@ -83,6 +87,20 @@ export function PopularityWidget() {
                     <p className="text-xs text-white/40 text-center py-2">暫無數據</p>
                 )}
             </div>
+            {/* 自己的排名 */}
+            {myRank !== null && (
+                <div className="px-3 pb-3 pt-1 border-t border-white/10">
+                    <div className="flex items-center justify-between rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 px-3 py-2">
+                        <span className="text-xs text-white/60">📍 你的排名</span>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-amber-400">第 {myRank} 名</span>
+                            {myScore !== null && (
+                                <span className="text-xs text-white/40">({myScore} 分)</span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

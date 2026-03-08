@@ -56,9 +56,32 @@ export async function GET(request: Request) {
                 followers: u.followers_count || 0,
                 isVirtual: true
             }))
-        ].sort((a, b) => b.score - a.score).slice(0, limit);
+        ].sort((a, b) => b.score - a.score);
 
-        return NextResponse.json({ rankings: combined });
+        // 找到當前用戶在排行榜中的排名
+        let myRank: number | null = null;
+        let myScore: number | null = null;
+        if (user) {
+            const myIndex = combined.findIndex(u => u.id === user.id && !u.isVirtual);
+            if (myIndex !== -1) {
+                myRank = myIndex + 1;
+                myScore = combined[myIndex].score;
+            } else {
+                // 用戶可能不在 top N 裡（popularity_score == 0 或太低），查一下
+                const { data: myProfile } = await supabase
+                    .from("profiles")
+                    .select("popularity_score")
+                    .eq("id", user.id)
+                    .single();
+                if (myProfile && (myProfile.popularity_score || 0) > 0) {
+                    myScore = myProfile.popularity_score;
+                    // 計算排名：比自己分高的人數 + 1
+                    myRank = combined.filter(u => u.score > (myProfile.popularity_score || 0)).length + 1;
+                }
+            }
+        }
+
+        return NextResponse.json({ rankings: combined.slice(0, limit), myRank, myScore });
     }
 
     if (action === "status" && user) {
