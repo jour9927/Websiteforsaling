@@ -404,6 +404,8 @@ export function sampleWithoutRepeat(
     const results = indices.slice(0, count).map(i => pool[i]);
 
     // 約 10% 的機率，將其中一條留言替換為負面留言（增加真實的論壇感）
+    // 暫時不投入使用，保留邏輯備用
+    /* 
     if (results.length > 0 && nextRand() < 0.1) {
         // 決定替換哪一條 (隨機)
         const replaceIdx = Math.floor(nextRand() * results.length);
@@ -411,6 +413,7 @@ export function sampleWithoutRepeat(
         const negIdx = Math.floor(nextRand() * NEGATIVE_COMMENTS.length);
         results[replaceIdx] = NEGATIVE_COMMENTS[negIdx];
     }
+    */
 
     return results;
 }
