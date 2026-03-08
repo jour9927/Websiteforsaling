@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -311,35 +311,38 @@ export function PersonalSpaceContent({
     const todayKey = adjustedDate.toISOString().split('T')[0];
     const userHash = hashCode(user.id + todayKey);
 
-    // 生成虛擬留言（1-3 則，確定性且不重複）
-    const virtualCommentCount = 1 + (userHash % 3);
-    const sampledComments = sampleWithoutRepeat(PERSONAL_SPACE_COMMENTS, virtualCommentCount, userHash);
+    // 生成虛擬留言（useMemo 避免每次 re-render 都重新計算）
+    const initialVirtualComments = useMemo(() => {
+        const virtualCommentCount = 1 + (userHash % 3);
+        const sampledComments = sampleWithoutRepeat(PERSONAL_SPACE_COMMENTS, virtualCommentCount, userHash);
 
-    // 如果有精選收藏，用收藏模板替換掉最後一條留言（更自然）
-    if (topDistributions.length > 0 && sampledComments.length > 0) {
-        const collectionComment = getCollectionAwareComment(topDistributions);
-        if (collectionComment) {
-            sampledComments[sampledComments.length - 1] = collectionComment;
+        // 如果有精選收藏，用確定性方式選取收藏留言（避免 Math.random 導致每次 re-render 都變動）
+        if (topDistributions.length > 0 && sampledComments.length > 0) {
+            const collectionComment = getCollectionAwareComment(topDistributions);
+            if (collectionComment) {
+                sampledComments[sampledComments.length - 1] = collectionComment;
+            }
         }
-    }
 
-    const initialVirtualComments = sampledComments.map((content, i) => {
-        const nameIndex = (userHash + i * 11) % VIRTUAL_NAMES.length;
-        const daysAgo = (userHash + i * 5) % 14 + 1; // 1-14 天前
-        const createdDate = new Date();
-        createdDate.setDate(createdDate.getDate() - daysAgo);
+        return sampledComments.map((content, i) => {
+            const nameIndex = (userHash + i * 11) % VIRTUAL_NAMES.length;
+            const daysAgo = (userHash + i * 5) % 14 + 1; // 1-14 天前
+            const createdDate = new Date();
+            createdDate.setDate(createdDate.getDate() - daysAgo);
 
-        return {
-            id: `virtual-comment-${userHash}-${i}`,
-            content,
-            created_at: createdDate.toISOString(),
-            commenter: {
-                id: `virtual-${userHash}-${i}`,
-                full_name: VIRTUAL_NAMES[nameIndex],
-            },
-            isVirtual: true,
-        };
-    });
+            return {
+                id: `virtual-comment-${userHash}-${i}`,
+                content,
+                created_at: createdDate.toISOString(),
+                commenter: {
+                    id: `virtual-${userHash}-${i}`,
+                    full_name: VIRTUAL_NAMES[nameIndex],
+                },
+                isVirtual: true,
+            };
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userHash, topDistributions.length]);
 
     // LLM 收藏感知留言（有 ai_user_summary → 70%，無 → 30%）
     const [llmComment, setLlmComment] = useState<{
