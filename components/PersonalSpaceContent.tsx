@@ -331,6 +331,10 @@ export function PersonalSpaceContent({
             const createdDate = new Date();
             createdDate.setDate(createdDate.getDate() - daysAgo);
 
+            // 隨機但確定性的讚數
+            const deterministicLikes = 15 + ((userHash + i * 7) % 35); // 15-49 讚
+            const deterministicDislikes = ((userHash + i * 3) % 3); // 0-2 倒讚
+
             return {
                 id: `virtual-comment-${userHash}-${i}`,
                 content,
@@ -340,6 +344,8 @@ export function PersonalSpaceContent({
                     full_name: VIRTUAL_NAMES[nameIndex],
                 },
                 isVirtual: true,
+                likes_count: deterministicLikes,
+                dislikes_count: deterministicDislikes,
             };
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
