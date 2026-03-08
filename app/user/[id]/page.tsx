@@ -398,16 +398,36 @@ export default async function UserProfilePage({ params }: Props) {
     const adminSupabase = createAdminSupabaseClient();
 
     // 載入目標用戶的留言（包含真實 + 虛擬留言）
-    const { data: comments } = await adminSupabase
+    const { data: rawComments } = await adminSupabase
         .from("profile_comments")
-        .select(`
-      *,
-      commenter:commenter_id (id, full_name),
-      virtual_commenter:virtual_commenter_id (id, display_name)
-    `)
+        .select("*")
         .eq("profile_user_id", userId)
         .order("created_at", { ascending: false })
         .limit(20);
+
+    let comments = rawComments || [];
+    if (rawComments && rawComments.length > 0) {
+        // 查真實 commenter
+        const commenterIds = [...new Set(rawComments.map(c => c.commenter_id).filter(Boolean))];
+        const { data: profilesData } = commenterIds.length > 0
+            ? await supabase.from("profiles").select("id, full_name").in("id", commenterIds)
+            : { data: [] };
+
+        // 查虛擬 commenter
+        const virtualIds = [...new Set(rawComments.map(c => c.virtual_commenter_id).filter(Boolean))];
+        const { data: virtualData } = virtualIds.length > 0
+            ? await adminSupabase.from("virtual_profiles").select("id, display_name").in("id", virtualIds)
+            : { data: [] };
+
+        const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+        const virtualMap = new Map(virtualData?.map(p => [p.id, p]) || []);
+
+        comments = rawComments.map(comment => ({
+            ...comment,
+            commenter: profilesMap.get(comment.commenter_id) || null,
+            virtual_commenter: virtualMap.get(comment.virtual_commenter_id) || null,
+        }));
+    }
 
     // 載入目標用戶收藏
     const { data: userItems } = await supabase
