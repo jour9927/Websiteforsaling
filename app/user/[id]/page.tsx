@@ -330,7 +330,7 @@ function VirtualUserPage({ profile, virtualId, featuredDistributions, events }: 
                         <span className="text-3xl">🔒</span>
                     </div>
                     <p className="text-lg font-medium text-white">對方已開啟隱私模式</p>
-                    <p className="mt-1 text-sm text-white/50">留言區僅對好友開放</p>
+                    <p className="mt-1 text-sm text-white/50">留言區僅對相互關注者開放</p>
                 </div>
             </section>
 
