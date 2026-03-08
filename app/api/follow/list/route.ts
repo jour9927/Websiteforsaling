@@ -19,7 +19,7 @@ export async function GET(request: Request) {
 
     try {
         if (type === "followers") {
-            // 查詢誰關注了這個用戶
+            // 查詢誰關注了這個用戶（真實關注記錄）
             let query;
             if (userId) {
                 query = supabase
@@ -38,26 +38,64 @@ export async function GET(request: Request) {
             const { data: follows, error } = await query;
             if (error) throw error;
 
-            // 獲取關注者的詳細信息
+            // 獲取真實關注者的詳細信息
             const followerIds = follows?.map(f => f.follower_id) || [];
-            if (followerIds.length === 0) {
-                return NextResponse.json({ list: [] });
+            const list: Array<{
+                id: string;
+                displayName: string;
+                username?: string;
+                isVirtual: boolean;
+            }> = [];
+
+            if (followerIds.length > 0) {
+                const { data: profiles } = await supabase
+                    .from("profiles")
+                    .select("id, full_name, username")
+                    .in("id", followerIds);
+
+                followerIds.forEach(id => {
+                    const profile = profiles?.find(p => p.id === id);
+                    list.push({
+                        id,
+                        displayName: profile?.full_name || profile?.username || "用戶",
+                        username: profile?.username,
+                        isVirtual: false
+                    });
+                });
             }
 
-            const { data: profiles } = await supabase
-                .from("profiles")
-                .select("id, full_name, username")
-                .in("id", followerIds);
+            // 如果真實粉絲不夠，補上虛擬粉絲（對應 profiles.followers_count 灌水數據）
+            if (userId && list.length < 3) {
+                const { data: allVirtualProfiles } = await supabase
+                    .from("virtual_profiles")
+                    .select("id, display_name")
+                    .limit(20);
 
-            const list = followerIds.map(id => {
-                const profile = profiles?.find(p => p.id === id);
-                return {
-                    id,
-                    displayName: profile?.full_name || profile?.username || "用戶",
-                    username: profile?.username,
-                    isVirtual: false
-                };
-            });
+                if (allVirtualProfiles && allVirtualProfiles.length > 0) {
+                    // 確定性 hash：同一用戶每次看到相同的虛擬粉絲
+                    let hash = 0;
+                    for (let i = 0; i < userId.length; i++) {
+                        hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+                        hash |= 0;
+                    }
+                    hash = Math.abs(hash);
+
+                    const needed = (3 + (hash % 6)) - list.length; // 補到 3-8 位
+                    const shuffled = [...allVirtualProfiles].sort((a, b) => {
+                        const ha = Math.abs(Math.sin(hash * a.id.charCodeAt(0) + a.id.charCodeAt(1)) * 10000);
+                        const hb = Math.abs(Math.sin(hash * b.id.charCodeAt(0) + b.id.charCodeAt(1)) * 10000);
+                        return ha - hb;
+                    });
+
+                    shuffled.slice(0, Math.max(0, needed)).forEach(vp => {
+                        list.push({
+                            id: vp.id,
+                            displayName: vp.display_name,
+                            isVirtual: true
+                        });
+                    });
+                }
+            }
 
             return NextResponse.json({ list });
         } else {
