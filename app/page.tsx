@@ -128,29 +128,38 @@ export default async function HomePage() {
     .eq("user_id", user.id)
     .order("priority", { ascending: false });
 
-  // 載入用戶的留言（顯示最近的留言）
-  // 先查詢基本留言資料，不使用 join（避免 Server Component 中的 JOIN 語法問題）
-  const { data: rawComments } = await supabase
+  // 載入用戶的留言（顯示最近的留言，包含虛擬留言）
+  const { createAdminSupabaseClient: createAdmin } = await import("@/lib/auth");
+  const adminClient = createAdmin();
+  const { data: rawComments } = await adminClient
     .from("profile_comments")
     .select("*")
     .eq("profile_user_id", user.id)
     .order("created_at", { ascending: false })
     .limit(50);
 
-  // 如果有留言，查詢對應的 commenter profiles
+  // 合併 commenter 資料（真實 + 虛擬）
   let comments = rawComments || [];
   if (rawComments && rawComments.length > 0) {
+    // 查真實 commenter
     const commenterIds = [...new Set(rawComments.map(c => c.commenter_id).filter(Boolean))];
-    const { data: profilesData } = await supabase
-      .from("profiles")
-      .select("id, full_name")
-      .in("id", commenterIds);
+    const { data: profilesData } = commenterIds.length > 0
+      ? await supabase.from("profiles").select("id, full_name").in("id", commenterIds)
+      : { data: [] };
 
-    // 手動合併 commenter 資料
+    // 查虛擬 commenter
+    const virtualIds = [...new Set(rawComments.map(c => c.virtual_commenter_id).filter(Boolean))];
+    const { data: virtualData } = virtualIds.length > 0
+      ? await adminClient.from("virtual_profiles").select("id, display_name").in("id", virtualIds)
+      : { data: [] };
+
     const profilesMap = new Map(profilesData?.map(p => [p.id, p]) || []);
+    const virtualMap = new Map(virtualData?.map(p => [p.id, p]) || []);
+
     comments = rawComments.map(comment => ({
       ...comment,
-      commenter: profilesMap.get(comment.commenter_id) || null
+      commenter: profilesMap.get(comment.commenter_id) || null,
+      virtual_commenter: virtualMap.get(comment.virtual_commenter_id) || null,
     }));
   }
 
