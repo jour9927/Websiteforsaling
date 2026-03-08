@@ -3,8 +3,6 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Route } from "next";
-import { MaintenanceOverlay } from "@/components/MaintenanceOverlay";
-import { useMaintenanceMode } from "@/components/MaintenanceContext";
 
 type RankingUser = {
     id: string;
@@ -17,7 +15,6 @@ type RankingUser = {
 };
 
 export default function RankingsPage() {
-    const { maintenanceMode: MAINTENANCE_MODE } = useMaintenanceMode();
     const [rankings, setRankings] = useState<RankingUser[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -60,14 +57,8 @@ export default function RankingsPage() {
     }
 
     return (
-        <section className="space-y-6 relative">
-            {/* 維護遮罩 */}
-            {MAINTENANCE_MODE && (
-                <div className="absolute inset-0 z-50">
-                    <MaintenanceOverlay />
-                </div>
-            )}
-            <div className={MAINTENANCE_MODE ? "blur-sm pointer-events-none select-none" : ""}>
+        <section className="space-y-6">
+            <div>
                 <header>
                     <h1 className="text-2xl font-semibold text-white/90">🔥 人氣排行榜</h1>
                     <p className="mt-1 text-sm text-white/60">

@@ -74,6 +74,17 @@ function VirtualUserPage({ profile, virtualId, featuredDistributions }: {
         <div className="space-y-8">
             {/* 個人資料卡 */}
             <section className="glass-card p-6">
+                {/* 社交數據（卡片頂部，與真實用戶一致） */}
+                <div className="mb-4">
+                    <h3 className="text-sm font-medium text-white/60 mb-3">📊 社交數據</h3>
+                    <SocialStats
+                        virtualId={virtualId}
+                        initialFollowers={profile.followers_count || 0}
+                        initialPopularity={profile.popularity_score || 0}
+                    />
+                </div>
+                <hr className="border-white/10 mb-6" />
+
                 <div className="flex flex-col gap-6 md:flex-row md:items-start">
                     {/* 頭像 */}
                     <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-3xl font-bold text-white shadow-lg">
@@ -130,15 +141,6 @@ function VirtualUserPage({ profile, virtualId, featuredDistributions }: {
                                     <p className="text-xs text-white/50 mt-1">✨ 今日訪問</p>
                                 </div>
                             </div>
-                        </div>
-
-                        {/* 社交統計與互動按鈕 */}
-                        <div className="mt-4 pt-4 border-t border-white/10">
-                            <SocialStats
-                                virtualId={virtualId}
-                                initialFollowers={profile.followers_count || 0}
-                                initialPopularity={profile.popularity_score || 0}
-                            />
                         </div>
                     </div>
                 </div>

@@ -3,14 +3,11 @@
 import { useState, useEffect } from "react";
 import { FollowListModal } from "./FollowListModal";
 
-import { useMaintenanceMode } from "./MaintenanceContext";
-
 type MySocialStatsProps = {
     userId: string;
 };
 
 export function MySocialStats({ userId }: MySocialStatsProps) {
-    const { maintenanceMode: MAINTENANCE_MODE } = useMaintenanceMode();
     const [stats, setStats] = useState({
         followers_count: 0,
         following_count: 0,
@@ -51,19 +48,7 @@ export function MySocialStats({ userId }: MySocialStatsProps) {
     return (
         <>
             <div className="relative overflow-hidden rounded-xl">
-                {/* 維護遮罩（緊湊版） */}
-                {MAINTENANCE_MODE && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-gradient-to-t from-slate-900/98 via-slate-900/95 to-slate-900/90 backdrop-blur-[3px] rounded-xl">
-                        <div className="flex items-center gap-3">
-                            <span className="text-2xl animate-pulse">🔧</span>
-                            <div>
-                                <p className="text-sm font-semibold text-white">維護中</p>
-                                <p className="text-xs text-white/50">社交數據暫時不予開放</p>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                <div className={MAINTENANCE_MODE ? "blur-sm pointer-events-none select-none" : ""}>
+                <div>
                     <div className="grid grid-cols-3 gap-4">
                         {/* 被關注 */}
                         <button
@@ -105,5 +90,6 @@ export function MySocialStats({ userId }: MySocialStatsProps) {
         </>
     );
 }
+
 
 

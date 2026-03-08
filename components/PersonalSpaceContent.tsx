@@ -22,7 +22,8 @@ import {
     verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { DailyCheckInWidget } from "@/components/DailyCheckInWidget";
+// [簽到] 暫時隱藏
+// import { DailyCheckInWidget } from "@/components/DailyCheckInWidget";
 
 import { MySocialStats } from "@/components/MySocialStats";
 import { SocialStats } from "@/components/SocialStats";
@@ -1077,10 +1078,10 @@ export function PersonalSpaceContent({
                 </section>
             )}
 
-            {/* 每日簽到區塊 - 僅在自己的頁面顯示 */}
-            {isOwnProfile && (
+            {/* [簽到] 暫時隱藏 */}
+            {/* {isOwnProfile && (
                 <DailyCheckInWidget />
-            )}
+            )} */}
 
             {/* 留言區 */}
             <section className="glass-card p-6 relative overflow-hidden">
