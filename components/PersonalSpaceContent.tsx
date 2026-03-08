@@ -60,6 +60,8 @@ type Comment = {
     has_real_reply?: boolean;
     commenter: { id: string; full_name: string | null } | null;
     virtual_commenter?: { id: string; display_name: string } | null;
+    likes_count?: number;
+    dislikes_count?: number;
 };
 
 type Profile = {
@@ -261,6 +263,10 @@ export function PersonalSpaceContent({
     const [showWishlistModal, setShowWishlistModal] = useState(false);
     const [featuredPreview, setFeaturedPreview] = useState<FeaturedDistribution | null>(null);
 
+    // 按讚/倒讚狀態
+    const [userReactions, setUserReactions] = useState<Record<string, { likes: number; dislikes: number; myReaction: 'like' | 'dislike' | null }>>({});
+    const [isReacting, setIsReacting] = useState<Record<string, boolean>>({});
+
     // 願望清單本地狀態（用於排序）
     const [localWishlists, setLocalWishlists] = useState(wishlists);
 
@@ -392,6 +398,77 @@ export function PersonalSpaceContent({
     const allComments = [...comments, ...virtualComments].sort(
         (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
+
+    // 讀取當前使用者的按讚紀錄
+    useEffect(() => {
+        if (!allComments.length) return;
+
+        const fetchReactions = async () => {
+            try {
+                const commentIds = allComments.map(c => c.id);
+                const res = await fetch('/api/comments/reactions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ commentIds })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    const initialReactions: Record<string, { likes: number; dislikes: number; myReaction: 'like' | 'dislike' | null }> = {};
+                    allComments.forEach(c => {
+                        const commentData = c as Comment & { likes_count?: number; dislikes_count?: number };
+                        initialReactions[c.id] = {
+                            likes: commentData.likes_count || 0,
+                            dislikes: commentData.dislikes_count || 0,
+                            myReaction: data.reactions?.[c.id] || null
+                        };
+                    });
+                    setUserReactions(initialReactions);
+                }
+            } catch (error) {
+                console.error('Failed to fetch user reactions', error);
+            }
+        };
+
+        fetchReactions();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [allComments.length]);
+
+    const handleReaction = async (commentId: string, action: 'like' | 'dislike') => {
+        if (isReacting[commentId]) return;
+        if (!currentUserId) {
+            alert('請先登入才能對留言表態喔！');
+            return;
+        }
+
+        setIsReacting(prev => ({ ...prev, [commentId]: true }));
+        try {
+            const res = await fetch(`/api/comments/${commentId}/react`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action })
+            });
+            if (res.ok) {
+                const result = await res.json();
+                if (result.success) {
+                    setUserReactions(prev => ({
+                        ...prev,
+                        [commentId]: {
+                            likes: result.data.likes_count,
+                            dislikes: result.data.dislikes_count,
+                            myReaction: result.data.current_reaction
+                        }
+                    }));
+                }
+            } else {
+                const err = await res.json();
+                alert(err.error || '操作失敗');
+            }
+        } catch (error) {
+            console.error('Action failed', error);
+        } finally {
+            setIsReacting(prev => ({ ...prev, [commentId]: false }));
+        }
+    };
 
     // 瀏覽量統計（使用 DB 真實值，不再加前端虛擬基底）
     const displayTotalViews = profile?.total_views || 0;
@@ -1077,18 +1154,37 @@ export function PersonalSpaceContent({
                                                         </div>
                                                     </div>
                                                     <p className="mt-1 text-sm text-white/80 break-words">{comment.content}</p>
-                                                    {/* 回覆按鈕 */}
-                                                    {currentUserId && (
-                                                        <button
-                                                            onClick={() => {
-                                                                setReplyTo(comment.id);
-                                                                setNewComment(`@${comment.commenter?.full_name || comment.virtual_commenter?.display_name || "匿名"} `);
-                                                            }}
-                                                            className="mt-2 text-xs text-blue-300/60 hover:text-blue-300"
-                                                        >
-                                                            ↳ 回覆
-                                                        </button>
-                                                    )}
+                                                    {/* 互動按鈕區 */}
+                                                    <div className="mt-2 flex items-center gap-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <button
+                                                                onClick={() => handleReaction(comment.id, 'like')}
+                                                                disabled={isReacting[comment.id]}
+                                                                className={`flex items-center gap-1 text-xs transition ${userReactions[comment.id]?.myReaction === 'like' ? 'text-blue-400 font-bold' : 'text-white/40 hover:text-white/80'}`}
+                                                            >
+                                                                👍 {userReactions[comment.id]?.likes !== undefined ? userReactions[comment.id].likes : (comment.likes_count || 0)}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleReaction(comment.id, 'dislike')}
+                                                                disabled={isReacting[comment.id]}
+                                                                className={`flex items-center gap-1 text-xs transition ${userReactions[comment.id]?.myReaction === 'dislike' ? 'text-red-400 font-bold' : 'text-white/40 hover:text-white/80'}`}
+                                                            >
+                                                                👎 {userReactions[comment.id]?.dislikes !== undefined ? userReactions[comment.id].dislikes : (comment.dislikes_count || 0)}
+                                                            </button>
+                                                        </div>
+                                                        {/* 回覆按鈕 */}
+                                                        {currentUserId && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setReplyTo(comment.id);
+                                                                    setNewComment(`@${comment.commenter?.full_name || comment.virtual_commenter?.display_name || "匿名"} `);
+                                                                }}
+                                                                className="mt-2 text-xs text-blue-300/60 hover:text-blue-300"
+                                                            >
+                                                                ↳ 回覆
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
 
@@ -1123,6 +1219,23 @@ export function PersonalSpaceContent({
                                                                         </div>
                                                                     </div>
                                                                     <p className="mt-1 text-sm text-white/80 break-words">{reply.content}</p>
+                                                                    {/* 互動按鈕區 (子留言) */}
+                                                                    <div className="mt-2 flex items-center gap-2">
+                                                                        <button
+                                                                            onClick={() => handleReaction(reply.id, 'like')}
+                                                                            disabled={isReacting[reply.id]}
+                                                                            className={`flex items-center gap-1 text-xs transition ${userReactions[reply.id]?.myReaction === 'like' ? 'text-blue-400 font-bold' : 'text-white/40 hover:text-white/80'}`}
+                                                                        >
+                                                                            👍 {userReactions[reply.id]?.likes !== undefined ? userReactions[reply.id].likes : (reply.likes_count || 0)}
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleReaction(reply.id, 'dislike')}
+                                                                            disabled={isReacting[reply.id]}
+                                                                            className={`flex items-center gap-1 text-xs transition ${userReactions[reply.id]?.myReaction === 'dislike' ? 'text-red-400 font-bold' : 'text-white/40 hover:text-white/80'}`}
+                                                                        >
+                                                                            👎 {userReactions[reply.id]?.dislikes !== undefined ? userReactions[reply.id].dislikes : (reply.dislikes_count || 0)}
+                                                                        </button>
+                                                                    </div>
                                                                 </div>
                                                             </div>
                                                         );
