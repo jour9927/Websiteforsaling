@@ -64,24 +64,32 @@ export async function GET(request: Request) {
                 });
             }
 
-            // 如果真實粉絲不夠，補上虛擬粉絲（對應 profiles.followers_count 灌水數據）
-            if (userId && list.length < 3) {
+            // 如果真實粉絲不夠，補上虛擬粉絲（對應 followers_count 灌水數據）
+            const targetId = userId || virtualId || "";
+            if (list.length < 3) {
                 const { data: allVirtualProfiles } = await supabase
                     .from("virtual_profiles")
                     .select("id, display_name")
-                    .limit(20);
+                    .limit(30);
 
                 if (allVirtualProfiles && allVirtualProfiles.length > 0) {
                     // 確定性 hash：同一用戶每次看到相同的虛擬粉絲
                     let hash = 0;
-                    for (let i = 0; i < userId.length; i++) {
-                        hash = ((hash << 5) - hash) + userId.charCodeAt(i);
+                    for (let i = 0; i < targetId.length; i++) {
+                        hash = ((hash << 5) - hash) + targetId.charCodeAt(i);
                         hash |= 0;
                     }
                     hash = Math.abs(hash);
 
-                    const needed = (3 + (hash % 6)) - list.length; // 補到 3-8 位
-                    const shuffled = [...allVirtualProfiles].sort((a, b) => {
+                    // 虛擬用戶補更多假粉絲（5-15位），真實用戶補到 3-8 位
+                    const minFollowers = virtualId ? 5 : 3;
+                    const extraRange = virtualId ? 11 : 6;
+                    const needed = (minFollowers + (hash % extraRange)) - list.length;
+
+                    // 排除自己（避免虛擬用戶自己出現在自己的粉絲列表中）
+                    const filteredProfiles = allVirtualProfiles.filter(vp => vp.id !== virtualId);
+
+                    const shuffled = [...filteredProfiles].sort((a, b) => {
                         const ha = Math.abs(Math.sin(hash * a.id.charCodeAt(0) + a.id.charCodeAt(1)) * 10000);
                         const hb = Math.abs(Math.sin(hash * b.id.charCodeAt(0) + b.id.charCodeAt(1)) * 10000);
                         return ha - hb;
