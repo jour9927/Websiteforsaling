@@ -6,7 +6,8 @@ export function Anniversary30thPreRegWidget() {
     // 活動設定
     const TOTAL_SPOTS = 150;
     const BASE_REGISTERED = 133; // 已報名基數
-    const EVENT_END = new Date("2026-03-18T23:59:59+08:00"); // 7天後
+    const REG_DEADLINE = new Date("2026-03-14T23:59:59+08:00"); // 報名截止
+    // 活動期間：3/15 ~ 3/22
 
     const [registered, setRegistered] = useState(BASE_REGISTERED);
     const [hasRegistered, setHasRegistered] = useState(false);
@@ -26,7 +27,7 @@ export function Anniversary30thPreRegWidget() {
     useEffect(() => {
         function updateCountdown() {
             const now = new Date();
-            const diff = EVENT_END.getTime() - now.getTime();
+            const diff = REG_DEADLINE.getTime() - now.getTime();
 
             if (diff <= 0) {
                 setTimeLeft("已截止");
@@ -82,6 +83,9 @@ export function Anniversary30thPreRegWidget() {
                         </h2>
                         <p className="mt-1 text-sm text-white/60">
                             社群慶典即將開跑！搶先預約報名，名額有限
+                        </p>
+                        <p className="mt-1 text-xs text-white/40">
+                            📅 活動期間：3/15（六）~ 3/22（日）
                         </p>
                     </div>
                     <div className="text-right shrink-0">
