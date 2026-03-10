@@ -56,19 +56,19 @@ export function PopularityWidget() {
         <div className="glass-card overflow-hidden relative">
             <div className="p-3 border-b border-white/10 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-white/80">🔥 人氣 Top 3</h3>
-                <Link href="/rankings" className="text-xs text-amber-400 hover:underline relative z-10 pointer-events-none opacity-50">
+                <Link href="/rankings" className="text-xs text-amber-400 hover:underline relative z-10">
                     查看更多
                 </Link>
             </div>
 
-            {/* 🔒 鎖定遮罩 (人氣排行榜) */}
-            <div className="absolute inset-0 z-10 mt-[45px] flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]">
+            {/* 🔒 鎖定遮罩 (人氣排行榜) - 暫時註解 */}
+            {/* <div className="absolute inset-0 z-10 mt-[45px] flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]">
                 <div className="rounded-full bg-white/10 px-4 py-2 text-sm font-medium text-white shadow-xl backdrop-blur-md border border-white/20 flex items-center gap-2">
                     <span>🚧</span> 系統調整中
                 </div>
-            </div>
+            </div> */}
 
-            <div className="p-3 space-y-2 opacity-50 pointer-events-none blur-[1px]">
+            <div className="p-3 space-y-2">
                 {topUsers.map((user, idx) => {
                     const userLink = user.isVirtual ? `/user/${user.id}` : (user.username ? `/user/${user.username}` : `/user/${user.id}`);
 
@@ -98,7 +98,7 @@ export function PopularityWidget() {
             </div>
             {/* 自己的排名 */}
             {myRank !== null && (
-                <div className="px-3 pb-3 pt-1 border-t border-white/10 opacity-50 pointer-events-none blur-[1px]">
+                <div className="px-3 pb-3 pt-1 border-t border-white/10">
                     <div className="flex items-center justify-between rounded-lg bg-gradient-to-r from-amber-500/10 to-orange-500/10 px-3 py-2">
                         <span className="text-xs text-white/60">📍 你的排名</span>
                         <div className="flex items-center gap-2">

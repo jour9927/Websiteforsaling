@@ -1097,14 +1097,14 @@ export function PersonalSpaceContent({
 
             {/* 留言區 */}
             <section className="glass-card p-6 relative overflow-hidden">
-                {/* 🔒 鎖定遮罩 (留言區) */}
-                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]">
+                {/* 🔒 鎖定遮罩 (留言區) - 暫時註解 */}
+                {/* <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]">
                     <div className="rounded-full bg-white/10 px-6 py-3 text-sm font-medium text-white shadow-xl backdrop-blur-md border border-white/20 flex items-center gap-2">
                         <span>🚧</span> 留言區系統優化中
                     </div>
-                </div>
+                </div> */}
 
-                <div className="opacity-50 pointer-events-none blur-[1px]">
+                <div>
                     <h2 className="mb-4 text-lg font-semibold text-white">💬 留言區</h2>
 
                     {/* 留言輸入 */}
