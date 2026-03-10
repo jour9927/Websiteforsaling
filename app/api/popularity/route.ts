@@ -75,8 +75,18 @@ export async function GET(request: Request) {
                     .single();
                 if (myProfile && (myProfile.popularity_score || 0) > 0) {
                     myScore = myProfile.popularity_score;
-                    // 計算排名：比自己分高的人數 + 1
-                    myRank = combined.filter(u => u.score > (myProfile.popularity_score || 0)).length + 1;
+                    // 計算排名：從 DB 查所有比自己分高的人數 + 1（真實 + 虛擬用戶）
+                    const [{ count: higherReal }, { count: higherVirtual }] = await Promise.all([
+                        supabase
+                            .from("profiles")
+                            .select("id", { count: "exact", head: true })
+                            .gt("popularity_score", myProfile.popularity_score || 0),
+                        supabase
+                            .from("virtual_profiles")
+                            .select("id", { count: "exact", head: true })
+                            .gt("popularity_score", myProfile.popularity_score || 0)
+                    ]);
+                    myRank = (higherReal || 0) + (higherVirtual || 0) + 1;
                 }
             }
         }
