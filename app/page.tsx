@@ -8,8 +8,9 @@ import { MaintenanceToggle } from "@/components/MaintenanceToggle";
 // import { EeveeDayWidget } from "@/components/EeveeDayWidget";
 // [春節活動] 明年再啟用
 // import { SpringFestivalBanner } from "@/components/SpringFestivalBanner";
-// [30週年活動] 討論中，暫時隱藏
+// [30週年活動] 舊版已隱藏
 // import { Anniversary30thBanner } from "@/components/Anniversary30thBanner";
+import { Anniversary30thPreRegWidget } from "@/components/Anniversary30thPreRegWidget";
 
 // 每次請求都重新執行，確保競標數據是最新的
 export const dynamic = "force-dynamic";
@@ -78,8 +79,8 @@ export default async function HomePage() {
   if (!user) {
     return (
       <div className="flex flex-col gap-8 py-12">
-        {/* [30週年活動] 討論中，暫時隱藏 */}
-        {/* <Anniversary30thBanner totalBoxCount={totalBoxCount || 0} /> */}
+        {/* 30週年預先報名 */}
+        <Anniversary30thPreRegWidget />
 
         <section className="glass-card max-w-lg mx-auto p-8 text-center">
           <p className="text-sm uppercase tracking-[0.35em] text-slate-200">Event Glass</p>
@@ -312,8 +313,8 @@ export default async function HomePage() {
       {/* 管理員維護過罩開關 */}
       <MaintenanceToggle />
 
-      {/* [30週年活動] 討論中，暫時隱藏 */}
-      {/* <Anniversary30thBanner totalBoxCount={totalBoxCount || 0} /> */}
+      {/* 30週年預先報名 */}
+      <Anniversary30thPreRegWidget />
 
       {/* [春節活動] 明年再啟用 */}
       {/* <SpringFestivalBanner /> */}
