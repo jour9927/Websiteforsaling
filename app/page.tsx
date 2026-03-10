@@ -4,7 +4,8 @@ import { PersonalSpaceContent } from "@/components/PersonalSpaceContent";
 import AuctionCard from "@/components/AuctionCard";
 import { PopularityWidgetToggle } from "@/components/PopularityWidgetToggle";
 import { MaintenanceToggle } from "@/components/MaintenanceToggle";
-import { EeveeDayWidget } from "@/components/EeveeDayWidget";
+// [伊布集點日] 活動已結束
+// import { EeveeDayWidget } from "@/components/EeveeDayWidget";
 // [春節活動] 明年再啟用
 // import { SpringFestivalBanner } from "@/components/SpringFestivalBanner";
 // [30週年活動] 討論中，暫時隱藏
@@ -320,8 +321,8 @@ export default async function HomePage() {
       {/* 熱門競標區塊 */}
       <HotAuctionsSection />
 
-      {/* 伊布 Day 活動小組件 */}
-      <EeveeDayWidget />
+      {/* [伊布 Day] 活動已結束 */}
+      {/* <EeveeDayWidget /> */}
 
       {/* 人氣排行榜小組件（可開關） */}
       <PopularityWidgetToggle />
