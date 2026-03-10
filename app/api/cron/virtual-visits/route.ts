@@ -55,8 +55,16 @@ export async function GET(request: NextRequest) {
         const comments = [];
         const viewUpdates = [];
 
-        // Shuffle 留言池，依序取用確保不重複
-        const shuffledComments = shuffleArray(CRON_VIRTUAL_COMMENTS);
+        // Shuffle 留言池，但先排除已在 DB 中出現過的留言（確保全站不重複）
+        const { data: existingComments } = await supabase
+            .from("profile_comments")
+            .select("content")
+            .eq("is_virtual", true);
+
+        const usedContents = new Set((existingComments || []).map(c => c.content));
+        const availableComments = CRON_VIRTUAL_COMMENTS.filter(c => !usedContents.has(c));
+        const shuffledComments = shuffleArray(availableComments);
+        console.log(`Comment pool: ${availableComments.length}/${CRON_VIRTUAL_COMMENTS.length} available (${usedContents.size} already used)`);
         let commentPoolIndex = 0;
 
         // 計算今日日期（用於查詢已存在的虛擬訪問）
