@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 export function Anniversary30thPreRegWidget() {
     // 活動設定
     const TOTAL_SPOTS = 150;
-    const BASE_REGISTERED = 133; // 已報名基數
+    const BASE_REGISTERED = 150; // 已報名基數（額滿）
     const REG_DEADLINE = new Date("2026-03-14T23:59:59+08:00"); // 報名截止
     // 活動期間：3/15 ~ 3/22
 
@@ -19,7 +19,7 @@ export function Anniversary30thPreRegWidget() {
         const saved = localStorage.getItem("30th-prereg");
         if (saved === "true") {
             setHasRegistered(true);
-            setRegistered(BASE_REGISTERED + 1);
+            setRegistered(Math.min(TOTAL_SPOTS, BASE_REGISTERED + 1));
         }
     }, []);
 
