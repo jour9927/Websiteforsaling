@@ -1,0 +1,25 @@
+import type { MetadataRoute } from "next";
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    name: "Event Glass｜寶可夢社群活動平台",
+    short_name: "Event Glass",
+    description: "寶可夢配布、競標與社群活動的一站式平台",
+    start_url: "/",
+    display: "standalone",
+    background_color: "#0a0a0f",
+    theme_color: "#0a0a0f",
+    icons: [
+      {
+        src: "/icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        src: "/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+      },
+    ],
+  };
+}
