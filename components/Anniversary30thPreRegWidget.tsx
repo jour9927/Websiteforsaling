@@ -6,8 +6,8 @@ export function Anniversary30thPreRegWidget() {
     // 活動設定
     const TOTAL_SPOTS = 150;
     const BASE_REGISTERED = 150; // 已報名基數（額滿）
-    const REG_DEADLINE = new Date("2026-03-14T23:59:59+08:00"); // 報名截止
-    // 活動期間：3/15 ~ 3/22
+    const REG_DEADLINE = new Date("2026-03-17T23:59:59+08:00"); // 報名截止
+    // 活動期間延期：3/18 ~ 3/25
 
     const [registered, setRegistered] = useState(BASE_REGISTERED);
     const [hasRegistered, setHasRegistered] = useState(false);
@@ -85,7 +85,7 @@ export function Anniversary30thPreRegWidget() {
                             社群慶典即將開跑！搶先預約報名，名額有限
                         </p>
                         <p className="mt-1 text-xs text-white/40">
-                            📅 活動期間：3/15（六）~ 3/22（日）
+                            📅 活動期間：3/18（三）~ 3/25（三）
                         </p>
                     </div>
                     <div className="text-right shrink-0">
