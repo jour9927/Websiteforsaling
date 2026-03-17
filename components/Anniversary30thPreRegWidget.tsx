@@ -6,20 +6,31 @@ export function Anniversary30thPreRegWidget() {
     // 活動設定
     const TOTAL_SPOTS = 150;
     const BASE_REGISTERED = 150; // 已報名基數（額滿）
-    const REG_DEADLINE = new Date("2026-03-17T23:59:59+08:00"); // 報名截止
-    // 活動期間延期：3/18 ~ 3/25
+    const REG_DEADLINE = new Date("2026-03-19T23:59:59+08:00"); // 報名截止（再延期至 19 號）
+    // 活動期間延期：3/19 ~ 3/26
+
+    const COMPENSATION_SPOTS = 50; // 補償名額
+    const BASE_COMPENSATION_CLAIMED = 15; // 模擬已被申請的名額，營造熱度
 
     const [registered, setRegistered] = useState(BASE_REGISTERED);
     const [hasRegistered, setHasRegistered] = useState(false);
+    const [hasClaimedCompensation, setHasClaimedCompensation] = useState(false);
+    const [compensationClaimed, setCompensationClaimed] = useState(BASE_COMPENSATION_CLAIMED);
     const [timeLeft, setTimeLeft] = useState("");
     const [isAnimating, setIsAnimating] = useState(false);
 
-    // 檢查 localStorage 是否已報名
+    // 檢查 localStorage 是否已報名／申請補償
     useEffect(() => {
-        const saved = localStorage.getItem("30th-prereg");
-        if (saved === "true") {
+        const savedReg = localStorage.getItem("30th-prereg");
+        if (savedReg === "true") {
             setHasRegistered(true);
             setRegistered(Math.min(TOTAL_SPOTS, BASE_REGISTERED + 1));
+        }
+
+        const savedComp = localStorage.getItem("30th-compensation");
+        if (savedComp === "true") {
+            setHasClaimedCompensation(true);
+            setCompensationClaimed(Math.min(COMPENSATION_SPOTS, BASE_COMPENSATION_CLAIMED + 1));
         }
     }, []);
 
@@ -47,19 +58,29 @@ export function Anniversary30thPreRegWidget() {
         return () => clearInterval(timer);
     }, []);
 
-    const handleRegister = () => {
-        if (hasRegistered || registered >= TOTAL_SPOTS) return;
+    // 處理報名及申請補償
+    const handleRegisterAndClaim = () => {
+        if (hasClaimedCompensation || compensationClaimed >= COMPENSATION_SPOTS) return;
 
         setIsAnimating(true);
-        setRegistered((prev) => prev + 1);
-        setHasRegistered(true);
-        localStorage.setItem("30th-prereg", "true");
+        // 同時報名
+        if (!hasRegistered && registered < TOTAL_SPOTS) {
+            setRegistered((prev) => prev + 1);
+            setHasRegistered(true);
+            localStorage.setItem("30th-prereg", "true");
+        }
+
+        // 申請補償
+        setCompensationClaimed((prev) => prev + 1);
+        setHasClaimedCompensation(true);
+        localStorage.setItem("30th-compensation", "true");
 
         setTimeout(() => setIsAnimating(false), 600);
     };
 
     const progressPercent = Math.min(100, (registered / TOTAL_SPOTS) * 100);
     const spotsLeft = TOTAL_SPOTS - registered;
+    const compensationSpotsLeft = COMPENSATION_SPOTS - compensationClaimed;
 
     return (
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-600/20 via-neutral-900 to-emerald-600/20 border border-amber-500/40 shadow-[0_0_20px_rgba(234,179,8,0.15)]">
@@ -82,10 +103,10 @@ export function Anniversary30thPreRegWidget() {
                             🎊 寶可夢 30 週年系列活動
                         </h2>
                         <p className="mt-1 text-sm text-white/60">
-                            社群慶典即將開跑！搶先預約報名，名額有限
+                            社群慶典再延期！搶先預約報名並領取專屬補償
                         </p>
                         <p className="mt-1 text-xs text-white/40">
-                            📅 活動期間：3/18（三）~ 3/25（三）
+                            📅 活動期間：3/19（四）~ 3/26（四）
                         </p>
                     </div>
                     <div className="text-right shrink-0">
@@ -149,23 +170,36 @@ export function Anniversary30thPreRegWidget() {
                     </div>
                 </div>
 
-                {/* 報名按鈕 */}
-                {hasRegistered ? (
-                    <div className="w-full py-3 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/30 text-center">
-                        <span className="text-green-400 font-semibold text-sm flex items-center justify-center gap-2">
-                            ✅ 已成功報名！活動開跑時將通知你
+                {/* 報名與補償申請按鈕 */}
+                {hasClaimedCompensation ? (
+                    <div className="w-full py-4 rounded-xl bg-neutral-900 border border-neutral-700 shadow-inner flex flex-col items-center justify-center gap-1">
+                        <span className="text-neutral-400 font-bold text-sm tracking-wider">
+                            申請已送出
+                        </span>
+                        <span className="text-neutral-500 text-[11px] tracking-widest">
+                            是否成功，請於明日查看。
                         </span>
                     </div>
-                ) : spotsLeft <= 0 ? (
+                ) : compensationSpotsLeft <= 0 ? (
                     <div className="w-full py-3 rounded-xl bg-white/5 border border-white/10 text-center">
-                        <span className="text-white/40 font-semibold text-sm">已額滿</span>
+                        <span className="text-white/40 font-semibold text-sm">補償名額已滿，感謝您的支持</span>
                     </div>
                 ) : (
                     <button
-                        onClick={handleRegister}
-                        className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold text-sm hover:from-amber-400 hover:to-orange-400 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-amber-500/20 border border-amber-400/50"
+                        onClick={handleRegisterAndClaim}
+                        className="relative w-full py-4 px-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-500 text-white font-bold text-sm hover:from-sky-400 hover:to-indigo-400 transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-sky-500/20 border border-sky-400/50 group overflow-hidden"
                     >
-                        🎉 立即報名（免費）
+                        {/* 閃光掃過效果 */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] pointer-events-none" />
+                        
+                        <div className="flex flex-col items-center justify-center relative z-10">
+                            <span className="text-base mb-1 tracking-wide">
+                                🎁 點此報名 & 申請補償（限量 {COMPENSATION_SPOTS} 名）
+                            </span>
+                            <span className="text-sky-100/90 text-[11px] font-medium bg-black/20 px-3 py-1 rounded-full">
+                                贈：未公開的重量級神秘補償 (剩 {compensationSpotsLeft} 名)
+                            </span>
+                        </div>
                     </button>
                 )}
             </div>
