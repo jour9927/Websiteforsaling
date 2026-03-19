@@ -583,6 +583,7 @@ export function Anniversary30thBattleConsole({
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, currentRound]);
 
   const handleAutoSubmit = useCallback(() => {
@@ -593,6 +594,7 @@ export function Anniversary30thBattleConsole({
     } else {
       submitRound("auto");
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [challengeType, battle, currentRound]);
 
   // Matchmaking complete

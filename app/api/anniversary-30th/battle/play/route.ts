@@ -8,7 +8,6 @@ import {
   generateDiceRoll,
   generateSlotResult,
   pickTriviaQuestions,
-  hashString,
   type AnniversaryBattle,
   type AnniversaryCampaign,
   type AnniversaryParticipant,
@@ -29,7 +28,6 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const battleId = typeof body.battleId === "string" ? body.battleId : "";
   const roundNo = Number(body.roundNo);
-  const action = typeof body.action === "string" ? body.action : "";
 
   if (!battleId || !Number.isInteger(roundNo) || roundNo <= 0) {
     return NextResponse.json({ error: "battleId 和 roundNo 必填。" }, { status: 400 });

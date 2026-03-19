@@ -5,7 +5,6 @@ import {
   PARTNER_POKEMON_POOL,
   type AnniversaryCampaign,
   type AnniversaryParticipant,
-  type PartnerPokemonId,
 } from "@/lib/anniversary30th";
 
 export const dynamic = "force-dynamic";
