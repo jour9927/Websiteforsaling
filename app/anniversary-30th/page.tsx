@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { createServerSupabaseClient } from "@/lib/auth";
 import {
   ANNIVERSARY_30TH_SLUG,
@@ -109,7 +110,15 @@ export default async function Anniversary30thPage() {
   return (
     <div className="space-y-8">
       {/* ─── Hero Section ─── */}
-      <section className="relative overflow-hidden rounded-[32px] border border-amber-400/20 bg-[radial-gradient(ellipse_at_15%_5%,rgba(251,191,36,0.18),transparent_38%),radial-gradient(ellipse_at_85%_90%,rgba(168,85,247,0.15),transparent_38%),linear-gradient(160deg,#0d0f1a,#14102a_45%,#0b1d2e)] p-8 shadow-[0_32px_80px_rgba(0,0,0,0.6)] md:p-12">
+      <section className="relative overflow-hidden rounded-[32px] border border-amber-400/20 bg-[#0d0f1a] p-8 shadow-[0_32px_80px_rgba(0,0,0,0.6)] md:p-12">
+        <Image
+          src="/images/anniversary-30th-bg.png"
+          alt="30 週年祭典"
+          fill
+          className="object-cover opacity-40 mix-blend-screen pointer-events-none"
+          priority
+        />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0d0f1a] via-[#14102a]/60 to-transparent" />
         <div className="pointer-events-none absolute -left-16 top-8 h-44 w-44 rounded-full bg-amber-300/15 blur-[60px]" />
         <div className="pointer-events-none absolute -right-20 bottom-8 h-52 w-52 rounded-full bg-purple-500/15 blur-[60px]" />
 
