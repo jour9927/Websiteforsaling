@@ -1,0 +1,7 @@
+{
+  "/anniversary-30th/page": "app/anniversary-30th/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/login/page": "app/login/page.js",
+  "/manifest.webmanifest/route": "app/manifest.webmanifest/route.js",
+  "/anniversary-30th/battle/page": "app/anniversary-30th/battle/page.js"
+}

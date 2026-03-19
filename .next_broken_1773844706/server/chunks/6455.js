@@ -1,0 +1,1 @@
+"use strict";exports.id=6455,exports.ids=[6455],exports.modules={56455:(e,t,s)=>{s.d(t,{J:()=>o});let o={eventName:"伊步集點日",startDate:"2026-02-11T00:00:00+08:00",endDate:"2026-02-27T23:59:59+08:00",dailyAttempts:1,questionsPerQuiz:10,timePerQuestion:15,passingScore:7,stampsRequired:7,allowedPokemon:["伊布","蒂安希","比克提尼"],allowedGenerations:[8,9]}}};

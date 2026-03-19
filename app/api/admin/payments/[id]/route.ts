@@ -10,6 +10,66 @@ type RouteContext = {
   params: { id: string };
 };
 
+async function syncAnniversaryContractByPaymentId(paymentId: string, paidStatus: string, paymentDate?: string | null) {
+  const supabase = createServerSupabaseClient();
+  const { data: linkedContract } = await supabase
+    .from("anniversary_contracts")
+    .select("id, contract_type, status")
+    .eq("payment_record_id", paymentId)
+    .maybeSingle();
+
+  if (!linkedContract) {
+    return;
+  }
+
+  if (linkedContract.contract_type === "additional") {
+    if (paidStatus === "paid") {
+      await supabase
+        .from("anniversary_contracts")
+        .update({
+          status: linkedContract.status === "delivered" ? "delivered" : "paid",
+          paid_at: paymentDate || new Date().toISOString(),
+        })
+        .eq("id", linkedContract.id);
+      return;
+    }
+
+    if (linkedContract.status !== "delivered") {
+      await supabase
+        .from("anniversary_contracts")
+        .update({
+          status: "priced",
+          paid_at: null,
+        })
+        .eq("id", linkedContract.id);
+    }
+    return;
+  }
+
+  if (paidStatus === "cancelled" && linkedContract.status !== "delivered") {
+    await supabase
+      .from("anniversary_contracts")
+      .update({
+        status: "holding",
+        paid_at: null,
+        refunded_at: null,
+      })
+      .eq("id", linkedContract.id);
+    return;
+  }
+
+  if (paidStatus === "paid" && linkedContract.status === "refunded") {
+    await supabase
+      .from("anniversary_contracts")
+      .update({
+        status: "holding",
+        refunded_at: null,
+        paid_at: paymentDate || new Date().toISOString(),
+      })
+      .eq("id", linkedContract.id);
+  }
+}
+
 export async function PATCH(request: Request, context: RouteContext) {
   const supabase = createServerSupabaseClient();
   const {
@@ -74,6 +134,21 @@ export async function PATCH(request: Request, context: RouteContext) {
     return NextResponse.json({ error: "No valid fields" }, { status: 400 });
   }
 
+  if (updates.status === "cancelled") {
+    const { data: linkedContract } = await supabase
+      .from("anniversary_contracts")
+      .select("id, contract_type")
+      .eq("payment_record_id", context.params.id)
+      .maybeSingle();
+
+    if (linkedContract?.contract_type === "main") {
+      return NextResponse.json(
+        { error: "30 週年主契約付款不可直接取消，避免誤觸發失守退款。請改用活動結算流程處理。" },
+        { status: 409 },
+      );
+    }
+  }
+
   const { data, error } = await supabase
     .from("user_payments")
     .update(updates)
@@ -88,6 +163,12 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (!data) {
     return NextResponse.json({ error: "Payment not found" }, { status: 404 });
   }
+
+  await syncAnniversaryContractByPaymentId(
+    data.id,
+    data.status,
+    data.payment_date,
+  );
 
   return NextResponse.json({ payment: data });
 }

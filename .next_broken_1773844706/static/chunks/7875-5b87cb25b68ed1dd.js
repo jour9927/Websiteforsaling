@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunk_N_E=self.webpackChunk_N_E||[]).push([[7875],{7875:function(e,t,n){n.d(t,{J:function(){return s}});let s={eventName:"伊步集點日",startDate:"2026-02-11T00:00:00+08:00",endDate:"2026-02-27T23:59:59+08:00",dailyAttempts:1,questionsPerQuiz:10,timePerQuestion:15,passingScore:7,stampsRequired:7,allowedPokemon:["伊布","蒂安希","比克提尼"],allowedGenerations:[8,9]}}}]);

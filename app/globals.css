@@ -50,3 +50,96 @@ a {
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+.anniversary-shell {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(245, 158, 11, 0.18);
+  background:
+    radial-gradient(circle at top left, rgba(251, 191, 36, 0.12), transparent 32%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.1), transparent 30%),
+    radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(15, 23, 42, 0.98));
+  box-shadow:
+    0 24px 80px rgba(2, 6, 23, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.anniversary-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.45), transparent 92%);
+  pointer-events: none;
+}
+
+.anniversary-shell::after {
+  content: "";
+  position: absolute;
+  inset: -40% auto auto -15%;
+  width: 50%;
+  height: 80%;
+  background: radial-gradient(circle, rgba(250, 204, 21, 0.14), transparent 60%);
+  filter: blur(40px);
+  pointer-events: none;
+}
+
+.anniversary-stage {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background:
+    linear-gradient(135deg, rgba(250, 204, 21, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  backdrop-filter: blur(16px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 18px 50px rgba(2, 6, 23, 0.28);
+}
+
+.anniversary-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.05), transparent 38%);
+  pointer-events: none;
+}
+
+.anniversary-kicker {
+  font-size: 11px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: rgba(252, 211, 77, 0.82);
+}
+
+.anniversary-display {
+  background: linear-gradient(90deg, #fde68a, #f8fafc 42%, #7dd3fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.anniversary-chip {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(12px);
+}
+
+.anniversary-chip-amber {
+  border-color: rgba(251, 191, 36, 0.28);
+  background: rgba(245, 158, 11, 0.12);
+  color: rgba(253, 224, 71, 0.95);
+}
+
+.anniversary-chip-emerald {
+  border-color: rgba(16, 185, 129, 0.28);
+  background: rgba(16, 185, 129, 0.12);
+  color: rgba(167, 243, 208, 0.95);
+}

@@ -1,0 +1,9 @@
+User-Agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /login
+Disallow: /signup
+Disallow: /logout
+
+Sitemap: https://eventglass.vercel.app/sitemap.xml

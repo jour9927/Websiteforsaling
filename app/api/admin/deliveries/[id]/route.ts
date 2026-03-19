@@ -10,6 +10,31 @@ type RouteContext = {
   params: { id: string };
 };
 
+async function syncAnniversaryContractByDeliveryId(deliveryId: string, deliveryStatus: string, deliveryDate?: string | null) {
+  if (deliveryStatus !== "delivered") {
+    return;
+  }
+
+  const supabase = createServerSupabaseClient();
+  const { data: linkedContract } = await supabase
+    .from("anniversary_contracts")
+    .select("id")
+    .eq("delivery_record_id", deliveryId)
+    .maybeSingle();
+
+  if (!linkedContract) {
+    return;
+  }
+
+  await supabase
+    .from("anniversary_contracts")
+    .update({
+      status: "delivered",
+      delivered_at: deliveryDate || new Date().toISOString(),
+    })
+    .eq("id", linkedContract.id);
+}
+
 // PATCH /api/admin/deliveries/[id] - Update delivery
 export async function PATCH(request: Request, context: RouteContext) {
   const supabase = createServerSupabaseClient();
@@ -89,6 +114,12 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (!data) {
     return NextResponse.json({ error: "Delivery not found" }, { status: 404 });
   }
+
+  await syncAnniversaryContractByDeliveryId(
+    data.id,
+    data.status,
+    data.delivery_date,
+  );
 
   return NextResponse.json({ delivery: data });
 }
