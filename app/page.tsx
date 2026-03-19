@@ -8,8 +8,7 @@ import { MaintenanceToggle } from "@/components/MaintenanceToggle";
 // import { EeveeDayWidget } from "@/components/EeveeDayWidget";
 // [春節活動] 明年再啟用
 // import { SpringFestivalBanner } from "@/components/SpringFestivalBanner";
-// [30週年活動] 舊版已隱藏
-// import { Anniversary30thBanner } from "@/components/Anniversary30thBanner";
+import { Anniversary30thBanner } from "@/components/Anniversary30thBanner";
 // import { Anniversary30thPreRegWidget } from "@/components/Anniversary30thPreRegWidget";
 // 每次請求都重新執行，確保競標數據是最新的
 export const dynamic = "force-dynamic";
@@ -104,6 +103,7 @@ export default async function HomePage() {
 
         {/* [春節活動] 明年再啟用 */}
         {/* <SpringFestivalBanner /> */}
+        <Anniversary30thBanner />
 
         {/* 熱門競標區塊 */}
         <HotAuctionsSection />
@@ -315,6 +315,7 @@ export default async function HomePage() {
 
       {/* [春節活動] 明年再啟用 */}
       {/* <SpringFestivalBanner /> */}
+      <Anniversary30thBanner />
 
       {/* 熱門競標區塊 */}
       <HotAuctionsSection />
