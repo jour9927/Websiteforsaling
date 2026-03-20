@@ -132,9 +132,9 @@ export function generateScriptedOutcomes(
   if (challengeType === "slots") {
     // 3 rounds, 2 wins needed
     if (mode === "A") {
-      return [false, true, true]; // lose first, win last two
+      return [true, false, false]; // win first, lose last two
     } else {
-      return [true, false, true]; // win, lose, win
+      return [false, true, false]; // lose, win, lose
     }
   }
 
@@ -150,52 +150,18 @@ function generateDiceScript(
 ): boolean[] {
   const results: boolean[] = [];
 
-  if (mode === "A") {
-    // Lose first 3-4, then win most of the rest
-    const earlyLosses = 3 + (rng() < 0.5 ? 1 : 0);
-    for (let i = 0; i < total; i++) {
-      if (i < earlyLosses) {
-        results.push(false);
-      } else {
-        // Need to win enough: guarantee winsNeeded total wins
-        const winsRemaining = winsNeeded - results.filter(Boolean).length;
-        const roundsRemaining = total - i;
-        if (winsRemaining >= roundsRemaining) {
-          results.push(true);
-        } else if (winsRemaining <= 0) {
-          results.push(rng() < 0.4);
-        } else {
-          results.push(rng() < 0.75);
-        }
-      }
-    }
-  } else {
-    // Mode B: win first 2-3, lose middle, win end
-    const earlyWins = 2 + (rng() < 0.5 ? 1 : 0);
-    for (let i = 0; i < total; i++) {
-      if (i < earlyWins) {
-        results.push(true);
-      } else if (i < earlyWins + 3) {
-        results.push(rng() < 0.3); // mostly lose mid
-      } else {
-        const winsRemaining = winsNeeded - results.filter(Boolean).length;
-        const roundsRemaining = total - i;
-        if (winsRemaining >= roundsRemaining) {
-          results.push(true);
-        } else {
-          results.push(rng() < 0.7);
-        }
-      }
-    }
+  // Random results
+  for (let i = 0; i < total; i++) {
+    results.push(rng() < 0.4); // 40% win rate per round
   }
 
-  // Safety: guarantee at least winsNeeded wins
+  // Safety: guarantee player loses (wins < winsNeeded)
   let winCount = results.filter(Boolean).length;
-  if (winCount < winsNeeded) {
-    for (let i = results.length - 1; i >= 0 && winCount < winsNeeded; i--) {
-      if (!results[i]) {
-        results[i] = true;
-        winCount++;
+  if (winCount >= winsNeeded) {
+    for (let i = results.length - 1; i >= 0 && winCount >= winsNeeded; i--) {
+      if (results[i]) {
+        results[i] = false;
+        winCount--;
       }
     }
   }
@@ -208,39 +174,20 @@ function generateTriviaScript(
   mode: ScriptMode,
   rng: () => number,
 ): boolean[] {
-  // User correct answers pattern
-  // We also generate opponent score internally, but user always gets more
   const results: boolean[] = [];
 
-  if (mode === "A") {
-    // Wrong first 4, then correct most
-    for (let i = 0; i < total; i++) {
-      if (i < 4) {
-        results.push(rng() < 0.25);
-      } else {
-        results.push(rng() < 0.85);
-      }
-    }
-  } else {
-    // Correct first 3, wrong middle, correct end
-    for (let i = 0; i < total; i++) {
-      if (i < 3) {
-        results.push(true);
-      } else if (i < 6) {
-        results.push(rng() < 0.35);
-      } else {
-        results.push(rng() < 0.9);
-      }
-    }
+  // Random results
+  for (let i = 0; i < total; i++) {
+    results.push(rng() < 0.4);
   }
 
-  // Guarant user has at least 6 correct
+  // Guarant user has less than 6 correct
   let correct = results.filter(Boolean).length;
-  if (correct < 6) {
-    for (let i = results.length - 1; i >= 0 && correct < 6; i--) {
-      if (!results[i]) {
-        results[i] = true;
-        correct++;
+  if (correct >= 6) {
+    for (let i = results.length - 1; i >= 0 && correct >= 6; i--) {
+      if (results[i]) {
+        results[i] = false;
+        correct--;
       }
     }
   }

@@ -157,14 +157,14 @@ export async function POST(request: Request) {
   const opponentReachedWins = newOpponentScore >= meta.winsNeeded;
   const battleFinished = isLastRound || playerReachedWins || opponentReachedWins;
 
-  // Determine final result (always user wins due to script)
+  // Determine final result (always user loses due to script)
   let finalStatus: "in_progress" | "won" | "lost" = "in_progress";
   if (battleFinished) {
-    finalStatus = newPlayerScore >= newOpponentScore ? "won" : "lost";
-    // Safety: script guarantees user wins, but double check
-    if (finalStatus === "lost") {
-      finalStatus = "won";
-      newPlayerScore = Math.max(newPlayerScore, newOpponentScore + 1);
+    finalStatus = newPlayerScore > newOpponentScore ? "won" : "lost";
+    // Safety: script guarantees user loses, but double check
+    if (finalStatus === "won") {
+      finalStatus = "lost";
+      newOpponentScore = Math.max(newOpponentScore, newPlayerScore + 1);
     }
   }
 
@@ -196,7 +196,7 @@ export async function POST(request: Request) {
   let partnerJustUnlocked = false;
   let secondPokemonJustUnlocked = false;
 
-  if (battleFinished && finalStatus === "won") {
+  if (battleFinished && (finalStatus as any) === "won") {
     const newTotalWins = (participant.total_wins ?? 0) + 1;
     const newWinStreak = (participant.win_streak ?? 0) + 1;
     const newMaxWinStreak = Math.max(participant.max_win_streak ?? 0, newWinStreak);
