@@ -36,12 +36,45 @@ async function loadPageState(userId?: string) {
     return { campaign, participant: null as AnniversaryParticipant | null };
   }
 
-  const { data: participantData } = await supabase
+  let participantData = await supabase
     .from("anniversary_participants")
     .select("*")
     .eq("campaign_id", campaign.id)
     .eq("user_id", userId)
-    .maybeSingle();
+    .maybeSingle()
+    .then(res => res.data);
+
+  // Auto-sync: If they registered via the generic /events UI but aren't in participants yet
+  if (!participantData) {
+    const EVENT_ID = "d5ea72b9-c8d6-4cde-8be5-9de8f3bc144a";
+    const { data: reg } = await supabase
+      .from("registrations")
+      .select("id")
+      .eq("event_id", EVENT_ID)
+      .eq("user_id", userId)
+      .eq("status", "confirmed")
+      .maybeSingle();
+
+    if (reg) {
+      // Create their proxy anniversary_participants record instantly
+      const { data: newParticipant } = await supabase
+        .from("anniversary_participants")
+        .insert({
+          campaign_id: campaign.id,
+          user_id: userId,
+          total_battles_used: 0,
+          win_streak: 0,
+          max_win_streak: 0,
+          total_wins: 0,
+          partner_unlocked: false,
+          second_pokemon_unlocked: false
+        })
+        .select("*")
+        .single();
+      
+      participantData = newParticipant;
+    }
+  }
 
   return {
     campaign,
