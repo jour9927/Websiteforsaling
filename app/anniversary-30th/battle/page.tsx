@@ -65,6 +65,17 @@ export default async function Anniversary30thBattlePage() {
   const { data: { user } } = await supabase.auth.getUser();
   const { campaign, participant, battle } = await loadBattleState(user?.id);
 
+  // Fetch user display name
+  let displayName = "你";
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name, username")
+      .eq("id", user.id)
+      .maybeSingle();
+    displayName = profile?.full_name || profile?.username || user.email?.split("@")[0] || "你";
+  }
+
   const started = isEventStarted(campaign?.starts_at || ANNIVERSARY_30TH_STARTS_AT);
   const battlesRemaining = resolveBattlesRemaining(participant, campaign?.battles_per_day || 3);
 
@@ -136,6 +147,7 @@ export default async function Anniversary30thBattlePage() {
     <Anniversary30thBattleConsole
       partnerPokemon={partner}
       partnerSpriteUrl={getPokemonSpriteUrl(partner.sprite)}
+      playerDisplayName={displayName}
       battlesRemaining={battlesRemaining}
       totalWins={participant.total_wins ?? 0}
       winStreak={participant.win_streak ?? 0}

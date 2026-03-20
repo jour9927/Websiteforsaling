@@ -36,19 +36,28 @@ export function getPokemonSpriteUrl(spriteId: string) {
 }
 
 // ─── Virtual Opponent System ───
+// 使用真實感的隨機中文姓名，讓玩家無法察覺對手是虛擬的
 export const VIRTUAL_OPPONENTS = [
-  { name: "小智", pokemon: "噴火龍", spriteId: "6", title: "冠軍訓練家" },
-  { name: "小茂", pokemon: "水箭龜", spriteId: "9", title: "真新鎮研究員" },
-  { name: "小霞", pokemon: "鯉魚王", spriteId: "129", title: "華藍道館館主" },
-  { name: "小剛", pokemon: "大岩蛇", spriteId: "95", title: "尼比道館館主" },
-  { name: "莉佳", pokemon: "妙蛙花", spriteId: "3", title: "彩虹道館館主" },
-  { name: "阿馴", pokemon: "烈咬陸鯊", spriteId: "445", title: "神奧冠軍" },
-  { name: "小光", pokemon: "波加曼", spriteId: "393", title: "超級華麗大賽選手" },
-  { name: "N", pokemon: "捷克羅姆", spriteId: "644", title: "等離子隊之王" },
-  { name: "希特隆", pokemon: "咚咚鼠", spriteId: "702", title: "密阿雷道館館主" },
-  { name: "莉莉艾", pokemon: "六尾", spriteId: "37", title: "以太基金會研究員" },
-  { name: "丹帝", pokemon: "噴火龍", spriteId: "6", title: "伽勒爾冠軍" },
-  { name: "赤", pokemon: "皮卡丘", spriteId: "25", title: "傳說中的訓練家" },
+  { name: "陳小明", pokemon: "噴火龍", spriteId: "6" },
+  { name: "林美琪", pokemon: "水箭龜", spriteId: "9" },
+  { name: "黃俊傑", pokemon: "鯉魚王", spriteId: "129" },
+  { name: "張家瑜", pokemon: "大岩蛇", spriteId: "95" },
+  { name: "李婷婷", pokemon: "妙蛙花", spriteId: "3" },
+  { name: "王志豪", pokemon: "烈咬陸鯊", spriteId: "445" },
+  { name: "劉怡君", pokemon: "波加曼", spriteId: "393" },
+  { name: "吳建宏", pokemon: "捷克羅姆", spriteId: "644" },
+  { name: "蔡雅文", pokemon: "咚咚鼠", spriteId: "702" },
+  { name: "楊佳蓉", pokemon: "六尾", spriteId: "37" },
+  { name: "周大偉", pokemon: "噴火龍", spriteId: "6" },
+  { name: "鍾宇翔", pokemon: "皮卡丘", spriteId: "25" },
+  { name: "許芷涵", pokemon: "伊布", spriteId: "133" },
+  { name: "趙柏翰", pokemon: "暴鯉龍", spriteId: "130" },
+  { name: "徐雨萱", pokemon: "胖丁", spriteId: "39" },
+  { name: "孫子涵", pokemon: "快龍", spriteId: "149" },
+  { name: "高詩琪", pokemon: "火焰雞", spriteId: "257" },
+  { name: "郭子軒", pokemon: "路卡利歐", spriteId: "448" },
+  { name: "謝宜蓁", pokemon: "沙奈朵", spriteId: "282" },
+  { name: "何承翰", pokemon: "仙子伊布", spriteId: "700" },
 ] as const;
 
 export function resolveVirtualOpponent(seed: string) {

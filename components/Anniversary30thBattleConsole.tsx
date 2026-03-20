@@ -21,6 +21,7 @@ type PartnerInfo = { id: string; name: string; sprite: string; color: string };
 type BattleConsoleProps = {
   partnerPokemon: PartnerInfo;
   partnerSpriteUrl: string;
+  playerDisplayName: string;
   battlesRemaining: number;
   totalWins: number;
   winStreak: number;
@@ -378,29 +379,52 @@ function SlotsGame({
   onSubmit: () => void;
   disabled: boolean;
 }) {
-  const [spinning, setSpinning] = useState(false);
-  const [preview, setPreview] = useState<string[]>(["?", "?", "?"]);
-  const [armed, setArmed] = useState(false);
+  const [phase, setPhase] = useState<"ready" | "spinning" | "stopping" | "done">("ready");
+  const [reels, setReels] = useState<string[]>(["?", "?", "?"]);
+  const [stopped, setStopped] = useState(0); // 0, 1, 2, 3
+  const spinTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   function handleSpin() {
-    if (spinning) return;
-    setSpinning(true);
-    setArmed(false);
+    if (phase !== "ready") return;
+    setPhase("spinning");
+    setStopped(0);
 
-    const timer = setInterval(() => {
-      setPreview([
+    // 高速隨機轉動
+    spinTimerRef.current = setInterval(() => {
+      setReels([
         SLOT_FACES[Math.floor(Math.random() * SLOT_FACES.length)],
         SLOT_FACES[Math.floor(Math.random() * SLOT_FACES.length)],
         SLOT_FACES[Math.floor(Math.random() * SLOT_FACES.length)],
       ]);
     }, 80);
 
+    // 1.2 秒後開始依序停輪
     setTimeout(() => {
-      clearInterval(timer);
-      setSpinning(false);
-      setArmed(true);
-    }, 900);
+      setPhase("stopping");
+      setStopped(1);  // 第 1 格停下
+    }, 1200);
+
+    setTimeout(() => {
+      setStopped(2);  // 第 2 格停下
+    }, 2400);
+
+    setTimeout(() => {
+      if (spinTimerRef.current) clearInterval(spinTimerRef.current);
+      setStopped(3);  // 第 3 格停下
+      setPhase("done");
+    }, 3800);
   }
+
+  // 只有未停下的格子繼續隨機閃爍
+  useEffect(() => {
+    if (phase !== "stopping") return;
+    const flicker = setInterval(() => {
+      setReels((prev) => prev.map((r, i) =>
+        i < stopped ? r : SLOT_FACES[Math.floor(Math.random() * SLOT_FACES.length)]
+      ));
+    }, 80);
+    return () => clearInterval(flicker);
+  }, [phase, stopped]);
 
   return (
     <div className="space-y-4">
@@ -418,8 +442,8 @@ function SlotsGame({
             <span>3 REEL</span>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            {preview.map((face, idx) => (
-              <SlotTile key={`${face}-${idx}`} symbol={face} spinning={spinning} />
+            {reels.map((face, idx) => (
+              <SlotTile key={`slot-${idx}`} symbol={face} spinning={idx >= stopped && phase !== "ready"} />
             ))}
           </div>
         </div>
@@ -427,14 +451,14 @@ function SlotsGame({
         <button
           type="button"
           onClick={handleSpin}
-          disabled={spinning || armed}
+          disabled={phase !== "ready"}
           className="mt-3 w-full rounded-xl border border-amber-200/30 bg-gradient-to-b from-amber-400/30 to-orange-500/20 px-4 py-3 text-sm font-black text-amber-100 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {spinning ? "🎰 轉動中..." : armed ? "✅ 已拉霸" : "🎰 拉下拉桿"}
+          {phase === "ready" ? "🎰 拉下拉桿" : phase === "done" ? "✅ 已完成" : "🎰 轉動中..."}
         </button>
       </div>
 
-      {armed && (
+      {phase === "done" && (
         <button
           type="button"
           onClick={onSubmit}
@@ -444,43 +468,6 @@ function SlotsGame({
           確認結果
         </button>
       )}
-    </div>
-  );
-}
-
-// ─── Sequential Slot Result Reveal ───
-function SequentialSlotResult({
-  reels,
-  onComplete,
-}: {
-  reels: string[];
-  onComplete: () => void;
-}) {
-  const [revealed, setRevealed] = useState(0);
-
-  useEffect(() => {
-    // 依序出獎：每隔 1.2 秒停下一個轉輪，增加期待感與懸念
-    const t1 = setTimeout(() => setRevealed(1), 1000);
-    const t2 = setTimeout(() => setRevealed(2), 2200);
-    const t3 = setTimeout(() => {
-      setRevealed(3);
-      setTimeout(onComplete, 600); // 停下後再等 0.6 秒結算
-    }, 3600);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-    };
-  }, [onComplete]);
-
-  return (
-    <div className="mt-4 rounded-2xl border border-amber-300/20 bg-gradient-to-b from-[#3c1f12] to-[#1a0d07] p-4 shadow-inner">
-      <div className="grid grid-cols-3 gap-3">
-        {reels.map((s, i) => (
-          <SlotTile key={i} symbol={revealed > i ? s : "?"} spinning={revealed <= i} />
-        ))}
-      </div>
     </div>
   );
 }
@@ -496,54 +483,92 @@ function RoundResultOverlay({
   const isWin = result.roundResult === "win";
   const payload = result.roundPayload;
   const isSlots = Array.isArray(payload?.playerReels);
-  const [showConclusion, setShowConclusion] = useState(!isSlots);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="mx-4 max-w-sm rounded-3xl border border-white/15 bg-[linear-gradient(160deg,#1a1530,#0d1a2a)] p-8 text-center shadow-2xl">
-        {/* Slot result (Sequential Reveal) */}
-        {isSlots ? (
-          <SequentialSlotResult
-            reels={payload.playerReels as string[]}
-            onComplete={() => setShowConclusion(true)}
-          />
+        <div className={`text-5xl ${isWin ? "animate-bounce" : ""}`}>
+          {isWin ? "🎉" : "😤"}
+        </div>
+        <h2 className={`mt-4 text-2xl font-black ${isWin ? "text-emerald-300" : "text-rose-300"}`}>
+          {isWin ? "本回合勝利！" : "本回合落敗"}
+        </h2>
+
+        {/* Dice result */}
+        {typeof payload?.playerDice === "number" ? (
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+              <p className="text-xs text-white/40">你的骰子</p>
+              <p className="text-3xl font-black text-white">{Number(payload.playerDice)}</p>
+            </div>
+            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
+              <p className="text-xs text-white/40">對手骰子</p>
+              <p className="text-3xl font-black text-white">{Number(payload.opponentDice)}</p>
+            </div>
+          </div>
         ) : null}
 
-        {/* --- Hidden until slots finish spinning --- */}
-        <div className={`transition-opacity duration-500 ${showConclusion ? "opacity-100" : "opacity-0 invisible h-0 overflow-hidden"}`}>
-          <div className={`mt-6 text-5xl ${isWin ? "animate-bounce" : ""}`}>
-            {isWin ? "🎉" : "😤"}
+        {/* Trivia result */}
+        {Boolean(payload?.question) ? (
+          <div className="mt-4 text-left">
+            <p className="text-xs text-white/40">
+              {Boolean(payload.playerCorrect) ? "✅ 你答對了！" : "❌ 答錯了"}
+            </p>
+            <p className="mt-1 text-xs text-white/40">
+              {Boolean(payload.opponentCorrect) ? "對手也答對了" : "對手答錯了"}
+            </p>
           </div>
-          <h2 className={`mt-4 text-2xl font-black ${isWin ? "text-emerald-300" : "text-rose-300"}`}>
-            {isWin ? "本回合勝利！" : "本回合落敗"}
-          </h2>
+        ) : null}
 
-          <div className="mt-5 flex justify-center gap-4 text-sm">
-            <span className="text-emerald-300">{result.playerScore} 勝</span>
-            <span className="text-white/30">—</span>
-            <span className="text-rose-300">{result.opponentScore} 勝</span>
+        {/* Slot result — 顯示雙方結果，清楚標記 */}
+        {isSlots ? (
+          <div className="mt-4 space-y-3">
+            <div>
+              <p className="mb-1 text-xs font-bold text-blue-300">🎰 你的拉霸</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(payload.playerReels as string[]).map((s, i) => (
+                  <SlotTile key={`p-${i}`} symbol={s} />
+                ))}
+              </div>
+            </div>
+            {Array.isArray(payload.opponentReels) && (
+              <div>
+                <p className="mb-1 text-xs font-bold text-rose-300">🎰 對手的拉霸</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {(payload.opponentReels as string[]).map((s, i) => (
+                    <SlotTile key={`o-${i}`} symbol={s} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
+        ) : null}
 
-          {result.partnerJustUnlocked && (
-            <div className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3">
-              <p className="text-sm font-bold text-emerald-300">🎉 伴侶寶可夢已永久解鎖！</p>
-            </div>
-          )}
-
-          {result.secondPokemonJustUnlocked && (
-            <div className="mt-3 rounded-xl border border-purple-400/30 bg-purple-500/10 p-3">
-              <p className="text-sm font-bold text-purple-300">🌟 第二隻寶可夢相遇權已解鎖！</p>
-            </div>
-          )}
-
-          <button
-            type="button"
-            onClick={onContinue}
-            className="mt-6 w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-base font-bold text-white transition hover:brightness-110"
-          >
-            {result.battleFinished ? "查看最終結果" : "下一回合"}
-          </button>
+        <div className="mt-5 flex justify-center gap-4 text-sm">
+          <span className="text-emerald-300">{result.playerScore} 勝</span>
+          <span className="text-white/30">—</span>
+          <span className="text-rose-300">{result.opponentScore} 勝</span>
         </div>
+
+        {result.partnerJustUnlocked && (
+          <div className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3">
+            <p className="text-sm font-bold text-emerald-300">🎉 伴侶寶可夢已永久解鎖！</p>
+          </div>
+        )}
+
+        {result.secondPokemonJustUnlocked && (
+          <div className="mt-3 rounded-xl border border-purple-400/30 bg-purple-500/10 p-3">
+            <p className="text-sm font-bold text-purple-300">🌟 第二隻寶可夢相遇權已解鎖！</p>
+          </div>
+        )}
+
+        <button
+          type="button"
+          onClick={onContinue}
+          className="mt-6 w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-base font-bold text-white transition hover:brightness-110"
+        >
+          {result.battleFinished ? "查看最終結果" : "下一回合"}
+        </button>
       </div>
     </div>
   );
@@ -553,6 +578,7 @@ function RoundResultOverlay({
 export function Anniversary30thBattleConsole({
   partnerPokemon,
   partnerSpriteUrl,
+  playerDisplayName,
   battlesRemaining,
   totalWins,
   winStreak,
@@ -732,7 +758,7 @@ export function Anniversary30thBattleConsole({
           {battle && phase !== "idle" && phase !== "finished" && (
             <VSHeader
               playerSprite={partnerSpriteUrl}
-              playerName={partnerPokemon.name}
+              playerName={`${playerDisplayName}的${partnerPokemon.name}`}
               opponentSprite={getPokemonSpriteUrl(battle.opponent_sprite_id)}
               opponentName={`${battle.opponent_name}的${battle.opponent_pokemon}`}
               playerScore={playerScore}
