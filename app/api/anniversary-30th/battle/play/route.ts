@@ -196,7 +196,7 @@ export async function POST(request: Request) {
   let partnerJustUnlocked = false;
   let secondPokemonJustUnlocked = false;
 
-  if (battleFinished && (finalStatus as any) === "won") {
+  if (battleFinished && (finalStatus as string) === "won") {
     const newTotalWins = (participant.total_wins ?? 0) + 1;
     const newWinStreak = (participant.win_streak ?? 0) + 1;
     const newMaxWinStreak = Math.max(participant.max_win_streak ?? 0, newWinStreak);
