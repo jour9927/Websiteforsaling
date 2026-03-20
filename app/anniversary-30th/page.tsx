@@ -62,7 +62,9 @@ async function loadPageState(userId?: string) {
         .insert({
           campaign_id: campaign.id,
           user_id: userId,
+          target_pokemon: "unknown",
           total_battles_used: 0,
+          today_battles_used: 0,
           win_streak: 0,
           max_win_streak: 0,
           total_wins: 0,
