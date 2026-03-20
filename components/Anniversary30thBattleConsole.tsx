@@ -448,6 +448,43 @@ function SlotsGame({
   );
 }
 
+// ─── Sequential Slot Result Reveal ───
+function SequentialSlotResult({
+  reels,
+  onComplete,
+}: {
+  reels: string[];
+  onComplete: () => void;
+}) {
+  const [revealed, setRevealed] = useState(0);
+
+  useEffect(() => {
+    // 依序出獎：每隔 1.2 秒停下一個轉輪，增加期待感與懸念
+    const t1 = setTimeout(() => setRevealed(1), 1000);
+    const t2 = setTimeout(() => setRevealed(2), 2200);
+    const t3 = setTimeout(() => {
+      setRevealed(3);
+      setTimeout(onComplete, 600); // 停下後再等 0.6 秒結算
+    }, 3600);
+
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
+  }, [onComplete]);
+
+  return (
+    <div className="mt-4 rounded-2xl border border-amber-300/20 bg-gradient-to-b from-[#3c1f12] to-[#1a0d07] p-4 shadow-inner">
+      <div className="grid grid-cols-3 gap-3">
+        {reels.map((s, i) => (
+          <SlotTile key={i} symbol={revealed > i ? s : "?"} spinning={revealed <= i} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Round Result Overlay ───
 function RoundResultOverlay({
   result,
@@ -458,79 +495,55 @@ function RoundResultOverlay({
 }) {
   const isWin = result.roundResult === "win";
   const payload = result.roundPayload;
+  const isSlots = Array.isArray(payload?.playerReels);
+  const [showConclusion, setShowConclusion] = useState(!isSlots);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
       <div className="mx-4 max-w-sm rounded-3xl border border-white/15 bg-[linear-gradient(160deg,#1a1530,#0d1a2a)] p-8 text-center shadow-2xl">
-        <div className={`text-5xl ${isWin ? "animate-bounce" : ""}`}>
-          {isWin ? "🎉" : "😤"}
+        {/* Slot result (Sequential Reveal) */}
+        {isSlots ? (
+          <SequentialSlotResult
+            reels={payload.playerReels as string[]}
+            onComplete={() => setShowConclusion(true)}
+          />
+        ) : null}
+
+        {/* --- Hidden until slots finish spinning --- */}
+        <div className={`transition-opacity duration-500 ${showConclusion ? "opacity-100" : "opacity-0 invisible h-0 overflow-hidden"}`}>
+          <div className={`mt-6 text-5xl ${isWin ? "animate-bounce" : ""}`}>
+            {isWin ? "🎉" : "😤"}
+          </div>
+          <h2 className={`mt-4 text-2xl font-black ${isWin ? "text-emerald-300" : "text-rose-300"}`}>
+            {isWin ? "本回合勝利！" : "本回合落敗"}
+          </h2>
+
+          <div className="mt-5 flex justify-center gap-4 text-sm">
+            <span className="text-emerald-300">{result.playerScore} 勝</span>
+            <span className="text-white/30">—</span>
+            <span className="text-rose-300">{result.opponentScore} 勝</span>
+          </div>
+
+          {result.partnerJustUnlocked && (
+            <div className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3">
+              <p className="text-sm font-bold text-emerald-300">🎉 伴侶寶可夢已永久解鎖！</p>
+            </div>
+          )}
+
+          {result.secondPokemonJustUnlocked && (
+            <div className="mt-3 rounded-xl border border-purple-400/30 bg-purple-500/10 p-3">
+              <p className="text-sm font-bold text-purple-300">🌟 第二隻寶可夢相遇權已解鎖！</p>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={onContinue}
+            className="mt-6 w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-base font-bold text-white transition hover:brightness-110"
+          >
+            {result.battleFinished ? "查看最終結果" : "下一回合"}
+          </button>
         </div>
-        <h2 className={`mt-4 text-2xl font-black ${isWin ? "text-emerald-300" : "text-rose-300"}`}>
-          {isWin ? "本回合勝利！" : "本回合落敗"}
-        </h2>
-
-        {/* Dice result */}
-        {typeof payload?.playerDice === "number" ? (
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-              <p className="text-xs text-white/40">你的骰子</p>
-              <p className="text-3xl font-black text-white">{Number(payload.playerDice)}</p>
-            </div>
-            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-              <p className="text-xs text-white/40">對手骰子</p>
-              <p className="text-3xl font-black text-white">{Number(payload.opponentDice)}</p>
-            </div>
-          </div>
-        ) : null}
-
-        {/* Trivia result */}
-        {Boolean(payload?.question) ? (
-          <div className="mt-4 text-left">
-            <p className="text-xs text-white/40">
-              {Boolean(payload.playerCorrect) ? "✅ 你答對了！" : "❌ 答錯了"}
-            </p>
-            <p className="mt-1 text-xs text-white/40">
-              {Boolean(payload.opponentCorrect) ? "對手也答對了" : "對手答錯了"}
-            </p>
-          </div>
-        ) : null}
-
-        {/* Slot result */}
-        {Array.isArray(payload?.playerReels) ? (
-          <div className="mt-4">
-            <div className="grid grid-cols-3 gap-2">
-              {(payload.playerReels as string[]).map((s, i) => (
-                <SlotTile key={i} symbol={s} />
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        <div className="mt-5 flex justify-center gap-4 text-sm">
-          <span className="text-emerald-300">{result.playerScore} 勝</span>
-          <span className="text-white/30">—</span>
-          <span className="text-rose-300">{result.opponentScore} 勝</span>
-        </div>
-
-        {result.partnerJustUnlocked && (
-          <div className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3">
-            <p className="text-sm font-bold text-emerald-300">🎉 伴侶寶可夢已永久解鎖！</p>
-          </div>
-        )}
-
-        {result.secondPokemonJustUnlocked && (
-          <div className="mt-3 rounded-xl border border-purple-400/30 bg-purple-500/10 p-3">
-            <p className="text-sm font-bold text-purple-300">🌟 第二隻寶可夢相遇權已解鎖！</p>
-          </div>
-        )}
-
-        <button
-          type="button"
-          onClick={onContinue}
-          className="mt-6 w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-base font-bold text-white transition hover:brightness-110"
-        >
-          {result.battleFinished ? "查看最終結果" : "下一回合"}
-        </button>
       </div>
     </div>
   );
