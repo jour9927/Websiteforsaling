@@ -461,13 +461,12 @@ function createSeededRng(seed: number) {
 export function resolveTaipeiDateKey(date = new Date()) {
   // Shift by 20 hours so that a new day begins at 20:00
   const shiftedDate = new Date(date.getTime() - 20 * 60 * 60 * 1000);
-  const formatted = new Intl.DateTimeFormat("en-CA", {
+  return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Taipei",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
   }).format(shiftedDate);
-  return `${formatted}-v2`;
 }
 
 export function resolveBattlesRemaining(

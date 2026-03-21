@@ -163,7 +163,7 @@ export async function POST() {
     .from("anniversary_participants")
     .update({
       total_battles_used: participant.total_battles_used + 1,
-      today_battles_used: battleNo,
+      today_battles_used: todayBattlesUsed + 1,
       last_battle_day: todayKey,
     })
     .eq("id", participant.id);
