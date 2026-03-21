@@ -5,6 +5,10 @@ import {
   CHALLENGE_META,
   UNLOCK_PARTNER_CONSECUTIVE_WINS,
   UNLOCK_SECOND_POKEMON_TOTAL_WINS,
+  UNLOCK_TITLE_TOTAL_WINS,
+  UNLOCK_THIRD_POKEMON_TOTAL_WINS,
+  UNLOCK_MASTER_BALL_TOTAL_WINS,
+  UNLOCK_LEGENDARY_TOTAL_WINS,
   generateDiceRoll,
   generateSlotResult,
   pickTriviaQuestions,
@@ -195,6 +199,10 @@ export async function POST(request: Request) {
   // If battle won, update win tracking
   let partnerJustUnlocked = false;
   let secondPokemonJustUnlocked = false;
+  let titleJustUnlocked = false;
+  let thirdPokemonJustUnlocked = false;
+  let masterBallJustUnlocked = false;
+  let legendaryJustUnlocked = false;
 
   if (battleFinished && (finalStatus as string) === "won") {
     const newTotalWins = (participant.total_wins ?? 0) + 1;
@@ -203,6 +211,10 @@ export async function POST(request: Request) {
 
     partnerJustUnlocked = !participant.partner_unlocked && newWinStreak >= UNLOCK_PARTNER_CONSECUTIVE_WINS;
     secondPokemonJustUnlocked = !participant.second_pokemon_unlocked && newTotalWins >= UNLOCK_SECOND_POKEMON_TOTAL_WINS;
+    titleJustUnlocked = !participant.title_unlocked && newTotalWins >= UNLOCK_TITLE_TOTAL_WINS;
+    thirdPokemonJustUnlocked = !participant.third_pokemon_unlocked && newTotalWins >= UNLOCK_THIRD_POKEMON_TOTAL_WINS;
+    masterBallJustUnlocked = !participant.master_ball_unlocked && newTotalWins >= UNLOCK_MASTER_BALL_TOTAL_WINS;
+    legendaryJustUnlocked = !participant.legendary_unlocked && newTotalWins >= UNLOCK_LEGENDARY_TOTAL_WINS;
 
     await adminSupabase
       .from("anniversary_participants")
@@ -212,6 +224,10 @@ export async function POST(request: Request) {
         max_win_streak: newMaxWinStreak,
         partner_unlocked: participant.partner_unlocked || partnerJustUnlocked,
         second_pokemon_unlocked: participant.second_pokemon_unlocked || secondPokemonJustUnlocked,
+        title_unlocked: participant.title_unlocked || titleJustUnlocked,
+        third_pokemon_unlocked: participant.third_pokemon_unlocked || thirdPokemonJustUnlocked,
+        master_ball_unlocked: participant.master_ball_unlocked || masterBallJustUnlocked,
+        legendary_unlocked: participant.legendary_unlocked || legendaryJustUnlocked,
       })
       .eq("id", participant.id);
   }
@@ -226,6 +242,10 @@ export async function POST(request: Request) {
     battleResult: battleFinished ? finalStatus : null,
     partnerJustUnlocked,
     secondPokemonJustUnlocked,
+    titleJustUnlocked,
+    thirdPokemonJustUnlocked,
+    masterBallJustUnlocked,
+    legendaryJustUnlocked,
     challengeType,
     totalRounds: meta.totalRounds,
     winsNeeded: meta.winsNeeded,

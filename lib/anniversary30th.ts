@@ -14,6 +14,10 @@ export const ANNIVERSARY_30TH_STARTS_AT = "2026-03-20T20:00:00+08:00";
 // ─── Unlock Conditions ───
 export const UNLOCK_PARTNER_CONSECUTIVE_WINS = 2; // 連贏2場 → 永久獲得伴侶
 export const UNLOCK_SECOND_POKEMON_TOTAL_WINS = 5; // 總贏5場 → 第二隻相遇權
+export const UNLOCK_TITLE_TOTAL_WINS = 7; // 總贏7場 → 專屬稱號
+export const UNLOCK_THIRD_POKEMON_TOTAL_WINS = 9; // 總贏9場 → 第三隻相遇權
+export const UNLOCK_MASTER_BALL_TOTAL_WINS = 12; // 總贏12場 → 大師球徽章
+export const UNLOCK_LEGENDARY_TOTAL_WINS = 15; // 總贏15場 → 傳說寶可夢解鎖權
 
 // ─── Partner Pokémon Selection Pool ───
 export const PARTNER_POKEMON_POOL = [
@@ -383,6 +387,10 @@ export type AnniversaryParticipant = {
   max_win_streak: number;
   partner_unlocked: boolean;
   second_pokemon_unlocked: boolean;
+  title_unlocked: boolean;
+  third_pokemon_unlocked: boolean;
+  master_ball_unlocked: boolean;
+  legendary_unlocked: boolean;
   created_at: string;
 };
 

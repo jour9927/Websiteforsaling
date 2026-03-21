@@ -7,6 +7,10 @@ import {
   ANNIVERSARY_30TH_TOTAL_DAYS,
   UNLOCK_PARTNER_CONSECUTIVE_WINS,
   UNLOCK_SECOND_POKEMON_TOTAL_WINS,
+  UNLOCK_TITLE_TOTAL_WINS,
+  UNLOCK_THIRD_POKEMON_TOTAL_WINS,
+  UNLOCK_MASTER_BALL_TOTAL_WINS,
+  UNLOCK_LEGENDARY_TOTAL_WINS,
   defaultCampaignCopy,
   formatDateRange,
   getPartnerPokemon,
@@ -69,7 +73,11 @@ async function loadPageState(userId?: string) {
           max_win_streak: 0,
           total_wins: 0,
           partner_unlocked: false,
-          second_pokemon_unlocked: false
+          second_pokemon_unlocked: false,
+          title_unlocked: false,
+          third_pokemon_unlocked: false,
+          master_ball_unlocked: false,
+          legendary_unlocked: false
         })
         .select("*")
         .single();
@@ -297,6 +305,74 @@ export default async function Anniversary30thPage() {
                   label="勝場進度"
                 />
               </div>
+
+              <div className="rounded-xl border border-white/8 bg-black/20 p-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{participant.title_unlocked ? "🎉" : "🔒"}</span>
+                  <h3 className="font-semibold text-white">專屬菁英訓練家稱號</h3>
+                </div>
+                <p className="mt-2 text-sm text-white/55">
+                  {participant.title_unlocked
+                    ? "已解鎖！你獲得了傳說中的菁英稱號！"
+                    : `累計贏得 ${UNLOCK_TITLE_TOTAL_WINS} 場即可解鎖專屬稱號。目前：${participant.total_wins ?? 0}`}
+                </p>
+                <ProgressRing
+                  current={Math.min(participant.total_wins ?? 0, UNLOCK_TITLE_TOTAL_WINS)}
+                  max={UNLOCK_TITLE_TOTAL_WINS}
+                  label="勝場進度"
+                />
+              </div>
+
+              <div className="rounded-xl border border-white/8 bg-black/20 p-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{participant.third_pokemon_unlocked ? "🎉" : "🔒"}</span>
+                  <h3 className="font-semibold text-white">第三隻寶可夢相遇權</h3>
+                </div>
+                <p className="mt-2 text-sm text-white/55">
+                  {participant.third_pokemon_unlocked
+                    ? "已解鎖！更強大的第三隻夥伴等著你！"
+                    : `累計贏得 ${UNLOCK_THIRD_POKEMON_TOTAL_WINS} 場即可解鎖。目前：${participant.total_wins ?? 0}`}
+                </p>
+                <ProgressRing
+                  current={Math.min(participant.total_wins ?? 0, UNLOCK_THIRD_POKEMON_TOTAL_WINS)}
+                  max={UNLOCK_THIRD_POKEMON_TOTAL_WINS}
+                  label="勝場進度"
+                />
+              </div>
+
+              <div className="rounded-xl border border-white/8 bg-black/20 p-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{participant.master_ball_unlocked ? "🎉" : "🔒"}</span>
+                  <h3 className="font-semibold text-white">大師球絕版虛擬徽章</h3>
+                </div>
+                <p className="mt-2 text-sm text-white/55">
+                  {participant.master_ball_unlocked
+                    ? "已解鎖！絕對捕獲的大師球徽章已入袋！"
+                    : `累計贏得 ${UNLOCK_MASTER_BALL_TOTAL_WINS} 場即可解鎖。目前：${participant.total_wins ?? 0}`}
+                </p>
+                <ProgressRing
+                  current={Math.min(participant.total_wins ?? 0, UNLOCK_MASTER_BALL_TOTAL_WINS)}
+                  max={UNLOCK_MASTER_BALL_TOTAL_WINS}
+                  label="勝場進度"
+                />
+              </div>
+
+              <div className="rounded-xl border border-white/8 bg-black/20 p-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">{participant.legendary_unlocked ? "🎉" : "🔒"}</span>
+                  <h3 className="font-semibold text-white">傳說寶可夢隱藏解鎖權</h3>
+                </div>
+                <p className="mt-2 text-sm text-white/55">
+                  {participant.legendary_unlocked
+                    ? "已解鎖！活動最終的傳說寶可夢考驗已為你敞開大門！"
+                    : `累計贏得 ${UNLOCK_LEGENDARY_TOTAL_WINS} 場即可解鎖最高機密。目前：${participant.total_wins ?? 0}`}
+                </p>
+                <ProgressRing
+                  current={Math.min(participant.total_wins ?? 0, UNLOCK_LEGENDARY_TOTAL_WINS)}
+                  max={UNLOCK_LEGENDARY_TOTAL_WINS}
+                  label="勝場進度"
+                />
+              </div>
             </div>
           </section>
 
@@ -371,6 +447,22 @@ export default async function Anniversary30thPage() {
                 <li className="flex gap-2">
                   <span className="flex-shrink-0 text-purple-300">★</span>
                   累計贏得 {UNLOCK_SECOND_POKEMON_TOTAL_WINS} 場：解鎖第二隻寶可夢相遇權
+                </li>
+                <li className="flex gap-2">
+                  <span className="flex-shrink-0 text-amber-300">★</span>
+                  累計贏得 {UNLOCK_TITLE_TOTAL_WINS} 場：獲得專屬菁英訓練家稱號
+                </li>
+                <li className="flex gap-2">
+                  <span className="flex-shrink-0 text-amber-300">★</span>
+                  累計贏得 {UNLOCK_THIRD_POKEMON_TOTAL_WINS} 場：解鎖第三隻寶可夢相遇權
+                </li>
+                <li className="flex gap-2">
+                  <span className="flex-shrink-0 text-amber-300">★</span>
+                  累計贏得 {UNLOCK_MASTER_BALL_TOTAL_WINS} 場：獲得大師球絕版虛擬徽章
+                </li>
+                <li className="flex gap-2">
+                  <span className="flex-shrink-0 text-amber-300">★</span>
+                  累計贏得 {UNLOCK_LEGENDARY_TOTAL_WINS} 場：解鎖傳說寶可夢隱藏挑戰
                 </li>
                 <li className="flex gap-2">
                   <span className="flex-shrink-0 text-amber-300">★</span>
