@@ -316,15 +316,23 @@ export type DiceRoll = {
 
 export function generateDiceRoll(shouldPlayerWin: boolean, seed: string): DiceRoll {
   const rng = createSeededRng(hashString(seed));
-  const playerDice = 1 + Math.floor(rng() * 6);
+  let playerDice = 1 + Math.floor(rng() * 6);
   let opponentDice = 1 + Math.floor(rng() * 6);
 
   if (shouldPlayerWin) {
+    // Cannot win if player rolls a 1
+    if (playerDice === 1) {
+      playerDice = 2 + Math.floor(rng() * 5);
+    }
     // Ensure player wins
     if (opponentDice >= playerDice) {
       opponentDice = Math.max(1, playerDice - (1 + Math.floor(rng() * 2)));
     }
   } else {
+    // Cannot lose if player rolls a 6
+    if (playerDice === 6) {
+      playerDice = 1 + Math.floor(rng() * 5);
+    }
     // Ensure opponent wins
     if (opponentDice <= playerDice) {
       opponentDice = Math.min(6, playerDice + (1 + Math.floor(rng() * 2)));

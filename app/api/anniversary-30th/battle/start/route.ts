@@ -128,7 +128,7 @@ export async function POST() {
     campaign.battles_per_day,
     campaign.total_days,
   );
-  const battleNo = todayBattlesUsed + 1;
+  const battleNo = (participant.total_battles_used % campaign.battles_per_day) + 1;
 
   // Insert battle
   const { data: battleData, error: battleError } = await adminSupabase
