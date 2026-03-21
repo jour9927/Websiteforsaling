@@ -464,6 +464,10 @@ export function resolveBattlesRemaining(
   battlesPerDay: number,
 ): number {
   if (!participant) return battlesPerDay;
+  const todayKey = resolveTaipeiDateKey();
+  if (participant.last_battle_day !== todayKey) {
+    return battlesPerDay;
+  }
   return Math.max(0, battlesPerDay - participant.today_battles_used);
 }
 
