@@ -10,6 +10,7 @@ export const ANNIVERSARY_30TH_BATTLES_PER_DAY = 3;
 export const ANNIVERSARY_30TH_MIN_DAILY = 1;
 export const ANNIVERSARY_30TH_TOTAL_BATTLES = ANNIVERSARY_30TH_TOTAL_DAYS * ANNIVERSARY_30TH_BATTLES_PER_DAY; // 21
 export const ANNIVERSARY_30TH_STARTS_AT = "2026-03-20T20:00:00+08:00";
+export const ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS = 15;
 
 // ─── Unlock Conditions ───
 export const UNLOCK_PARTNER_CONSECUTIVE_WINS = 2; // 連贏2場 → 永久獲得伴侶
@@ -67,6 +68,91 @@ export const VIRTUAL_OPPONENTS = [
   { name: "老K", pokemon: "班基拉斯", spriteId: "248" },
   { name: "阿寶", pokemon: "妙蛙種子", spriteId: "1" },
   { name: "Ray桑", pokemon: "烈空坐", spriteId: "384" },
+  { name: "MomoLin", pokemon: "拉普拉斯", spriteId: "131" },
+  { name: "夜雨", pokemon: "夢幻", spriteId: "151" },
+  { name: "NekoQ", pokemon: "妙蛙花", spriteId: "3" },
+  { name: "阿任", pokemon: "卡比獸", spriteId: "143" },
+  { name: "Shiro", pokemon: "月亮伊布", spriteId: "197" },
+  { name: "兔兔糖", pokemon: "皮皮", spriteId: "35" },
+  { name: "Hikari", pokemon: "乘龍", spriteId: "131" },
+  { name: "阿澤", pokemon: "路卡利歐", spriteId: "448" },
+  { name: "KumaP", pokemon: "圈圈熊", spriteId: "217" },
+  { name: "Mint", pokemon: "太陽伊布", spriteId: "196" },
+  { name: "小綠豆", pokemon: "菊草葉", spriteId: "152" },
+  { name: "Leo77", pokemon: "火暴獸", spriteId: "157" },
+  { name: "Ariel", pokemon: "大力鱷", spriteId: "160" },
+  { name: "阿曜", pokemon: "火球鼠", spriteId: "155" },
+  { name: "Pluto", pokemon: "雷公", spriteId: "243" },
+  { name: "Yuri", pokemon: "水君", spriteId: "245" },
+  { name: "阿辰", pokemon: "洛奇亞", spriteId: "249" },
+  { name: "RinRin", pokemon: "鳳王", spriteId: "250" },
+  { name: "Gin", pokemon: "木守宮", spriteId: "252" },
+  { name: "小焰", pokemon: "火稚雞", spriteId: "255" },
+  { name: "AquaCat", pokemon: "水躍魚", spriteId: "258" },
+  { name: "Nova", pokemon: "沙奈朵", spriteId: "282" },
+  { name: "阿牧", pokemon: "巨沼怪", spriteId: "260" },
+  { name: "Peko", pokemon: "狩獵鳳蝶", spriteId: "267" },
+  { name: "Rika", pokemon: "暴飛龍", spriteId: "373" },
+  { name: "MoonKey", pokemon: "巨金怪", spriteId: "376" },
+  { name: "阿泰", pokemon: "基拉祈", spriteId: "385" },
+  { name: "Miki", pokemon: "帝牙海獅", spriteId: "365" },
+  { name: "SnowFox", pokemon: "冰伊布", spriteId: "471" },
+  { name: "Loki", pokemon: "烈咬陸鯊", spriteId: "445" },
+  { name: "小葵", pokemon: "圓企鵝", spriteId: "393" },
+  { name: "Jade", pokemon: "姆克鷹", spriteId: "398" },
+  { name: "DinoRex", pokemon: "烈焰猴", spriteId: "392" },
+  { name: "阿珮", pokemon: "波克基斯", spriteId: "468" },
+  { name: "Hana", pokemon: "羅絲雷朵", spriteId: "407" },
+  { name: "Kai_Zero", pokemon: "路卡利歐", spriteId: "448" },
+  { name: "BlueJam", pokemon: "自爆磁怪", spriteId: "462" },
+  { name: "阿倫", pokemon: "達克萊伊", spriteId: "491" },
+  { name: "Mira", pokemon: "謝米", spriteId: "492" },
+  { name: "ZeroFox", pokemon: "索羅亞克", spriteId: "571" },
+  { name: "阿岑", pokemon: "君主蛇", spriteId: "497" },
+  { name: "Ruru", pokemon: "炎武王", spriteId: "500" },
+  { name: "SoraM", pokemon: "大劍鬼", spriteId: "503" },
+  { name: "阿捷", pokemon: "電飛鼠", spriteId: "587" },
+  { name: "Muffin", pokemon: "裙兒小姐", spriteId: "549" },
+  { name: "Kira", pokemon: "雙斧戰龍", spriteId: "612" },
+  { name: "Nori", pokemon: "勇士雄鷹", spriteId: "628" },
+  { name: "蒼月", pokemon: "三首惡龍", spriteId: "635" },
+  { name: "Aki", pokemon: "索羅亞", spriteId: "570" },
+  { name: "PandaWu", pokemon: "流氓熊貓", spriteId: "675" },
+  { name: "Natsu", pokemon: "妖火紅狐", spriteId: "655" },
+  { name: "阿森", pokemon: "甲賀忍蛙", spriteId: "658" },
+  { name: "Q比", pokemon: "哈力栗", spriteId: "650" },
+  { name: "Velvet", pokemon: "仙子伊布", spriteId: "700" },
+  { name: "Aster", pokemon: "黏美龍", spriteId: "706" },
+  { name: "小嵐", pokemon: "烈箭鷹", spriteId: "663" },
+  { name: "Yoko", pokemon: "咚咚鼠", spriteId: "702" },
+  { name: "Aria", pokemon: "莫魯貝可", spriteId: "877" },
+  { name: "Juno", pokemon: "木木梟", spriteId: "722" },
+  { name: "阿祐", pokemon: "熾焰咆哮虎", spriteId: "727" },
+  { name: "PikaM", pokemon: "西獅海壬", spriteId: "730" },
+  { name: "小卡", pokemon: "謎擬Q", spriteId: "778" },
+  { name: "Nana", pokemon: "鬃岩狼人", spriteId: "745" },
+  { name: "Sirocco", pokemon: "捷拉奧拉", spriteId: "807" },
+  { name: "Faye", pokemon: "蒼響", spriteId: "888" },
+  { name: "阿哲", pokemon: "藏瑪然特", spriteId: "889" },
+  { name: "RexL", pokemon: "多龍巴魯托", spriteId: "887" },
+  { name: "小莓", pokemon: "霜奶仙", spriteId: "869" },
+  { name: "Tomo", pokemon: "敲音猴", spriteId: "810" },
+  { name: "Koko", pokemon: "炎兔兒", spriteId: "813" },
+  { name: "Aoi", pokemon: "淚眼蜥", spriteId: "816" },
+  { name: "阿齊", pokemon: "蒼炎刃鬼", spriteId: "936" },
+  { name: "Lime", pokemon: "紅蓮鎧騎", spriteId: "937" },
+  { name: "Poro", pokemon: "新葉喵", spriteId: "906" },
+  { name: "Holt", pokemon: "呆火鱷", spriteId: "909" },
+  { name: "MinaQ", pokemon: "潤水鴨", spriteId: "912" },
+  { name: "阿光", pokemon: "路卡利歐", spriteId: "448" },
+  { name: "ZoeZ", pokemon: "布撥", spriteId: "921" },
+  { name: "小卓", pokemon: "毛崖蟹", spriteId: "950" },
+  { name: "Noah", pokemon: "鹽石寶", spriteId: "932" },
+  { name: "Mellow", pokemon: "一家鼠", spriteId: "925" },
+  { name: "阿梁", pokemon: "賽富豪", spriteId: "1000" },
+  { name: "Kite", pokemon: "土王", spriteId: "980" },
+  { name: "Uma", pokemon: "電海燕", spriteId: "941" },
+  { name: "小風", pokemon: "巴布土撥", spriteId: "923" },
 ] as const;
 
 export function resolveVirtualOpponent(seed: string) {
@@ -435,6 +521,7 @@ export type AnniversaryBattle = {
   player_score: number;
   opponent_score: number;
   started_at: string | null;
+  last_active_at: string | null;
   ended_at: string | null;
   created_at: string;
 };
@@ -475,6 +562,13 @@ export function resolveTaipeiDateKey(date = new Date()) {
     month: "2-digit",
     day: "2-digit",
   }).format(shiftedDate);
+}
+
+export function isBattleSessionExpired(lastActiveAt: string | null, now = new Date()) {
+  if (!lastActiveAt) return false;
+  const lastActive = new Date(lastActiveAt);
+  if (Number.isNaN(lastActive.getTime())) return false;
+  return now.getTime() - lastActive.getTime() > ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS * 1000;
 }
 
 export function resolveBattlesRemaining(

@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 import {
   ANNIVERSARY_30TH_SLUG,
   ANNIVERSARY_30TH_STARTS_AT,
   isEventStarted,
+  isBattleSessionExpired,
   resolveBattlesRemaining,
   getPartnerPokemon,
   getPokemonSpriteUrl,
@@ -17,6 +18,7 @@ export const dynamic = "force-dynamic";
 
 async function loadBattleState(userId?: string) {
   const supabase = createServerSupabaseClient();
+  const adminSupabase = createAdminSupabaseClient();
 
   const { data: campaignData } = await supabase
     .from("anniversary_campaigns")
@@ -53,10 +55,36 @@ async function loadBattleState(userId?: string) {
     .limit(1)
     .maybeSingle();
 
+  let battle = (battleData || null) as AnniversaryBattle | null;
+
+  if (battle && isBattleSessionExpired(battle.last_active_at || battle.started_at)) {
+    await adminSupabase
+      .from("anniversary_battles")
+      .update({
+        status: "lost",
+        last_active_at: new Date().toISOString(),
+        ended_at: new Date().toISOString(),
+      })
+      .eq("id", battle.id);
+
+    battle = null;
+  } else if (battle) {
+    const { data: refreshedBattle } = await adminSupabase
+      .from("anniversary_battles")
+      .update({
+        last_active_at: new Date().toISOString(),
+      })
+      .eq("id", battle.id)
+      .select("*")
+      .single();
+
+    battle = (refreshedBattle || battle) as AnniversaryBattle;
+  }
+
   return {
     campaign,
     participant,
-    battle: (battleData || null) as AnniversaryBattle | null,
+    battle,
   };
 }
 

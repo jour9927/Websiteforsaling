@@ -11,6 +11,7 @@ import {
   UNLOCK_LEGENDARY_TOTAL_WINS,
   generateDiceRoll,
   generateSlotResult,
+  isBattleSessionExpired,
   pickTriviaQuestions,
   type AnniversaryBattle,
   type AnniversaryCampaign,
@@ -75,6 +76,24 @@ export async function POST(request: Request) {
 
   if (battle.status === "won" || battle.status === "lost") {
     return NextResponse.json({ error: "這場對決已結束。" }, { status: 409 });
+  }
+
+  const now = new Date().toISOString();
+
+  if (isBattleSessionExpired(battle.last_active_at || battle.started_at)) {
+    await adminSupabase
+      .from("anniversary_battles")
+      .update({
+        status: "lost",
+        last_active_at: now,
+        ended_at: now,
+      })
+      .eq("id", battle.id);
+
+    return NextResponse.json({
+      error: "這場對決已逾時，已自動結束，無法繼續。",
+      battleExpired: true,
+    }, { status: 409 });
   }
 
   const challengeType = battle.challenge_type as ChallengeType;
@@ -184,7 +203,6 @@ export async function POST(request: Request) {
   });
 
   // Update battle
-  const now = new Date().toISOString();
   await adminSupabase
     .from("anniversary_battles")
     .update({
@@ -192,6 +210,7 @@ export async function POST(request: Request) {
       current_round: roundNo,
       player_score: newPlayerScore,
       opponent_score: newOpponentScore,
+      last_active_at: now,
       ended_at: battleFinished ? now : null,
     })
     .eq("id", battle.id);
@@ -249,5 +268,6 @@ export async function POST(request: Request) {
     challengeType,
     totalRounds: meta.totalRounds,
     winsNeeded: meta.winsNeeded,
+    lastActiveAt: now,
   });
 }

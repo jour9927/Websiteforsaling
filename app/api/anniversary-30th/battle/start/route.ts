@@ -4,6 +4,7 @@ import {
   ANNIVERSARY_30TH_SLUG,
   CHALLENGE_META,
   generateScriptedOutcomes,
+  isBattleSessionExpired,
   resolveVirtualOpponent,
   resolveTaipeiDateKey,
   resolveNarrativeBattleDay,
@@ -93,16 +94,43 @@ export async function POST() {
     .limit(1)
     .maybeSingle();
 
-  if (existingBattleData) {
+  let expiredPreviousBattle = false;
+  const existingBattle = (existingBattleData || null) as AnniversaryBattle | null;
+  const now = new Date().toISOString();
+
+  if (existingBattle && isBattleSessionExpired(existingBattle.last_active_at || existingBattle.started_at)) {
+    expiredPreviousBattle = true;
+    await adminSupabase
+      .from("anniversary_battles")
+      .update({
+        status: "lost",
+        last_active_at: now,
+        ended_at: now,
+      })
+      .eq("id", existingBattle.id);
+  } else if (existingBattle) {
+    const { data: resumedBattleData } = await adminSupabase
+      .from("anniversary_battles")
+      .update({
+        last_active_at: now,
+      })
+      .eq("id", existingBattle.id)
+      .select("*")
+      .single();
+
     return NextResponse.json({
-      battle: sanitizeBattleForClient(existingBattleData as AnniversaryBattle),
+      battle: sanitizeBattleForClient((resumedBattleData || existingBattle) as AnniversaryBattle),
       resuming: true,
     });
   }
 
   // Check daily limit
   if (todayBattlesUsed >= campaign.battles_per_day) {
-    return NextResponse.json({ error: "今天的對決場次已經用完了。" }, { status: 409 });
+    return NextResponse.json({
+      error: expiredPreviousBattle
+        ? "上一場對決已逾時結束，今天的對決場次也已經用完了。"
+        : "今天的對決場次已經用完了。",
+    }, { status: 409 });
   }
 
   // Generate battle
@@ -147,7 +175,8 @@ export async function POST() {
       current_round: 0,
       player_score: 0,
       opponent_score: 0,
-      started_at: new Date().toISOString(),
+      started_at: now,
+      last_active_at: now,
       template_code: null,
       final_tug_position: 0,
     })
@@ -171,6 +200,7 @@ export async function POST() {
   return NextResponse.json({
     battle: sanitizeBattleForClient(battleData as AnniversaryBattle),
     challengeMeta: CHALLENGE_META[challengeType],
+    expiredPreviousBattle,
     resuming: false,
   });
 }

@@ -9,6 +9,7 @@ import {
   SLOT_FACE_META,
   VIRTUAL_OPPONENTS,
   getPokemonSpriteUrl,
+  isBattleSessionExpired,
   pickTriviaQuestions,
   type AnniversaryBattle,
   type ChallengeType,
@@ -52,7 +53,7 @@ function MatchmakingOverlay({ onComplete }: { onComplete: () => void }) {
     const timer = setInterval(() => setTick((t) => t + 1), 200);
     const foundTimer = setTimeout(() => {
       setFound(true);
-      setTimeout(onComplete, 1200);
+      setTimeout(onComplete, 1500);
     }, 3500);
     return () => {
       clearInterval(timer);
@@ -67,12 +68,22 @@ function MatchmakingOverlay({ onComplete }: { onComplete: () => void }) {
       <div className="flex flex-col items-center gap-6 p-8">
         {!found ? (
           <>
-            <div className="relative h-24 w-24">
+            {/* Radar scan effect */}
+            <div className="relative flex h-32 w-32 items-center justify-center">
+              {/* Radar rings */}
+              <div className="absolute inset-0 rounded-full border border-amber-400/20 animate-radar-ring" />
+              <div className="absolute inset-0 rounded-full border border-amber-400/20 animate-radar-ring" style={{ animationDelay: "0.5s" }} />
+              <div className="absolute inset-0 rounded-full border border-amber-400/20 animate-radar-ring" style={{ animationDelay: "1s" }} />
+              {/* Sweep line */}
+              <div className="absolute inset-0 animate-scan-rotate" style={{ transformOrigin: "center" }}>
+                <div className="absolute left-1/2 top-0 h-1/2 w-0.5 origin-bottom bg-gradient-to-t from-amber-400/60 to-transparent" />
+              </div>
+              {/* Pokemon sprite */}
               <img
                 key={opponent.spriteId}
                 src={getPokemonSpriteUrl(opponent.spriteId)}
                 alt="matching"
-                className="h-full w-full animate-pulse object-contain drop-shadow-lg transition-all duration-150"
+                className="relative z-10 h-20 w-20 object-contain drop-shadow-[0_0_16px_rgba(251,191,36,0.4)] transition-all duration-150"
               />
             </div>
             <div className="flex items-center gap-2">
@@ -81,14 +92,17 @@ function MatchmakingOverlay({ onComplete }: { onComplete: () => void }) {
               <div className="h-2 w-2 animate-bounce rounded-full bg-amber-400" style={{ animationDelay: "300ms" }} />
             </div>
             <p className="text-lg font-bold text-white">正在尋找對手...</p>
-            <p className="text-sm text-white/50">配對中，請稍候</p>
+            <p className="text-sm text-white/50">掃描附近的訓練家中</p>
           </>
         ) : (
-          <>
-            <div className="text-4xl">⚔️</div>
-            <p className="text-2xl font-black text-amber-300">對手已找到！</p>
+          <div className="animate-pop-in flex flex-col items-center gap-4">
+            <div className="relative">
+              <div className="text-5xl">⚔️</div>
+              <div className="absolute inset-0 animate-ping text-5xl opacity-30">⚔️</div>
+            </div>
+            <p className="text-3xl font-black text-amber-300 animate-glow-pulse">對手已找到！</p>
             <p className="text-sm text-white/60">準備進入戰場...</p>
-          </>
+          </div>
         )}
       </div>
     </div>
@@ -170,20 +184,21 @@ function RulesPopup({
 function TimeBar({ timeLeft, maxTime }: { timeLeft: number; maxTime: number }) {
   const pct = (timeLeft / maxTime) * 100;
   const isLow = timeLeft <= 3;
+  const isMid = timeLeft <= 5;
 
   return (
-    <div className="mb-4">
+    <div className={`mb-4 rounded-xl p-3 transition-all duration-300 ${isLow ? "animate-danger-pulse bg-rose-500/5" : "bg-transparent"}`}>
       <div className="flex items-center justify-between text-xs">
         <span className="text-white/50">⏱️ 剩餘時間</span>
-        <span className={`font-bold tabular-nums ${isLow ? "animate-pulse text-rose-400" : "text-white/70"}`}>
-          {timeLeft}s
+        <span className={`font-bold tabular-nums ${isLow ? "text-rose-400 text-base" : "text-white/70"}`}>
+          {isLow && "⚠️ "}{timeLeft}s
         </span>
       </div>
-      <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/10">
+      <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-white/10">
         <div
           className={`h-full rounded-full transition-all duration-1000 ${
-            isLow ? "bg-rose-500" : timeLeft <= 5 ? "bg-amber-500" : "bg-emerald-500"
-          }`}
+            isLow ? "bg-rose-500" : isMid ? "bg-amber-500" : "bg-emerald-500"
+          } ${isLow ? "stripe-bar" : ""}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -209,31 +224,96 @@ function VSHeader({
   opponentScore: number;
   isAttacking: boolean;
 }) {
+  const [prevPlayerScore, setPrevPlayerScore] = useState(playerScore);
+  const [prevOpponentScore, setPrevOpponentScore] = useState(opponentScore);
+  const [playerScorePop, setPlayerScorePop] = useState(false);
+  const [opponentScorePop, setOpponentScorePop] = useState(false);
+
+  useEffect(() => {
+    if (playerScore !== prevPlayerScore) {
+      setPlayerScorePop(true);
+      setPrevPlayerScore(playerScore);
+      const t = setTimeout(() => setPlayerScorePop(false), 350);
+      return () => clearTimeout(t);
+    }
+  }, [playerScore, prevPlayerScore]);
+
+  useEffect(() => {
+    if (opponentScore !== prevOpponentScore) {
+      setOpponentScorePop(true);
+      setPrevOpponentScore(opponentScore);
+      const t = setTimeout(() => setOpponentScorePop(false), 350);
+      return () => clearTimeout(t);
+    }
+  }, [opponentScore, prevOpponentScore]);
+
   return (
-    <div className="relative flex items-center justify-between rounded-2xl border border-white/10 bg-gradient-to-r from-blue-900/30 via-black/40 to-red-900/30 p-4">
+    <div className={`relative flex items-center justify-between rounded-2xl border border-white/10 bg-gradient-to-r from-blue-900/30 via-black/40 to-red-900/30 p-4 ${isAttacking ? "animate-hit-shake" : ""}`}>
       {/* Player */}
       <div className="flex flex-col items-center gap-2">
-        <div className={`relative h-20 w-20 transition-transform duration-500 ${isAttacking ? "translate-x-6 scale-110" : ""}`}>
+        <div className={`relative h-20 w-20 transition-transform duration-500 ${isAttacking ? "translate-x-8 scale-125" : ""}`}>
           <img src={playerSprite} alt={playerName} className="h-full w-full object-contain drop-shadow-[0_4px_12px_rgba(96,165,250,0.4)]" />
+          {isAttacking && (
+            <div className="absolute -right-2 top-1/2 -translate-y-1/2 text-2xl animate-ping">💥</div>
+          )}
         </div>
-        <p className="text-xs font-bold text-blue-200">{playerName}</p>
-        <div className="rounded-full bg-blue-500/20 px-3 py-0.5 text-sm font-bold text-blue-300">{playerScore}</div>
+        <p className="max-w-[100px] truncate text-xs font-bold text-blue-200">{playerName}</p>
+        <div className={`rounded-full bg-blue-500/20 px-3 py-0.5 text-sm font-bold text-blue-300 ${playerScorePop ? "animate-score-pop" : ""}`}>
+          {playerScore}
+        </div>
       </div>
 
       {/* VS */}
       <div className="flex flex-col items-center">
-        <span className={`text-3xl font-black transition-all duration-500 ${isAttacking ? "scale-150 text-amber-300" : "text-white/30"}`}>
+        <span className={`text-3xl font-black transition-all duration-500 ${isAttacking ? "scale-150 text-amber-300 animate-glow-pulse" : "text-white/30"}`}>
           VS
         </span>
       </div>
 
       {/* Opponent */}
       <div className="flex flex-col items-center gap-2">
-        <div className={`relative h-20 w-20 transition-transform duration-500 ${isAttacking ? "-translate-x-6 scale-110" : ""}`}>
+        <div className={`relative h-20 w-20 transition-transform duration-500 ${isAttacking ? "-translate-x-8 scale-125" : ""}`}>
           <img src={opponentSprite} alt={opponentName} className="h-full w-full object-contain drop-shadow-[0_4px_12px_rgba(239,68,68,0.4)]" />
         </div>
-        <p className="text-xs font-bold text-rose-200">{opponentName}</p>
-        <div className="rounded-full bg-rose-500/20 px-3 py-0.5 text-sm font-bold text-rose-300">{opponentScore}</div>
+        <p className="max-w-[100px] truncate text-xs font-bold text-rose-200">{opponentName}</p>
+        <div className={`rounded-full bg-rose-500/20 px-3 py-0.5 text-sm font-bold text-rose-300 ${opponentScorePop ? "animate-score-pop" : ""}`}>
+          {opponentScore}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Dice Face ───
+const DICE_DOTS: Record<number, number[][]> = {
+  1: [[1, 1]],
+  2: [[0, 0], [2, 2]],
+  3: [[0, 0], [1, 1], [2, 2]],
+  4: [[0, 0], [0, 2], [2, 0], [2, 2]],
+  5: [[0, 0], [0, 2], [1, 1], [2, 0], [2, 2]],
+  6: [[0, 0], [0, 2], [1, 0], [1, 2], [2, 0], [2, 2]],
+};
+
+function DiceFace({ value, color = "white", size = "lg" }: { value: number; color?: "white" | "blue" | "red"; size?: "sm" | "lg" }) {
+  const dots = DICE_DOTS[value] || DICE_DOTS[1];
+  const dotColors = { white: "bg-white", blue: "bg-blue-300", red: "bg-rose-300" };
+  const borderColors = { white: "border-white/20", blue: "border-blue-400/30", red: "border-rose-400/30" };
+  const bgColors = { white: "from-slate-700 to-slate-800", blue: "from-blue-900/60 to-blue-950/60", red: "from-rose-900/60 to-rose-950/60" };
+  const dim = size === "lg" ? "h-20 w-20" : "h-14 w-14";
+  const dotSize = size === "lg" ? "h-3 w-3" : "h-2 w-2";
+
+  return (
+    <div className={`${dim} rounded-xl border ${borderColors[color]} bg-gradient-to-br ${bgColors[color]} p-2 shadow-lg`}>
+      <div className="grid h-full w-full grid-cols-3 grid-rows-3">
+        {[0, 1, 2].map(row =>
+          [0, 1, 2].map(col => (
+            <div key={`${row}-${col}`} className="flex items-center justify-center">
+              {dots.some(([r, c]) => r === row && c === col) && (
+                <div className={`${dotSize} rounded-full ${dotColors[color]} shadow-[0_0_6px_rgba(255,255,255,0.3)]`} />
+              )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
@@ -253,6 +333,29 @@ function DiceGame({
   onSubmit: (action: string) => void;
   disabled: boolean;
 }) {
+  const [rolling, setRolling] = useState(false);
+  const [rollingFace, setRollingFace] = useState(1);
+  const [chosen, setChosen] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!rolling) return;
+    const interval = setInterval(() => {
+      setRollingFace(Math.floor(Math.random() * 6) + 1);
+    }, 80);
+    const timeout = setTimeout(() => {
+      clearInterval(interval);
+      setRolling(false);
+      if (chosen) onSubmit(chosen);
+    }, 1000);
+    return () => { clearInterval(interval); clearTimeout(timeout); };
+  }, [rolling, chosen, onSubmit]);
+
+  function handleChoice(choice: string) {
+    if (disabled || rolling || chosen) return;
+    setChosen(choice);
+    setRolling(true);
+  }
+
   return (
     <div className="space-y-4">
       <TimeBar timeLeft={timeLeft} maxTime={maxTime} />
@@ -260,12 +363,24 @@ function DiceGame({
         <p className="text-base font-bold text-white">第 {roundNo} 回合 — 擲骰子比大小</p>
         <p className="mt-1 text-sm text-white/50">選擇你的預測，然後擲骰子！</p>
       </div>
+
+      {/* Dice preview */}
+      <div className="flex justify-center">
+        <div className={rolling ? "animate-dice-roll" : ""} style={{ perspective: "400px" }}>
+          <DiceFace value={rolling ? rollingFace : 0} color="white" />
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <button
           type="button"
-          onClick={() => onSubmit("high")}
-          disabled={disabled}
-          className="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-6 text-center transition hover:bg-emerald-500/20 disabled:opacity-50"
+          onClick={() => handleChoice("high")}
+          disabled={disabled || rolling || chosen !== null}
+          className={`rounded-2xl border p-6 text-center transition-all duration-200 disabled:opacity-50 ${
+            chosen === "high"
+              ? "border-emerald-400/50 bg-emerald-500/20 scale-[1.02] shadow-[0_0_24px_rgba(16,185,129,0.2)]"
+              : "border-emerald-400/30 bg-emerald-500/10 hover:bg-emerald-500/20 hover:scale-[1.02]"
+          }`}
         >
           <span className="text-4xl">📈</span>
           <p className="mt-2 text-lg font-bold text-emerald-200">我押大</p>
@@ -273,15 +388,22 @@ function DiceGame({
         </button>
         <button
           type="button"
-          onClick={() => onSubmit("low")}
-          disabled={disabled}
-          className="rounded-2xl border border-sky-400/30 bg-sky-500/10 p-6 text-center transition hover:bg-sky-500/20 disabled:opacity-50"
+          onClick={() => handleChoice("low")}
+          disabled={disabled || rolling || chosen !== null}
+          className={`rounded-2xl border p-6 text-center transition-all duration-200 disabled:opacity-50 ${
+            chosen === "low"
+              ? "border-sky-400/50 bg-sky-500/20 scale-[1.02] shadow-[0_0_24px_rgba(14,165,233,0.2)]"
+              : "border-sky-400/30 bg-sky-500/10 hover:bg-sky-500/20 hover:scale-[1.02]"
+          }`}
         >
           <span className="text-4xl">📉</span>
           <p className="mt-2 text-lg font-bold text-sky-200">我押小</p>
           <p className="mt-1 text-xs text-white/40">我的骰子比對手小</p>
         </button>
       </div>
+      {rolling && (
+        <p className="text-center text-sm font-bold text-amber-300 animate-pulse">🎲 骰子翻滾中...</p>
+      )}
     </div>
   );
 }
@@ -303,9 +425,18 @@ function TriviaGame({
   disabled: boolean;
 }) {
   const [selected, setSelected] = useState<number | null>(null);
+  const [showAnswer, setShowAnswer] = useState(false);
+
+  function handleSelect(idx: number) {
+    if (disabled || selected !== null) return;
+    setSelected(idx);
+    setShowAnswer(true);
+    // Brief delay to show correct/wrong before submitting
+    setTimeout(() => onSubmit(idx), 800);
+  }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 animate-slide-up-fade">
       <TimeBar timeLeft={timeLeft} maxTime={maxTime} />
       <div>
         <div className="flex items-center justify-between text-xs text-white/40">
@@ -315,51 +446,66 @@ function TriviaGame({
         <h3 className="mt-3 text-lg font-bold leading-relaxed text-white">{question.question}</h3>
       </div>
       <div className="space-y-2">
-        {question.options.map((option, idx) => (
-          <button
-            key={idx}
-            type="button"
-            onClick={() => {
-              if (disabled || selected !== null) return;
-              setSelected(idx);
-              onSubmit(idx);
-            }}
-            disabled={disabled || selected !== null}
-            className={`w-full rounded-xl border p-4 text-left transition ${
-              selected === idx
-                ? "border-amber-400/50 bg-amber-500/15"
-                : "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/5"
-            } disabled:cursor-default`}
-          >
-            <div className="flex items-center gap-3">
-              <span
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${
-                  selected === idx ? "bg-amber-500 text-black" : "bg-white/10 text-white/50"
-                }`}
-              >
-                {String.fromCharCode(65 + idx)}
-              </span>
-              <span className="text-sm text-white/80">{option}</span>
-            </div>
-          </button>
-        ))}
+        {question.options.map((option, idx) => {
+          const isSelected = selected === idx;
+          const isCorrect = idx === question.correctIndex;
+          const revealed = showAnswer && selected !== null;
+
+          let borderClass = "border-white/10 bg-black/20 hover:border-white/20 hover:bg-white/5 hover:scale-[1.01]";
+          if (revealed && isCorrect) {
+            borderClass = "border-emerald-400/50 bg-emerald-500/15 scale-[1.01]";
+          } else if (revealed && isSelected && !isCorrect) {
+            borderClass = "border-rose-400/50 bg-rose-500/15 animate-hit-shake";
+          } else if (isSelected && !revealed) {
+            borderClass = "border-amber-400/50 bg-amber-500/15";
+          }
+
+          return (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => handleSelect(idx)}
+              disabled={disabled || selected !== null}
+              className={`w-full rounded-xl border p-4 text-left transition-all duration-200 ${borderClass} disabled:cursor-default`}
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold transition-colors ${
+                    revealed && isCorrect
+                      ? "bg-emerald-500 text-white"
+                      : revealed && isSelected && !isCorrect
+                        ? "bg-rose-500 text-white"
+                        : isSelected
+                          ? "bg-amber-500 text-black"
+                          : "bg-white/10 text-white/50"
+                  }`}
+                >
+                  {revealed && isCorrect ? "✓" : revealed && isSelected && !isCorrect ? "✗" : String.fromCharCode(65 + idx)}
+                </span>
+                <span className="text-sm text-white/80">{option}</span>
+              </div>
+            </button>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 // ─── Slot Machine Game ───
-function SlotTile({ symbol, spinning = false }: { symbol: string; spinning?: boolean }) {
+function SlotTile({ symbol, spinning = false, justStopped = false }: { symbol: string; spinning?: boolean; justStopped?: boolean }) {
   const meta = SLOT_FACE_META[symbol as SlotSymbol];
   if (!meta) {
     return (
-      <div className={`flex h-20 items-center justify-center rounded-xl border border-white/20 bg-black/30 text-2xl font-black text-white ${spinning ? "animate-pulse" : ""}`}>
+      <div className={`flex h-20 items-center justify-center rounded-xl border border-white/20 bg-black/30 text-2xl font-black text-white ${spinning ? "animate-reel-spin" : ""}`}>
         {symbol}
       </div>
     );
   }
   return (
-    <div className={`flex h-20 flex-col items-center justify-center rounded-xl border border-white/20 bg-gradient-to-b ${meta.tone} shadow-inner ${spinning ? "animate-pulse" : ""}`}>
+    <div className={`flex h-20 flex-col items-center justify-center rounded-xl border border-white/20 bg-gradient-to-b ${meta.tone} shadow-inner transition-all ${
+      spinning ? "animate-reel-spin opacity-80" : justStopped ? "animate-reel-stop" : ""
+    }`}>
       <p className="text-2xl font-black text-white drop-shadow">{meta.glyph}</p>
       <p className="mt-0.5 text-[9px] font-semibold tracking-widest text-white/70">{meta.label}</p>
     </div>
@@ -381,15 +527,17 @@ function SlotsGame({
 }) {
   const [phase, setPhase] = useState<"ready" | "spinning" | "stopping" | "done">("ready");
   const [reels, setReels] = useState<string[]>(["?", "?", "?"]);
-  const [stopped, setStopped] = useState(0); // 0, 1, 2, 3
+  const [stopped, setStopped] = useState(0);
+  const [justStoppedIdx, setJustStoppedIdx] = useState(-1);
   const spinTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isTriple = phase === "done" && reels[0] === reels[1] && reels[1] === reels[2] && reels[0] !== "?";
 
   function handleSpin() {
     if (phase !== "ready") return;
     setPhase("spinning");
     setStopped(0);
+    setJustStoppedIdx(-1);
 
-    // 高速隨機轉動
     spinTimerRef.current = setInterval(() => {
       setReels([
         SLOT_FACES[Math.floor(Math.random() * SLOT_FACES.length)],
@@ -398,24 +546,28 @@ function SlotsGame({
       ]);
     }, 80);
 
-    // 1.2 秒後開始依序停輪
     setTimeout(() => {
       setPhase("stopping");
-      setStopped(1);  // 第 1 格停下
+      setStopped(1);
+      setJustStoppedIdx(0);
+      setTimeout(() => setJustStoppedIdx(-1), 400);
     }, 1200);
 
     setTimeout(() => {
-      setStopped(2);  // 第 2 格停下
+      setStopped(2);
+      setJustStoppedIdx(1);
+      setTimeout(() => setJustStoppedIdx(-1), 400);
     }, 2400);
 
     setTimeout(() => {
       if (spinTimerRef.current) clearInterval(spinTimerRef.current);
-      setStopped(3);  // 第 3 格停下
+      setStopped(3);
+      setJustStoppedIdx(2);
+      setTimeout(() => setJustStoppedIdx(-1), 400);
       setPhase("done");
     }, 3800);
   }
 
-  // 只有未停下的格子繼續隨機閃爍
   useEffect(() => {
     if (phase !== "stopping") return;
     const flicker = setInterval(() => {
@@ -436,23 +588,48 @@ function SlotsGame({
 
       {/* FRLG-style slot machine */}
       <div className="rounded-2xl border border-amber-300/30 bg-gradient-to-b from-[#5a2f16] to-[#3c1f12] p-4 shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
-        <div className="rounded-xl border border-amber-200/20 bg-[#18361d] p-4 shadow-inner">
+        {/* Decorative top lights */}
+        <div className="mb-2 flex justify-center gap-2">
+          {[0, 1, 2, 3, 4].map(i => (
+            <div key={i} className={`h-2 w-2 rounded-full ${
+              phase === "spinning" || phase === "stopping"
+                ? "bg-amber-400 animate-pulse"
+                : isTriple
+                  ? "bg-emerald-400 animate-slot-flash"
+                  : "bg-amber-900/50"
+            }`} style={{ animationDelay: `${i * 100}ms` }} />
+          ))}
+        </div>
+
+        <div className={`rounded-xl border bg-[#18361d] p-4 shadow-inner transition-all duration-300 ${
+          isTriple ? "border-emerald-400/50 shadow-[0_0_20px_rgba(16,185,129,0.3)]" : "border-amber-200/20"
+        }`}>
           <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-widest text-amber-100/70">
             <span>GAME CORNER</span>
             <span>3 REEL</span>
           </div>
           <div className="grid grid-cols-3 gap-3">
             {reels.map((face, idx) => (
-              <SlotTile key={`slot-${idx}`} symbol={face} spinning={idx >= stopped && phase !== "ready"} />
+              <SlotTile
+                key={`slot-${idx}`}
+                symbol={face}
+                spinning={idx >= stopped && phase !== "ready"}
+                justStopped={justStoppedIdx === idx}
+              />
             ))}
           </div>
+          {isTriple && (
+            <p className="mt-2 text-center text-sm font-black text-emerald-300 animate-glow-pulse">🎉 三格連線！</p>
+          )}
         </div>
 
         <button
           type="button"
           onClick={handleSpin}
           disabled={phase !== "ready"}
-          className="mt-3 w-full rounded-xl border border-amber-200/30 bg-gradient-to-b from-amber-400/30 to-orange-500/20 px-4 py-3 text-sm font-black text-amber-100 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`mt-3 w-full rounded-xl border border-amber-200/30 bg-gradient-to-b from-amber-400/30 to-orange-500/20 px-4 py-3 text-sm font-black text-amber-100 transition-all hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-50 ${
+            phase === "ready" ? "hover:scale-[1.02] active:scale-[0.98]" : ""
+          }`}
         >
           {phase === "ready" ? "🎰 拉下拉桿" : phase === "done" ? "✅ 已完成" : "🎰 轉動中..."}
         </button>
@@ -463,11 +640,36 @@ function SlotsGame({
           type="button"
           onClick={onSubmit}
           disabled={disabled}
-          className="w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-base font-bold text-white transition hover:brightness-110 disabled:opacity-50"
+          className="w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-base font-bold text-white transition-all hover:brightness-110 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50"
         >
           確認結果
         </button>
       )}
+    </div>
+  );
+}
+
+// ─── Confetti Particle ───
+const CONFETTI_COLORS = ["#fbbf24", "#34d399", "#60a5fa", "#f472b6", "#a78bfa", "#fb923c"];
+
+function ConfettiParticles() {
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+      {Array.from({ length: 20 }).map((_, i) => (
+        <div
+          key={i}
+          className="absolute top-0"
+          style={{
+            left: `${5 + Math.random() * 90}%`,
+            width: `${6 + Math.random() * 6}px`,
+            height: `${6 + Math.random() * 6}px`,
+            backgroundColor: CONFETTI_COLORS[i % CONFETTI_COLORS.length],
+            borderRadius: Math.random() > 0.5 ? "50%" : "2px",
+            animation: `confetti-fall ${1.5 + Math.random() * 1.5}s ease-in forwards`,
+            animationDelay: `${Math.random() * 0.6}s`,
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -485,42 +687,59 @@ function RoundResultOverlay({
   const isSlots = Array.isArray(payload?.playerReels);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
-      <div className="mx-4 max-w-sm rounded-3xl border border-white/15 bg-[linear-gradient(160deg,#1a1530,#0d1a2a)] p-8 text-center shadow-2xl">
-        <div className={`text-5xl ${isWin ? "animate-bounce" : ""}`}>
+    <div className={`fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm ${!isWin ? "animate-hit-shake" : ""}`}>
+      <div className="relative mx-4 max-w-sm animate-pop-in rounded-3xl border border-white/15 bg-[linear-gradient(160deg,#1a1530,#0d1a2a)] p-8 text-center shadow-2xl">
+        {isWin && <ConfettiParticles />}
+
+        <div className={`relative text-5xl ${isWin ? "animate-bounce" : ""}`}>
           {isWin ? "🎉" : "😤"}
         </div>
-        <h2 className={`mt-4 text-2xl font-black ${isWin ? "text-emerald-300" : "text-rose-300"}`}>
+        <h2 className={`mt-4 text-2xl font-black ${isWin ? "text-emerald-300 animate-glow-pulse" : "text-rose-300"}`}>
           {isWin ? "本回合勝利！" : "本回合落敗"}
         </h2>
 
-        {/* Dice result */}
+        {/* Dice result with visual dice */}
         {typeof payload?.playerDice === "number" ? (
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-              <p className="text-xs text-white/40">你的骰子</p>
-              <p className="text-3xl font-black text-white">{Number(payload.playerDice)}</p>
+          <div className="mt-4 flex items-center justify-center gap-4">
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-[10px] text-blue-300/60">你</p>
+              <div className="animate-dice-reveal">
+                <DiceFace value={Number(payload.playerDice)} color="blue" size="sm" />
+              </div>
             </div>
-            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-              <p className="text-xs text-white/40">對手骰子</p>
-              <p className="text-3xl font-black text-white">{Number(payload.opponentDice)}</p>
+            <span className="text-lg font-black text-white/30">vs</span>
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-[10px] text-rose-300/60">對手</p>
+              <div className="animate-dice-reveal" style={{ animationDelay: "0.3s", opacity: 0 }}>
+                <DiceFace value={Number(payload.opponentDice)} color="red" size="sm" />
+              </div>
             </div>
           </div>
         ) : null}
 
         {/* Trivia result */}
         {Boolean(payload?.question) ? (
-          <div className="mt-4 text-left">
-            <p className="text-xs text-white/40">
-              {Boolean(payload.playerCorrect) ? "✅ 你答對了！" : "❌ 答錯了"}
-            </p>
-            <p className="mt-1 text-xs text-white/40">
-              {Boolean(payload.opponentCorrect) ? "對手也答對了" : "對手答錯了"}
-            </p>
+          <div className="mt-4 space-y-1.5 text-left">
+            <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 ${
+              Boolean(payload.playerCorrect) ? "bg-emerald-500/10" : "bg-rose-500/10"
+            }`}>
+              <span className="text-sm">{Boolean(payload.playerCorrect) ? "✅" : "❌"}</span>
+              <p className="text-xs text-white/60">
+                {Boolean(payload.playerCorrect) ? "你答對了！" : "你答錯了"}
+              </p>
+            </div>
+            <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 ${
+              Boolean(payload.opponentCorrect) ? "bg-emerald-500/10" : "bg-rose-500/10"
+            }`}>
+              <span className="text-sm">{Boolean(payload.opponentCorrect) ? "✅" : "❌"}</span>
+              <p className="text-xs text-white/60">
+                {Boolean(payload.opponentCorrect) ? "對手答對了" : "對手答錯了"}
+              </p>
+            </div>
           </div>
         ) : null}
 
-        {/* Slot result — 顯示雙方結果，清楚標記 */}
+        {/* Slot result */}
         {isSlots ? (
           <div className="mt-4 space-y-3">
             <div>
@@ -545,19 +764,19 @@ function RoundResultOverlay({
         ) : null}
 
         <div className="mt-5 flex justify-center gap-4 text-sm">
-          <span className="text-emerald-300">{result.playerScore} 勝</span>
+          <span className="text-emerald-300 font-bold">{result.playerScore} 勝</span>
           <span className="text-white/30">—</span>
-          <span className="text-rose-300">{result.opponentScore} 勝</span>
+          <span className="text-rose-300 font-bold">{result.opponentScore} 勝</span>
         </div>
 
         {result.partnerJustUnlocked && (
-          <div className="mt-4 rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3">
+          <div className="mt-4 animate-pop-in rounded-xl border border-emerald-400/30 bg-emerald-500/10 p-3">
             <p className="text-sm font-bold text-emerald-300">🎉 伴侶寶可夢已永久解鎖！</p>
           </div>
         )}
 
         {result.secondPokemonJustUnlocked && (
-          <div className="mt-3 rounded-xl border border-purple-400/30 bg-purple-500/10 p-3">
+          <div className="mt-3 animate-pop-in rounded-xl border border-purple-400/30 bg-purple-500/10 p-3" style={{ animationDelay: "0.2s" }}>
             <p className="text-sm font-bold text-purple-300">🌟 第二隻寶可夢相遇權已解鎖！</p>
           </div>
         )}
@@ -565,7 +784,7 @@ function RoundResultOverlay({
         <button
           type="button"
           onClick={onContinue}
-          className="mt-6 w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-base font-bold text-white transition hover:brightness-110"
+          className="mt-6 w-full rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-base font-bold text-white transition-all hover:brightness-110 hover:scale-[1.02] active:scale-[0.98]"
         >
           {result.battleFinished ? "查看最終結果" : "下一回合"}
         </button>
@@ -601,6 +820,70 @@ export function Anniversary30thBattleConsole({
 
   const meta = CHALLENGE_META[challengeType];
   const [timeLeft, setTimeLeft] = useState(meta.timeLimit);
+
+  function resetBattleState(nextPhase: Phase = "idle") {
+    setBattle(null);
+    setRoundResult(null);
+    setBattleResult(null);
+    setCurrentRound(0);
+    setPlayerScore(0);
+    setOpponentScore(0);
+    setTriviaQuestions([]);
+    setPhase(nextPhase);
+  }
+
+  async function refreshBattleActivity(nextPhase?: Phase) {
+    if (!battle) return false;
+
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const res = await fetch("/api/anniversary-30th/battle/heartbeat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ battleId: battle.id }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.battleExpired) {
+          resetBattleState("idle");
+          setError(data.error || "這場對決已逾時，已自動結束。");
+          router.refresh();
+          return false;
+        }
+        throw new Error(data.error || "無法更新對戰狀態");
+      }
+
+      setBattle((prev) => prev ? {
+        ...prev,
+        last_active_at: data.lastActiveAt || prev.last_active_at,
+      } : prev);
+
+      if (nextPhase) {
+        setPhase(nextPhase);
+      }
+
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "無法更新對戰狀態");
+      return false;
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!battle || challengeType !== "trivia") return;
+    setTriviaQuestions(pickTriviaQuestions(`${battle.id}:trivia`, 10));
+  }, [battle, challengeType]);
+
+  useEffect(() => {
+    if (!initialBattle) return;
+    void refreshBattleActivity();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialBattle?.id]);
 
   // Timer
   useEffect(() => {
@@ -691,11 +974,27 @@ export function Anniversary30thBattleConsole({
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "結算失敗");
+      if (!res.ok) {
+        if (data.battleExpired) {
+          resetBattleState("idle");
+          setError(data.error || "這場對決已逾時，已自動結束。");
+          router.refresh();
+          return;
+        }
+        throw new Error(data.error || "結算失敗");
+      }
 
       setCurrentRound(nextRound);
       setPlayerScore(data.playerScore);
       setOpponentScore(data.opponentScore);
+      setBattle((prev) => prev ? {
+        ...prev,
+        current_round: nextRound,
+        player_score: data.playerScore,
+        opponent_score: data.opponentScore,
+        status: data.battleFinished ? (data.battleResult || prev.status) : "in_progress",
+        last_active_at: data.lastActiveAt || prev.last_active_at,
+      } : prev);
 
       // Attack animation
       setIsAttacking(true);
@@ -715,12 +1014,21 @@ export function Anniversary30thBattleConsole({
     }
   }
 
-  function handleRoundResultContinue() {
+  async function handleRoundResultContinue() {
+    if (battle && isBattleSessionExpired(battle.last_active_at || battle.started_at)) {
+      resetBattleState("idle");
+      setError("這場對決已逾時，已自動結束。");
+      router.refresh();
+      return;
+    }
+
     if (roundResult?.battleFinished) {
       setPhase("finished");
     } else {
-      setRoundResult(null);
-      setPhase("playing");
+      const canContinue = await refreshBattleActivity("playing");
+      if (canContinue) {
+        setRoundResult(null);
+      }
     }
   }
 
@@ -736,7 +1044,9 @@ export function Anniversary30thBattleConsole({
       {phase === "rules" && (
         <RulesPopup
           challengeType={challengeType}
-          onStart={() => setPhase("playing")}
+          onStart={() => {
+            void refreshBattleActivity("playing");
+          }}
         />
       )}
 
@@ -744,7 +1054,9 @@ export function Anniversary30thBattleConsole({
       {phase === "round-result" && roundResult && (
         <RoundResultOverlay
           result={roundResult}
-          onContinue={handleRoundResultContinue}
+          onContinue={() => {
+            void handleRoundResultContinue();
+          }}
         />
       )}
 
@@ -868,13 +1180,7 @@ export function Anniversary30thBattleConsole({
                   <button
                     type="button"
                     onClick={() => {
-                      setBattle(null);
-                      setPhase("idle");
-                      setRoundResult(null);
-                      setBattleResult(null);
-                      setCurrentRound(0);
-                      setPlayerScore(0);
-                      setOpponentScore(0);
+                      resetBattleState("idle");
                       router.refresh();
                     }}
                     className="rounded-2xl border border-amber-400/40 bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 font-bold text-white transition hover:brightness-110"
