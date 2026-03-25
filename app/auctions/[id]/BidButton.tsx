@@ -103,25 +103,25 @@ export default function BidButton({
                 </div>
             )}
 
-            {/* 快速加價按鈕（固定金額） */}
+            {/* 快速加價按鈕（基於最低加價倍數） */}
             <div className="flex gap-2">
                 <button
-                    onClick={() => handleQuickBid(10)}
+                    onClick={() => handleQuickBid(minIncrement)}
                     className="flex-1 rounded-lg border border-white/20 bg-white/10 py-2 text-sm font-medium text-white/90 transition hover:bg-white/20"
                 >
-                    +$10
+                    +${minIncrement.toLocaleString()}
                 </button>
                 <button
-                    onClick={() => handleQuickBid(15)}
+                    onClick={() => handleQuickBid(minIncrement * 2)}
                     className="flex-1 rounded-lg border border-white/20 bg-white/10 py-2 text-sm font-medium text-white/90 transition hover:bg-white/20"
                 >
-                    +$15
+                    +${(minIncrement * 2).toLocaleString()}
                 </button>
                 <button
-                    onClick={() => handleQuickBid(20)}
+                    onClick={() => handleQuickBid(minIncrement * 3)}
                     className="flex-1 rounded-lg border border-white/20 bg-white/10 py-2 text-sm font-medium text-white/90 transition hover:bg-white/20"
                 >
-                    +$20
+                    +${(minIncrement * 3).toLocaleString()}
                 </button>
             </div>
 
