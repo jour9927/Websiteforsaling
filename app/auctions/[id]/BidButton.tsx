@@ -37,8 +37,8 @@ export default function BidButton({
         setBidAmount(minBid);
     }, [minBid]);
 
-    const handleQuickBid = (increment: number) => {
-        setBidAmount(effectiveHighest + increment);
+    const handleQuickBid = (extra: number) => {
+        setBidAmount(minBid + extra);
     };
 
     const handleBid = async () => {
@@ -105,13 +105,13 @@ export default function BidButton({
 
             {/* 快速加價按鈕 */}
             <div className="flex gap-2">
-                {[1, 2, 3].map((mult) => (
+                {[5, 10, 15].map((inc) => (
                     <button
-                        key={mult}
-                        onClick={() => handleQuickBid(minIncrement * mult)}
+                        key={inc}
+                        onClick={() => handleQuickBid(inc)}
                         className="flex-1 rounded-lg border border-white/20 bg-white/10 py-2 text-sm font-medium text-white/90 transition hover:bg-white/20"
                     >
-                        +${(minIncrement * mult).toLocaleString()}
+                        +${inc}
                     </button>
                 ))}
             </div>
