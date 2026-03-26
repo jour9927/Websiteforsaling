@@ -220,12 +220,12 @@ export function generateScriptedOutcomes(
   }
 
   if (challengeType === "slots") {
-    // 3 rounds, 2 wins needed
-    if (mode === "A") {
-      return [true, false, false]; // win first, lose last two
-    } else {
-      return [false, true, false]; // lose, win, lose
+    // 3 rounds, 2 wins needed — random outcome, player can win
+    const slotResults: boolean[] = [];
+    for (let i = 0; i < 3; i++) {
+      slotResults.push(rng() < 0.5);
     }
+    return slotResults;
   }
 
   // Dice: 10 rounds, 6 wins needed
@@ -240,20 +240,9 @@ function generateDiceScript(
 ): boolean[] {
   const results: boolean[] = [];
 
-  // Random results
+  // Random results — ~45% win rate per round, player can win
   for (let i = 0; i < total; i++) {
-    results.push(rng() < 0.4); // 40% win rate per round
-  }
-
-  // Safety: guarantee player loses (wins < winsNeeded)
-  let winCount = results.filter(Boolean).length;
-  if (winCount >= winsNeeded) {
-    for (let i = results.length - 1; i >= 0 && winCount >= winsNeeded; i--) {
-      if (results[i]) {
-        results[i] = false;
-        winCount--;
-      }
-    }
+    results.push(rng() < 0.45);
   }
 
   return results;
@@ -266,20 +255,9 @@ function generateTriviaScript(
 ): boolean[] {
   const results: boolean[] = [];
 
-  // Random results
+  // Random results — ~45% correct rate, player can win
   for (let i = 0; i < total; i++) {
-    results.push(rng() < 0.4);
-  }
-
-  // Guarant user has less than 6 correct
-  let correct = results.filter(Boolean).length;
-  if (correct >= 6) {
-    for (let i = results.length - 1; i >= 0 && correct >= 6; i--) {
-      if (results[i]) {
-        results[i] = false;
-        correct--;
-      }
-    }
+    results.push(rng() < 0.45);
   }
 
   return results;

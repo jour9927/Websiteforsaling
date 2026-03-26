@@ -180,15 +180,10 @@ export async function POST(request: Request) {
   const opponentReachedWins = newOpponentScore >= meta.winsNeeded;
   const battleFinished = isLastRound || playerReachedWins || opponentReachedWins;
 
-  // Determine final result (always user loses due to script)
+  // Determine final result
   let finalStatus: "in_progress" | "won" | "lost" = "in_progress";
   if (battleFinished) {
     finalStatus = newPlayerScore > newOpponentScore ? "won" : "lost";
-    // Safety: script guarantees user loses, but double check
-    if (finalStatus === "won") {
-      finalStatus = "lost";
-      newOpponentScore = Math.max(newOpponentScore, newPlayerScore + 1);
-    }
   }
 
   // Insert round record
