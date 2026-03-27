@@ -600,9 +600,11 @@ export function getCountdownTo(targetDate: string): {
 export function resolveNarrativeBattleDay(
   totalBattlesUsed: number,
   battlesPerDay: number,
-  totalDays: number,
+  _totalDays: number,
 ): number {
-  return Math.min(totalDays, Math.floor(totalBattlesUsed / battlesPerDay) + 1);
+  // Do NOT cap at totalDays — capping causes (participant_id, battle_day, battle_no)
+  // unique constraint violation when battles exceed totalDays × battlesPerDay
+  return Math.floor(totalBattlesUsed / battlesPerDay) + 1;
 }
 
 export function getContractByType(contracts: AnniversaryContract[], contractType: "main" | "additional") {
