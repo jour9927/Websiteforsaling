@@ -186,8 +186,34 @@ export async function POST(request: Request) {
     finalStatus = newPlayerScore > newOpponentScore ? "won" : "lost";
   }
 
+  // Check if this round was already played (prevent double-click race condition)
+  const { data: existingRound } = await adminSupabase
+    .from("anniversary_battle_rounds")
+    .select("id, round_result, payload")
+    .eq("battle_id", battle.id)
+    .eq("round_no", roundNo)
+    .maybeSingle();
+
+  if (existingRound) {
+    // Round already recorded — return current battle state instead of inserting again
+    return NextResponse.json({
+      roundNo,
+      roundResult: existingRound.round_result,
+      roundPayload: existingRound.payload,
+      playerScore: battle.player_score,
+      opponentScore: battle.opponent_score,
+      battleFinished: battle.status === "won" || battle.status === "lost",
+      battleResult: battle.status === "won" || battle.status === "lost" ? battle.status : null,
+      duplicate: true,
+      challengeType,
+      totalRounds: meta.totalRounds,
+      winsNeeded: meta.winsNeeded,
+      lastActiveAt: battle.last_active_at,
+    });
+  }
+
   // Insert round record
-  await adminSupabase.from("anniversary_battle_rounds").insert({
+  const { error: roundInsertError } = await adminSupabase.from("anniversary_battle_rounds").insert({
     battle_id: battle.id,
     round_no: roundNo,
     round_result: roundResult,
@@ -196,6 +222,11 @@ export async function POST(request: Request) {
     tug_delta: roundResult === "win" ? 1 : -1,
     payload: roundPayload,
   });
+
+  if (roundInsertError) {
+    // If insert fails due to race condition, return conflict
+    return NextResponse.json({ error: "回合已記錄，請勿重複送出。", duplicate: true }, { status: 409 });
+  }
 
   // Update battle
   await adminSupabase

@@ -184,6 +184,25 @@ export async function POST() {
     .single();
 
   if (battleError || !battleData) {
+    // If duplicate key error (race condition: two start requests at the same time),
+    // try to find and resume the just-created battle
+    if (battleError?.code === "23505") {
+      const { data: raceBattle } = await adminSupabase
+        .from("anniversary_battles")
+        .select("*")
+        .eq("participant_id", participant.id)
+        .in("status", ["pending", "in_progress"])
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (raceBattle) {
+        return NextResponse.json({
+          battle: sanitizeBattleForClient(raceBattle as AnniversaryBattle),
+          resuming: true,
+        });
+      }
+    }
     return NextResponse.json({ error: battleError?.message || "無法建立對戰" }, { status: 500 });
   }
 
