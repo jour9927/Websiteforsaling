@@ -165,62 +165,65 @@ export async function POST() {
     campaign.total_days,
   );
 
-  // Query actual max battle_no for this participant+day to guarantee uniqueness
-  const { data: maxBattleNoRow } = await adminSupabase
-    .from("anniversary_battles")
-    .select("battle_no")
-    .eq("participant_id", participant.id)
-    .eq("battle_day", battleDay)
-    .order("battle_no", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  // Insert battle with retry loop to handle unique constraint collisions
+  let battleData: Record<string, unknown> | null = null;
+  let battleError: { message: string; code?: string } | null = null;
+  const MAX_RETRIES = 5;
 
-  const battleNo = (maxBattleNoRow?.battle_no ?? 0) + 1;
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    // Query actual max battle_no for this participant+day
+    const { data: maxRow } = await adminSupabase
+      .from("anniversary_battles")
+      .select("battle_no")
+      .eq("participant_id", participant.id)
+      .eq("battle_day", battleDay)
+      .order("battle_no", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-  // Insert battle
-  const { data: battleData, error: battleError } = await adminSupabase
-    .from("anniversary_battles")
-    .insert({
-      participant_id: participant.id,
-      battle_day: battleDay,
-      battle_no: battleNo,
-      challenge_type: challengeType,
-      script_mode: scriptMode,
-      scripted_outcomes: JSON.stringify(scriptedOutcomes),
-      opponent_name: opponent.name,
-      opponent_pokemon: opponent.pokemon,
-      opponent_sprite_id: opponent.spriteId,
-      status: "pending",
-      current_round: 0,
-      player_score: 0,
-      opponent_score: 0,
-      started_at: now,
-      last_active_at: now,
-      template_code: null,
-      final_tug_position: 0,
-    })
-    .select("*")
-    .single();
+    const battleNo = (maxRow?.battle_no ?? 0) + 1;
+
+    const { data, error } = await adminSupabase
+      .from("anniversary_battles")
+      .insert({
+        participant_id: participant.id,
+        battle_day: battleDay,
+        battle_no: battleNo,
+        challenge_type: challengeType,
+        script_mode: scriptMode,
+        scripted_outcomes: JSON.stringify(scriptedOutcomes),
+        opponent_name: opponent.name,
+        opponent_pokemon: opponent.pokemon,
+        opponent_sprite_id: opponent.spriteId,
+        status: "pending",
+        current_round: 0,
+        player_score: 0,
+        opponent_score: 0,
+        started_at: now,
+        last_active_at: now,
+        template_code: null,
+        final_tug_position: 0,
+      })
+      .select("*")
+      .single();
+
+    if (!error && data) {
+      battleData = data;
+      battleError = null;
+      break;
+    }
+
+    // If not a duplicate key error, don't retry
+    if (error?.code !== "23505") {
+      battleError = error;
+      break;
+    }
+
+    // Duplicate key — loop will re-query max and retry with a higher battle_no
+    battleError = error;
+  }
 
   if (battleError || !battleData) {
-    // If duplicate key error (unlikely now, but handle race condition gracefully)
-    if (battleError?.code === "23505") {
-      const { data: raceBattle } = await adminSupabase
-        .from("anniversary_battles")
-        .select("*")
-        .eq("participant_id", participant.id)
-        .in("status", ["pending", "in_progress"])
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (raceBattle) {
-        return NextResponse.json({
-          battle: sanitizeBattleForClient(raceBattle as AnniversaryBattle),
-          resuming: true,
-        });
-      }
-    }
     return NextResponse.json({ error: battleError?.message || "無法建立對戰" }, { status: 500 });
   }
 
