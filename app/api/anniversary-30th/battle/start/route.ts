@@ -158,13 +158,24 @@ export async function POST() {
   // Generate virtual opponent
   const opponent = resolveVirtualOpponent(`${participant.id}:${battleSerial}:opponent`);
 
-  // Calculate battle day from actual DB count to prevent duplicate (participant_id, battle_day, battle_no)
+  // Calculate battle day (no cap to avoid collisions)
   const battleDay = resolveNarrativeBattleDay(
     safeTotalUsed,
     campaign.battles_per_day,
     campaign.total_days,
   );
-  const battleNo = (safeTotalUsed % campaign.battles_per_day) + 1;
+
+  // Query actual max battle_no for this participant+day to guarantee uniqueness
+  const { data: maxBattleNoRow } = await adminSupabase
+    .from("anniversary_battles")
+    .select("battle_no")
+    .eq("participant_id", participant.id)
+    .eq("battle_day", battleDay)
+    .order("battle_no", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const battleNo = (maxBattleNoRow?.battle_no ?? 0) + 1;
 
   // Insert battle
   const { data: battleData, error: battleError } = await adminSupabase
@@ -192,8 +203,7 @@ export async function POST() {
     .single();
 
   if (battleError || !battleData) {
-    // If duplicate key error (race condition: two start requests at the same time),
-    // try to find and resume the just-created battle
+    // If duplicate key error (unlikely now, but handle race condition gracefully)
     if (battleError?.code === "23505") {
       const { data: raceBattle } = await adminSupabase
         .from("anniversary_battles")
