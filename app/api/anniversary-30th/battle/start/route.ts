@@ -133,8 +133,16 @@ export async function POST() {
     }, { status: 409 });
   }
 
+  // Count actual battles in DB for this participant to avoid unique constraint issues
+  const { count: actualBattleCount } = await adminSupabase
+    .from("anniversary_battles")
+    .select("*", { count: "exact", head: true })
+    .eq("participant_id", participant.id);
+
+  const safeTotalUsed = Math.max(participant.total_battles_used, actualBattleCount ?? 0);
+
   // Generate battle
-  const battleSerial = participant.total_battles_used + 1;
+  const battleSerial = safeTotalUsed + 1;
   const seed = `${participant.id}:${battleSerial}:challenge`;
   const rngValue = hashString(seed);
 
@@ -150,13 +158,13 @@ export async function POST() {
   // Generate virtual opponent
   const opponent = resolveVirtualOpponent(`${participant.id}:${battleSerial}:opponent`);
 
-  // Calculate battle day
+  // Calculate battle day from actual DB count to prevent duplicate (participant_id, battle_day, battle_no)
   const battleDay = resolveNarrativeBattleDay(
-    participant.total_battles_used,
+    safeTotalUsed,
     campaign.battles_per_day,
     campaign.total_days,
   );
-  const battleNo = (participant.total_battles_used % campaign.battles_per_day) + 1;
+  const battleNo = (safeTotalUsed % campaign.battles_per_day) + 1;
 
   // Insert battle
   const { data: battleData, error: battleError } = await adminSupabase
@@ -210,7 +218,7 @@ export async function POST() {
   await adminSupabase
     .from("anniversary_participants")
     .update({
-      total_battles_used: participant.total_battles_used + 1,
+      total_battles_used: safeTotalUsed + 1,
       today_battles_used: todayBattlesUsed + 1,
       last_battle_day: todayKey,
     })
