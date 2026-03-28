@@ -162,7 +162,6 @@ export async function POST() {
   const battleDay = resolveNarrativeBattleDay(
     safeTotalUsed,
     campaign.battles_per_day,
-    campaign.total_days,
   );
 
   // Insert battle with retry loop to handle unique constraint collisions

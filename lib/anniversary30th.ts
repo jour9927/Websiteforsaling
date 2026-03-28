@@ -600,7 +600,6 @@ export function getCountdownTo(targetDate: string): {
 export function resolveNarrativeBattleDay(
   totalBattlesUsed: number,
   battlesPerDay: number,
-  _totalDays: number,
 ): number {
   // Do NOT cap at totalDays — capping causes (participant_id, battle_day, battle_no)
   // unique constraint violation when battles exceed totalDays × battlesPerDay
