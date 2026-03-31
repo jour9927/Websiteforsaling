@@ -14,7 +14,7 @@ type SiteHeaderProps = {
 
 const primaryLinks = [
   { label: "主頁", href: "/" as Route },
-  { label: "30週年", href: "/anniversary-30th" as Route },
+  // { label: "30週年", href: "/anniversary-30th" as Route }, // [30週年活動] 活動已結束
   { label: "活動", href: "/events" as Route },
   { label: "競標", href: "/auctions" as Route },
   // { label: "🏪 商店", href: "/shop" as Route }, // 暫時隱藏

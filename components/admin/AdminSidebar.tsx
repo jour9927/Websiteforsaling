@@ -22,7 +22,7 @@ export const adminNavItems = [
   { href: "/admin/ai-settings" as Route, label: "AI 個人化", icon: "🧠" },
   { href: "/admin/public-image" as Route, label: "公眾形象", icon: "🎭" },
   { href: "/admin/eevee-day" as Route, label: "伊步集點日", icon: "🎯" },
-  { href: "/admin/anniversary-30th" as Route, label: "30週年守護戰", icon: "🦊" },
+  // { href: "/admin/anniversary-30th" as Route, label: "30週年守護戰", icon: "🦊" }, // [30週年活動] 活動已結束
 ] as const;
 
 const baseLinkClasses = "flex items-center justify-between rounded-xl px-4 py-2 text-sm transition";
