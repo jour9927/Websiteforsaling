@@ -83,10 +83,20 @@
 
 ---
 
-## 現有 MD 文件索引（根目錄）
+## MD 文件路徑與索引
+
+### 主項目 MD 路徑
+```
+/Users/alan_dingchaoliao/Documents/網站開發/網站架設/
+```
+所有下列文件皆位於此目錄根部。Worktree 改動 push 後，必須在主資料夾執行 `git pull origin master` 同步。
+
+### 現有 MD 文件索引（根目錄）
 
 | 文件 | 用途 |
 |------|------|
+| `CLAUDE.md` | **本檔案**：專案級規則、必做事項、踩過的坑、環境變數 |
+| `CHANGELOG.md` | 變更日誌、功能發布、文檔更新、技術細節 |
 | `WEBSITE_FEATURES.md` | 功能清單、路由結構、限定活動狀態、近期變更記錄 |
 | `PROJECT_CONTEXT.md` | 架構說明、技術選型、部署流程 |
 | `REGISTRATION_FIX_SUMMARY.md` | 報名紀錄 bug 修復記錄 |
