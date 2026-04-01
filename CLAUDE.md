@@ -9,6 +9,12 @@
 > **注意**：Claude worktree 位於 `.claude/worktrees/agitated-archimedes/`，是主資料夾的工作副本。
 > 改完程式碼後必須 push 到 master，再到主資料夾執行 `git pull origin master` 同步。
 
+### CLAUDE.md 檔案結構
+本檔案放置於**專案根目錄**，符合官方建議：
+- **全域規則**：`~/.claude/CLAUDE.md`（用戶級，所有專案適用）
+- **專案規則**：`CLAUDE.md`（此檔案，放在專案根目錄，project-specific）
+- **優先級**：專案級 > 全域級（更具體的檔案優先載入）
+
 ---
 
 ## 技術棧
@@ -33,6 +39,17 @@
 ### 更新 MD 文件後
 - **一定要同步主資料夾**：worktree 改的 MD push 上去後，主資料夾要 pull
 - 更新對象優先順序：`WEBSITE_FEATURES.md` → `PROJECT_CONTEXT.md` → 其他
+
+### 文件管理規則（CHANGELOG + 專案 MD）
+- **凡事新的結果都要更新 CHANGELOG.md**（位置：根目錄 `/Users/alan_dingchaoliao/Documents/網站開發/網站架設/CHANGELOG.md`）
+  - 功能完成、bug 修復、文檔更新、架構變更都要記錄
+  - 格式：日期、標題、詳細說明、涉及檔案路徑、相關 commit
+- **必要時更新對應的專案 MD**（按優先順序）
+  - `WEBSITE_FEATURES.md` — 功能變更、路由新增、UI 元件更新
+  - `PROJECT_CONTEXT.md` — 架構決策、技術選型變更
+  - 其他專案 MD — 具體功能模組的詳細說明
+- **提供檔案路徑**：所有改動都要列出涉及的絕對路徑或相對路徑
+- **已有內容就跳過**：不要重複記錄，檢查是否存在後再添加
 
 ### Supabase 操作
 - 需要 bypass RLS 的操作（admin 功能）必須用 `createAdminSupabaseClient()`（service role key）
