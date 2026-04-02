@@ -196,14 +196,8 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
             <p className="mt-1 text-lg font-bold text-white/70">{priceLabel(c.platform_fee, c.price_type)}</p>
           </div>
           <div className="rounded-xl bg-white/5 p-4 text-center">
-            <p className="text-xs text-white/40">
-              執行者抽成
-              {c.executor_fee > 0 && !c.executor_fee_approved && (
-                <span className="ml-1 text-yellow-400">⏳ 待確認</span>
-              )}
-              {c.executor_fee_approved && <span className="ml-1 text-green-400">✓</span>}
-            </p>
-            <p className="mt-1 text-lg font-bold text-white/70">{priceLabel(c.executor_fee, c.price_type)}</p>
+            <p className="text-xs text-white/40">平台抽成</p>
+            <p className="mt-1 text-lg font-bold text-white/70">1%</p>
           </div>
         </div>
         <p className="mt-3 text-center text-xs text-white/40">
