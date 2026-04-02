@@ -274,12 +274,12 @@ export default function CreateCommissionPage() {
 
         {/* 說明 */}
         <div>
-          <label className="mb-2 block text-sm font-medium text-white/70">委託說明</label>
+          <label className="mb-2 block text-sm font-medium text-white/70">備註（選填）</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            rows={3}
-            placeholder="描述你的委託需求..."
+            rows={2}
+            placeholder="例如：要求6V、指定球種、語言版本等..."
             className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 placeholder-white/30 focus:border-indigo-500/50 focus:outline-none"
           />
         </div>

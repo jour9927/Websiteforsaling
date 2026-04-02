@@ -168,7 +168,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
         {/* 說明 */}
         {c.description && (
           <div className="mt-6 rounded-xl bg-white/5 p-4">
-            <h3 className="mb-1 text-xs font-medium text-white/50">委託說明</h3>
+            <h3 className="mb-1 text-xs font-medium text-white/50">備註</h3>
             <p className="text-sm text-white/70 whitespace-pre-wrap">{c.description}</p>
           </div>
         )}
