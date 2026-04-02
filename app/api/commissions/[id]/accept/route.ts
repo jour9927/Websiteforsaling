@@ -106,7 +106,7 @@ export async function POST(
   await adminSupabase.from("commission_messages").insert({
     commission_id: params.id,
     sender_type: "system",
-    content: "委託已被接受，臨時對話已開啟。此對話僅限轉交帳號密碼與交換細節，請勿閒聊。",
+    content: "委託已被接受，臨時對話已開啟。此對話僅限提供匯款帳號、安排配布交換時間（朱紫／劍盾），請勿閒聊。",
   });
 
   const feeNote = executorFee > 0 ? `已提出抽成 ${executorFee.toLocaleString()}，等待刊登者確認。` : "";

@@ -144,7 +144,7 @@ export default function CommissionChat({
           <span className="text-lg">🔒</span>
           <span className="font-semibold text-white">臨時匿名對話</span>
           <span className="rounded-full bg-amber-500/20 px-2 py-0.5 text-xs text-amber-300">
-            僅限帳密轉交與交換細節
+            僅限匯款與配布交換
           </span>
         </div>
         <svg
@@ -162,7 +162,7 @@ export default function CommissionChat({
         <div className="border-t border-white/10 px-4 pb-4 pt-3">
           {/* Warning notice */}
           <div className="mb-3 rounded-lg bg-amber-500/10 px-3 py-2 text-sm text-amber-200">
-            ⚠️ 此對話僅限刊登者與執行者，用於轉交帳號密碼及敲定交換細節。請勿閒聊，違規將被禁止使用。
+            ⚠️ 此對話僅限刊登者與執行者，用於完成後提供匯款帳號、安排配布交換時間（朱紫／劍盾）。請勿閒聊，違規將被禁止使用。
           </div>
 
           {/* Message list */}
@@ -227,7 +227,7 @@ export default function CommissionChat({
                   handleSend();
                 }
               }}
-              placeholder="輸入帳號密碼或交換細節..."
+              placeholder="輸入匯款帳號或安排交換時間..."
               maxLength={500}
               className="flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-amber-500/40"
             />
