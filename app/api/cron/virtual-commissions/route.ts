@@ -80,6 +80,7 @@ export async function GET(request: NextRequest) {
           pokemon_name: dist.pokemon_name,
           description: desc,
           base_price: basePrice,
+          price_type: Math.random() > 0.3 ? "points" : "twd",
           poster_fee: posterFee,
           status,
           activated_date: activatedDate,

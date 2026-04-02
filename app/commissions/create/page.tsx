@@ -27,6 +27,7 @@ export default function CreateCommissionPage() {
   const [pokemonName, setPokemonName] = useState("");
   const [description, setDescription] = useState("");
   const [basePrice, setBasePrice] = useState("");
+  const [priceType, setPriceType] = useState<"points" | "twd">("points");
   const [posterFee, setPosterFee] = useState("");
   const [proofImages, setProofImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -145,6 +146,7 @@ export default function CreateCommissionPage() {
         pokemon_name: pokemonName,
         description,
         base_price: price,
+        price_type: priceType,
         poster_fee: fee,
         proof_images: proofImages,
       }),
@@ -281,16 +283,46 @@ export default function CreateCommissionPage() {
         </div>
 
         {/* 底價 */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-4">
           <div>
             <label className="mb-2 block text-sm font-medium text-white/70">
-              底價 <span className="text-red-400">*</span>
+              計價方式 <span className="text-red-400">*</span>
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setPriceType("points")}
+                className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
+                  priceType === "points"
+                    ? "border-indigo-500 bg-indigo-500/20 text-indigo-300"
+                    : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
+                }`}
+              >
+                🎯 點數
+              </button>
+              <button
+                type="button"
+                onClick={() => setPriceType("twd")}
+                className={`flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition ${
+                  priceType === "twd"
+                    ? "border-green-500 bg-green-500/20 text-green-300"
+                    : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"
+                }`}
+              >
+                💵 台幣（NT$）
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="mb-2 block text-sm font-medium text-white/70">
+              底價（{priceType === "twd" ? "NT$" : "點數"}） <span className="text-red-400">*</span>
             </label>
             <input
               type="number"
               value={basePrice}
               onChange={(e) => setBasePrice(e.target.value)}
-              placeholder="例：5000"
+              placeholder={priceType === "twd" ? "例：500" : "例：5000"}
               min="1"
               className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 placeholder-white/30 focus:border-indigo-500/50 focus:outline-none"
             />
@@ -313,6 +345,7 @@ export default function CreateCommissionPage() {
               </p>
             )}
           </div>
+        </div>
         </div>
 
         {/* 合法性證明上傳 */}

@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { distribution_id, pokemon_name, description, base_price, poster_fee, proof_images } = body;
+  const { distribution_id, pokemon_name, description, base_price, price_type, poster_fee, proof_images } = body;
 
   // 驗證必填
   if (!pokemon_name || !base_price) {
@@ -78,6 +78,7 @@ export async function POST(request: NextRequest) {
       pokemon_name,
       description: description || "",
       base_price,
+      price_type: price_type === "twd" ? "twd" : "points",
       poster_fee: poster_fee || 0,
       proof_images: proof_images || [],
       status: "pending_review",

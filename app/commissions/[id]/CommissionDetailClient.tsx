@@ -10,6 +10,12 @@ interface CommissionDetailClientProps {
   currentUserId: string | null;
 }
 
+function priceLabel(basePrice: number, priceType: string) {
+  const unit = priceType === "twd" ? "NT$" : "";
+  const suffix = priceType === "twd" ? "" : " pts";
+  return `${unit}${basePrice.toLocaleString()}${suffix}`;
+}
+
 const statusFlow = [
   { key: "pending_review", label: "待審核" },
   { key: "active", label: "開放中" },
@@ -173,8 +179,8 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
         <h2 className="mb-4 text-sm font-semibold text-white/70">💰 價格資訊</h2>
         <div className="grid grid-cols-3 gap-4">
           <div className="rounded-xl bg-white/5 p-4 text-center">
-            <p className="text-xs text-white/40">底價</p>
-            <p className="mt-1 text-lg font-bold text-amber-400">{c.base_price.toLocaleString()}</p>
+            <p className="text-xs text-white/40">底價（{c.price_type === "twd" ? "台幣" : "點數"}）</p>
+            <p className="mt-1 text-lg font-bold text-amber-400">{priceLabel(c.base_price, c.price_type)}</p>
           </div>
           <div className="rounded-xl bg-white/5 p-4 text-center">
             <p className="text-xs text-white/40">刊登者抽成</p>
@@ -192,7 +198,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
           </div>
         </div>
         <p className="mt-3 text-center text-xs text-white/40">
-          抽成上限：{Math.floor((c.base_price * 4) / 5).toLocaleString()}（底價的 4/5）
+          抽成上限：{priceLabel(Math.floor((c.base_price * 4) / 5), c.price_type)}（底價的 4/5）
         </p>
       </div>
 
@@ -349,7 +355,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
               </button>
             </div>
             <p className="text-xs text-white/40">
-              上限：{Math.floor(((c.base_price * 4) / 5 - c.poster_fee)).toLocaleString()}
+              上限：{priceLabel(Math.floor(((c.base_price * 4) / 5 - c.poster_fee)), c.price_type)}
             </p>
           </div>
         )}

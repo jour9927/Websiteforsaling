@@ -168,7 +168,7 @@ export default function AdminCommissionsPage() {
                   <span className="text-xs text-white/40">{c.poster_type === "virtual" ? "🤖" : "👤"} {getPosterName(c)}</span>
                 </div>
                 <div className="flex items-center gap-3 text-xs text-white/40">
-                  <span>💰 {c.base_price.toLocaleString()}</span>
+                  <span>💰 {c.price_type === "twd" ? `NT$${c.base_price.toLocaleString()}` : `${c.base_price.toLocaleString()} pts`}</span>
                   <span>抽成 {c.poster_fee.toLocaleString()}</span>
                   {getExecutorName(c) && <span>執行者：{getExecutorName(c)}</span>}
                   {c.queue_position && <span>排隊 #{c.queue_position}</span>}
