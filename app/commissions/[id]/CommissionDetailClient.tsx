@@ -59,7 +59,16 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
     setError("");
     setMessage("");
 
-    const res = await fetch(`/api/commissions/${c.id}/accept`, { method: "POST" });
+    const body: Record<string, unknown> = {};
+    if (executorFeeInput && parseInt(executorFeeInput) > 0) {
+      body.executor_fee = parseInt(executorFeeInput);
+    }
+
+    const res = await fetch(`/api/commissions/${c.id}/accept`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
     const data = await res.json();
 
     if (!res.ok) {
@@ -342,15 +351,41 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
 
       {/* 互動區 */}
       <div className="glass-card p-6">
-        {/* 接單按鈕 */}
+        {/* 接單按鈕 + 提出抽成 */}
         {c.status === "active" && currentUserId && !isPoster && (
-          <button
-            onClick={handleAccept}
-            disabled={loading}
-            className="w-full rounded-xl bg-green-600 py-3 text-sm font-semibold text-white transition hover:bg-green-500 disabled:opacity-50"
-          >
-            {loading ? "處理中..." : "✋ 接受此委託"}
-          </button>
+          <div className="flex flex-col gap-4">
+            <button
+              onClick={handleAccept}
+              disabled={loading}
+              className="w-full rounded-xl bg-green-600 py-3 text-sm font-semibold text-white transition hover:bg-green-500 disabled:opacity-50"
+            >
+              {loading ? "處理中..." : "✋ 接受此委託"}
+            </button>
+
+            {/* 提出新的抽成價格 */}
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+              <h3 className="mb-2 text-sm font-semibold text-white/70">💬 提出你的抽成價格（選填）</h3>
+              <p className="mb-3 text-xs text-white/40">
+                接單後可向刊登者提出你期望的抽成，刊登者需同意後才生效。不填則以刊登者設定為準。
+              </p>
+              <div className="flex gap-3">
+                <input
+                  type="number"
+                  value={executorFeeInput}
+                  onChange={(e) => setExecutorFeeInput(e.target.value)}
+                  placeholder={`抽成金額（${c.price_type === "twd" ? "NT$" : "pts"}）`}
+                  min="0"
+                  className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 placeholder-white/30 focus:border-indigo-500/50 focus:outline-none"
+                />
+                <span className="flex items-center text-xs text-white/40">
+                  {c.price_type === "twd" ? "NT$" : "pts"}
+                </span>
+              </div>
+              <p className="mt-2 text-xs text-white/40">
+                上限：{priceLabel(Math.floor(((c.base_price * 4) / 5 - c.poster_fee)), c.price_type)}
+              </p>
+            </div>
+          </div>
         )}
 
         {/* 未登入提示 */}

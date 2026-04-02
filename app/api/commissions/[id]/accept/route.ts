@@ -41,6 +41,21 @@ export async function POST(
     return NextResponse.json({ error: "此委託已被其他人接受" }, { status: 400 });
   }
 
+  // 解析 body（可能帶 executor_fee）
+  let executorFee = 0;
+  try {
+    const body = await request.json();
+    if (body.executor_fee && typeof body.executor_fee === "number" && body.executor_fee > 0) {
+      const maxFee = Math.floor((commission.base_price * 4) / 5 - commission.poster_fee);
+      if (body.executor_fee > maxFee) {
+        return NextResponse.json({ error: `抽成不可超過 ${maxFee}` }, { status: 400 });
+      }
+      executorFee = body.executor_fee;
+    }
+  } catch {
+    // body 為空也沒關係
+  }
+
   // 檢查是否為首次委託（需要押底）
   const { count: prevCount } = await supabase
     .from("commissions")
@@ -51,15 +66,22 @@ export async function POST(
   const isFirstTime = (prevCount || 0) === 0;
 
   // 更新委託狀態
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const updateData: Record<string, any> = {
+    executor_id: user.id,
+    executor_type: "user",
+    status: "accepted",
+    accepted_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  };
+  if (executorFee > 0) {
+    updateData.executor_fee = executorFee;
+    updateData.executor_fee_approved = false;
+  }
+
   const { data: updated, error: updateError } = await supabase
     .from("commissions")
-    .update({
-      executor_id: user.id,
-      executor_type: "user",
-      status: "accepted",
-      accepted_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
+    .update(updateData)
     .eq("id", params.id)
     .eq("status", "active") // 樂觀鎖
     .select()
@@ -69,11 +91,13 @@ export async function POST(
     return NextResponse.json({ error: "接單失敗，請重試" }, { status: 500 });
   }
 
+  const feeNote = executorFee > 0 ? `已提出抽成 ${executorFee.toLocaleString()}，等待刊登者確認。` : "";
+  const depositNote = isFirstTime ? "由於是首次執行委託，需要提供押底寶可夢。" : "";
+  const msg = ["接單成功！", depositNote, feeNote].filter(Boolean).join(" ");
+
   return NextResponse.json({
     commission: updated,
     deposit_required: isFirstTime,
-    message: isFirstTime
-      ? "接單成功！由於是首次執行委託，需要提供押底寶可夢。"
-      : "接單成功！",
+    message: msg,
   });
 }
