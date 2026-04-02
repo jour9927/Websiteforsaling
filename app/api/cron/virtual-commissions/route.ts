@@ -131,15 +131,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 5. 隨機完成 0-1 個已接單的虛擬委託
+    // 5. 隨機完成 0-1 個「至少 1 天前」接單的虛擬委託
+    //    避免同一輪 cron 接單後立刻完成，讓「進行中」狀態至少持續 1 天
     let completedCount = 0;
-    if (Math.random() > 0.5) {
+    if (Math.random() > 0.4) {
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
       const { data: acceptedVirtual } = await supabase
         .from("commissions")
         .select("id")
         .eq("status", "accepted")
         .eq("poster_type", "virtual")
         .eq("executor_type", "virtual")
+        .lt("accepted_at", oneDayAgo)
         .limit(5);
 
       if (acceptedVirtual && acceptedVirtual.length > 0) {
