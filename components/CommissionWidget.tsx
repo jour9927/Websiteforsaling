@@ -14,24 +14,34 @@ export function CommissionWidget() {
     useEffect(() => {
         async function loadCommissions() {
             try {
-                // 載入最新 3 筆刊登中的委託
-                const res = await fetch("/api/commissions?status=active,queued&page=1");
-                const data = await res.json();
-                setCommissions((data.commissions || []).slice(0, 3));
-
-                // 取得各狀態數量
-                const [activeRes, progressRes, completedRes] = await Promise.all([
+                // 同時發三組請求，分別取得刊登中 / 進行中 / 已完成
+                const [activeRes, progressRes, completedRes] = await Promise.allSettled([
                     fetch("/api/commissions?status=active,queued&page=1"),
                     fetch("/api/commissions?status=accepted,proof_submitted,proof_approved&page=1"),
                     fetch("/api/commissions?status=completed&page=1"),
                 ]);
-                const [activeData, progressData, completedData] = await Promise.all([
-                    activeRes.json(), progressRes.json(), completedRes.json(),
-                ]);
+
+                // 解析各結果（任一失敗不影響其他）
+                let activeData: any = { commissions: [], total: 0 };
+                let progressData: any = { commissions: [], total: 0 };
+                let completedData: any = { commissions: [], total: 0 };
+
+                if (activeRes.status === "fulfilled" && activeRes.value.ok) {
+                    activeData = await activeRes.value.json();
+                }
+                if (progressRes.status === "fulfilled" && progressRes.value.ok) {
+                    progressData = await progressRes.value.json();
+                }
+                if (completedRes.status === "fulfilled" && completedRes.value.ok) {
+                    completedData = await completedRes.value.json();
+                }
+
+                // 用刊登中的前 3 筆當預覽
+                setCommissions((activeData.commissions || []).slice(0, 3));
                 setStats({
-                    active: activeData.total || 0,
-                    inProgress: progressData.total || 0,
-                    completed: completedData.total || 0,
+                    active: activeData.total ?? 0,
+                    inProgress: progressData.total ?? 0,
+                    completed: completedData.total ?? 0,
                 });
             } catch (error) {
                 console.error("Load commissions error:", error);
