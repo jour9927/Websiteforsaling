@@ -1,5 +1,54 @@
 # Changelog
 
+## [2026-04-02]
+
+### Added — 場外委託區（Commission System）
+- **完整委託系統**：任何用戶可刊登/接下委託任務，支援抽成協商與押底保護
+  - 每日平台上限 5 單，超額自動排隊
+  - 抽成上限：poster_fee + executor_fee ≤ base_price × 4/5
+  - 首次委託者需押底 ≥ 底價 2/3 的寶可夢，完成 10 天後自動歸還
+
+- **Database Schema**：`supabase/migrations/050_commission_system.sql`
+  - 3 張新表：`commissions`、`commission_deposits`、`commission_messages`
+  - RLS 策略：公開讀取、authenticated insert、poster/executor update
+  - Helper functions：`get_today_active_commission_count()`、`get_next_queue_position()`
+
+- **API Routes（8 個）**：
+  - `app/api/commissions/route.ts` — GET 列表 + POST 建立
+  - `app/api/commissions/[id]/route.ts` — GET 單筆詳情
+  - `app/api/commissions/[id]/accept/route.ts` — 接單
+  - `app/api/commissions/[id]/executor-fee/route.ts` — 抽成協商
+  - `app/api/admin/commissions/[id]/review/route.ts` — 管理審核（approve/reject + 排隊）
+  - `app/api/admin/commissions/[id]/proof-review/route.ts` — 合法性證明審核
+
+- **前端頁面（5 個）**：
+  - `app/commissions/page.tsx` — 委託列表（按狀態分組）
+  - `app/commissions/create/page.tsx` — 刊登委託（含配布圖鑑搜尋 + 圖片上傳）
+  - `app/commissions/[id]/page.tsx` + `CommissionDetailClient.tsx` — 委託詳情 + 互動
+  - `app/admin/commissions/page.tsx` — 管理後台（審核 + 排隊管理）
+  - `components/CommissionList.tsx` — 委託卡片元件
+
+- **Cron Jobs（2 個）**：
+  - `app/api/cron/virtual-commissions/route.ts` — 每日虛擬用戶自動發佈 3-4 則 + 接單 1-2 + 完成 0-1
+  - `app/api/cron/commission-maintenance/route.ts` — 每日押底歸還 + 排隊啟用
+
+- **其他**：
+  - `lib/commissionFallbackPool.ts` — 虛擬用戶文案池（30+ 條發佈 + 20+ 條接單）
+  - `components/SiteHeader.tsx` — 新增「委託」導航連結
+  - `components/admin/AdminSidebar.tsx` — 新增「委託管理」管理項目
+  - `vercel.json` — 新增 2 個 cron schedule
+
+### Pending Manual Steps
+- 在 Supabase SQL Editor 執行 `050_commission_system.sql`
+- 在 Supabase Dashboard 建立 `commission-proofs` Storage bucket（private）
+
+### Technical Details
+- Build 驗證：`npm run build` ✅ 通過
+- Vercel 部署：commit `929b710` push → 自動部署
+- Git：worktree → master，主資料夾已同步
+
+---
+
 ## [2026-03-31]
 
 ### Published
