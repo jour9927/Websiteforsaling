@@ -169,7 +169,7 @@ export default function AdminCommissionsPage() {
                 </div>
                 <div className="flex items-center gap-3 text-xs text-white/40">
                   <span>💰 {c.price_type === "twd" ? `NT$${c.base_price.toLocaleString()}` : `${c.base_price.toLocaleString()} pts`}</span>
-                  <span>平台抽成 {c.price_type === "twd" ? "NT$" : ""}{c.platform_fee.toLocaleString()}{c.price_type !== "twd" ? " pts" : ""}</span>
+                  <span>執行者可抽成 {c.price_type === "twd" ? "NT$" : ""}{c.platform_fee.toLocaleString()}{c.price_type !== "twd" ? " pts" : ""}</span>
                   {getExecutorName(c) && <span>執行者：{getExecutorName(c)}</span>}
                   {c.queue_position && <span>排隊 #{c.queue_position}</span>}
                   <span>{new Date(c.created_at).toLocaleDateString("zh-TW")}</span>

@@ -331,7 +331,7 @@ export default function CreateCommissionPage() {
           </div>
           <div>
             <label className="mb-2 block text-sm font-medium text-white/70">
-              平台抽成
+              執行者可抽成
             </label>
             <input
               type="number"
