@@ -17,7 +17,6 @@ interface Commission {
   executor_fee: number;
   status: string;
   queue_position: number | null;
-  poster_type: string;
   created_at: string;
   distributions: {
     pokemon_name: string;
@@ -27,7 +26,6 @@ interface Commission {
     points: number | null;
   } | null;
   poster: { id: string; display_name: string } | null;
-  poster_virtual: { id: string; display_name: string; avatar_seed: string } | null;
 }
 
 const statusLabels: Record<string, { label: string; color: string }> = {
@@ -44,10 +42,7 @@ export default function CommissionList({ commissions }: { commissions: Commissio
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {commissions.map((c) => {
-        const posterName =
-          c.poster_type === "virtual"
-            ? c.poster_virtual?.display_name || "匿名"
-            : c.poster?.display_name || "匿名";
+        const posterName = c.poster?.display_name || "匿名";
         const statusInfo = statusLabels[c.status] || { label: c.status, color: "bg-white/10 text-white/60" };
 
         return (

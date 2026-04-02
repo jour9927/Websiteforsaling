@@ -29,6 +29,15 @@ export default async function CommissionDetailPage({ params }: CommissionPagePro
     notFound();
   }
 
+  // 隱藏虛擬用戶身份：統一為 poster / executor
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const c = commission as any;
+  const poster = c.poster_type === "virtual" ? c.poster_virtual : c.poster;
+  const executor = c.executor_type === "virtual" ? c.executor_virtual : c.executor;
+  const hideKeys = ["poster_type", "poster_virtual", "executor_type", "executor_virtual", "poster_virtual_id", "executor_virtual_id", "admin_review_note", "reviewed_by"];
+  const cleaned = Object.fromEntries(Object.entries(c).filter(([k]) => !hideKeys.includes(k)));
+  const sanitized = { ...cleaned, poster, executor };
+
   // 取得目前使用者
   const {
     data: { user },
@@ -36,7 +45,7 @@ export default async function CommissionDetailPage({ params }: CommissionPagePro
 
   return (
     <CommissionDetailClient
-      commission={commission}
+      commission={sanitized}
       currentUserId={user?.id || null}
     />
   );

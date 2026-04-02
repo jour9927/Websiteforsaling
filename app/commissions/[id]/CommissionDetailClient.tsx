@@ -46,8 +46,8 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
   const c = commission;
   const isPoster = currentUserId === c.poster_id;
   const isExecutor = currentUserId === c.executor_id;
-  const posterName = c.poster_type === "virtual" ? c.poster_virtual?.display_name : c.poster?.display_name;
-  const executorName = c.executor_type === "virtual" ? c.executor_virtual?.display_name : c.executor?.display_name;
+  const posterName = c.poster?.display_name;
+  const executorName = c.executor?.display_name;
   const statusInfo = statusLabels[c.status] || { label: c.status, color: "text-white/60" };
 
   // 計算進度

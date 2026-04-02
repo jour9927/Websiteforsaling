@@ -37,8 +37,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // 隱藏虛擬用戶身份：統一為 poster / executor 欄位
+  const hideKeys = ["poster_type", "poster_virtual", "executor_type", "executor_virtual", "poster_virtual_id", "executor_virtual_id", "admin_review_note", "reviewed_by"];
+  const sanitized = (data || []).map((c: Record<string, unknown>) => {
+    const poster = c.poster_type === "virtual" ? c.poster_virtual : c.poster;
+    const executor = c.executor_type === "virtual" ? c.executor_virtual : c.executor;
+    const cleaned = Object.fromEntries(Object.entries(c).filter(([k]) => !hideKeys.includes(k)));
+    return { ...cleaned, poster, executor };
+  });
+
   return NextResponse.json({
-    commissions: data || [],
+    commissions: sanitized,
     total: count || 0,
     page,
     totalPages: Math.ceil((count || 0) / limit),

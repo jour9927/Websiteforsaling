@@ -13,7 +13,7 @@ export default async function CommissionsPage() {
   } = await supabase.auth.getUser();
 
   // 取得公開委託
-  const { data: commissions } = await supabase
+  const { data: rawCommissions } = await supabase
     .from("commissions")
     .select(
       `*,
@@ -25,13 +25,22 @@ export default async function CommissionsPage() {
     .order("created_at", { ascending: false })
     .limit(50);
 
-  const activeCommissions = commissions?.filter((c) => c.status === "active") || [];
+  // 隱藏虛擬用戶身份：統一為 poster 欄位
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const hideKeys = ["poster_type", "poster_virtual", "poster_virtual_id", "admin_review_note", "reviewed_by"];
+  const commissions = (rawCommissions || []).map((c: any) => {
+    const poster = c.poster_type === "virtual" ? c.poster_virtual : c.poster;
+    const cleaned = Object.fromEntries(Object.entries(c).filter(([k]) => !hideKeys.includes(k)));
+    return { ...cleaned, poster } as any;
+  });
+
+  const activeCommissions = commissions?.filter((c: any) => c.status === "active") || [];
   const inProgressCommissions =
-    commissions?.filter((c) =>
+    commissions?.filter((c: any) =>
       ["accepted", "proof_submitted", "proof_approved"].includes(c.status)
     ) || [];
-  const completedCommissions = commissions?.filter((c) => c.status === "completed") || [];
-  const queuedCommissions = commissions?.filter((c) => c.status === "queued") || [];
+  const completedCommissions = commissions?.filter((c: any) => c.status === "completed") || [];
+  const queuedCommissions = commissions?.filter((c: any) => c.status === "queued") || [];
 
   return (
     <div className="flex flex-col gap-8">
