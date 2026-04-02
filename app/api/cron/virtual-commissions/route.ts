@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
         basePrice = Math.round(basePrice * rate / 10) * 10;
         basePrice = Math.max(50, Math.min(basePrice, 9990)); // NT$50 ~ NT$9,990
       }
-      const posterFee = generateFee(basePrice, 0.2);
+      const posterFee = generateFee(basePrice);
 
       const status = todaySlots > 0 ? "active" : "queued";
       const activatedDate = todaySlots > 0 ? today : null;

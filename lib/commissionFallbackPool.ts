@@ -73,8 +73,24 @@ export function generateBasePrice(pokemonPoints: number | null): number {
   return Math.round(base * factor / 100) * 100; // 取整到百位
 }
 
-/** 隨機生成抽成（不超過 base_price 的 4/5） */
-export function generateFee(basePrice: number, maxRatio: number = 0.3): number {
-  const fee = Math.round(basePrice * Math.random() * maxRatio / 100) * 100;
+/** 隨機生成抽成（金額越高比例越高，不超過 base_price 的 4/5）
+ *  底價 ≤ 5,000   → 5%~10%
+ *  底價 5,001~20,000 → 10%~18%
+ *  底價 20,001~50,000 → 15%~25%
+ *  底價 > 50,000   → 20%~35%
+ */
+export function generateFee(basePrice: number): number {
+  let minR: number, maxR: number;
+  if (basePrice <= 5000) {
+    minR = 0.05; maxR = 0.10;
+  } else if (basePrice <= 20000) {
+    minR = 0.10; maxR = 0.18;
+  } else if (basePrice <= 50000) {
+    minR = 0.15; maxR = 0.25;
+  } else {
+    minR = 0.20; maxR = 0.35;
+  }
+  const ratio = minR + Math.random() * (maxR - minR);
+  const fee = Math.round(basePrice * ratio / 100) * 100;
   return Math.min(fee, Math.floor(basePrice * 4 / 5));
 }
