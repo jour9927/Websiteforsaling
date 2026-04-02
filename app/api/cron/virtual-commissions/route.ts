@@ -45,24 +45,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "No distributions found" });
     }
 
-    // 3. 隨機產生 3-4 則虛擬委託
-    const postCount = 3 + Math.floor(Math.random() * 2); // 3 or 4
+    // 3. 隨機產生 13-16 則虛擬委託（全部直接 active，不限每日 5 單）
+    const postCount = 13 + Math.floor(Math.random() * 4); // 13-16
     const selectedVirtualUsers = pickRandom(virtualUsers, postCount);
     const selectedDistributions = pickRandom(distributions, postCount);
-    // 虛擬委託不需要說明文字
 
     let createdCount = 0;
     const createdIds: string[] = [];
     const today = new Date().toISOString().split("T")[0];
-
-    // 檢查今日已啟用數
-    const { count: todayActiveCount } = await supabase
-      .from("commissions")
-      .select("id", { count: "exact", head: true })
-      .eq("activated_date", today)
-      .neq("status", "cancelled");
-
-    let todaySlots = 5 - (todayActiveCount || 0);
 
     for (let i = 0; i < postCount; i++) {
       const vu = selectedVirtualUsers[i];
@@ -75,9 +65,6 @@ export async function GET(request: NextRequest) {
       basePrice = Math.max(50, Math.min(basePrice, 9990));
       const platformFee = generateFee(basePrice);
 
-      const status = todaySlots > 0 ? "active" : "queued";
-      const activatedDate = todaySlots > 0 ? today : null;
-
       const { data: created, error } = await supabase
         .from("commissions")
         .insert({
@@ -89,8 +76,8 @@ export async function GET(request: NextRequest) {
           base_price: basePrice,
           price_type: priceType,
           platform_fee: platformFee,
-          status,
-          activated_date: activatedDate,
+          status: "active",
+          activated_date: today,
           reviewed_at: new Date().toISOString(),
           admin_review_note: "虛擬用戶自動發佈",
         })
@@ -100,11 +87,10 @@ export async function GET(request: NextRequest) {
       if (!error && created) {
         createdCount++;
         createdIds.push(created.id);
-        if (status === "active") todaySlots--;
       }
     }
 
-    // 4. 隨機讓 1-2 個虛擬用戶接單（從 active 的虛擬委託中選）
+    // 4. 隨機讓 13-16 個虛擬用戶接單（從所有未被接的 active 虛擬委託中選）
     const { data: activeVirtualCommissions } = await supabase
       .from("commissions")
       .select("id, base_price, platform_fee")
@@ -112,14 +98,14 @@ export async function GET(request: NextRequest) {
       .eq("poster_type", "virtual")
       .is("executor_id", null)
       .is("executor_virtual_id", null)
-      .limit(10);
+      .limit(50);
 
     let acceptedCount = 0;
 
     if (activeVirtualCommissions && activeVirtualCommissions.length > 0) {
-      const acceptCount = 1 + Math.floor(Math.random() * 2); // 1 or 2
+      const acceptCount = 13 + Math.floor(Math.random() * 4); // 13-16
       const toAccept = pickRandom(activeVirtualCommissions, acceptCount);
-      const acceptors = pickRandom(virtualUsers, acceptCount);
+      const acceptors = pickRandom(virtualUsers, toAccept.length);
 
       for (let i = 0; i < toAccept.length; i++) {
         // 計算執行者抽成：剩餘空間（base_price*4/5 - platform_fee）的 40%~80%
@@ -145,22 +131,24 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // 5. 隨機完成 0-1 個「至少 1 天前」接單的虛擬委託
+    // 5. 隨機完成 13-16 個「至少 1 天前」接單的虛擬委託
     //    避免同一輪 cron 接單後立刻完成，讓「進行中」狀態至少持續 1 天
     let completedCount = 0;
-    if (Math.random() > 0.4) {
-      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { data: acceptedVirtual } = await supabase
-        .from("commissions")
-        .select("id")
-        .eq("status", "accepted")
-        .eq("poster_type", "virtual")
-        .eq("executor_type", "virtual")
-        .lt("accepted_at", oneDayAgo)
-        .limit(5);
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const { data: acceptedVirtual } = await supabase
+      .from("commissions")
+      .select("id")
+      .eq("status", "accepted")
+      .eq("poster_type", "virtual")
+      .eq("executor_type", "virtual")
+      .lt("accepted_at", oneDayAgo)
+      .limit(50);
 
-      if (acceptedVirtual && acceptedVirtual.length > 0) {
-        const toComplete = pickRandom(acceptedVirtual, 1)[0];
+    if (acceptedVirtual && acceptedVirtual.length > 0) {
+      const completeCount = 13 + Math.floor(Math.random() * 4); // 13-16
+      const toComplete = pickRandom(acceptedVirtual, completeCount);
+
+      for (const commission of toComplete) {
         const { error } = await supabase
           .from("commissions")
           .update({
@@ -168,7 +156,7 @@ export async function GET(request: NextRequest) {
             completed_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
-          .eq("id", toComplete.id);
+          .eq("id", commission.id);
 
         if (!error) completedCount++;
       }
