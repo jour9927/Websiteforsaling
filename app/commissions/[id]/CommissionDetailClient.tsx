@@ -192,7 +192,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
             <p className="mt-1 text-lg font-bold text-amber-400">{priceLabel(c.base_price, c.price_type)}</p>
           </div>
           <div className="rounded-xl bg-white/5 p-4 text-center">
-            <p className="text-xs text-white/40">執行者可抽成</p>
+            <p className="text-xs text-white/40">平台抽成</p>
             <p className="mt-1 text-lg font-bold text-white/70">{priceLabel(c.platform_fee, c.price_type)}</p>
           </div>
           <div className="rounded-xl bg-white/5 p-4 text-center">
