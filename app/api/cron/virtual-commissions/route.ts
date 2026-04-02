@@ -65,7 +65,14 @@ export async function GET(request: NextRequest) {
       const vu = selectedVirtualUsers[i];
       const dist = selectedDistributions[i];
       const desc = selectedDescriptions[i];
-      const basePrice = generateBasePrice(dist.points);
+      const priceType = Math.random() > 0.3 ? "points" : "twd";
+      let basePrice = generateBasePrice(dist.points);
+      // TWD 計價：1 點 ≈ NT$0.3~0.5，取整到十位，且限制在合理範圍
+      if (priceType === "twd") {
+        const rate = 0.3 + Math.random() * 0.2; // 0.3~0.5
+        basePrice = Math.round(basePrice * rate / 10) * 10;
+        basePrice = Math.max(50, Math.min(basePrice, 9990)); // NT$50 ~ NT$9,990
+      }
       const posterFee = generateFee(basePrice, 0.2);
 
       const status = todaySlots > 0 ? "active" : "queued";
@@ -80,7 +87,7 @@ export async function GET(request: NextRequest) {
           pokemon_name: dist.pokemon_name,
           description: desc,
           base_price: basePrice,
-          price_type: Math.random() > 0.3 ? "points" : "twd",
+          price_type: priceType,
           poster_fee: posterFee,
           status,
           activated_date: activatedDate,
