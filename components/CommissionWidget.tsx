@@ -9,25 +9,30 @@ import { Route } from "next";
 export function CommissionWidget() {
     const [commissions, setCommissions] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [stats, setStats] = useState({ active: 0, inProgress: 0, completed: 0 });
+    const [stats, setStats] = useState({ active: 0, queued: 0, inProgress: 0, completed: 0 });
 
     useEffect(() => {
         async function loadCommissions() {
             try {
                 // 同時發三組請求，分別取得刊登中 / 進行中 / 已完成
-                const [activeRes, progressRes, completedRes] = await Promise.allSettled([
-                    fetch("/api/commissions?status=active,queued&page=1"),
+                const [activeRes, queuedRes, progressRes, completedRes] = await Promise.allSettled([
+                    fetch("/api/commissions?status=active&page=1"),
+                    fetch("/api/commissions?status=queued&page=1"),
                     fetch("/api/commissions?status=accepted,proof_submitted,proof_approved&page=1"),
                     fetch("/api/commissions?status=completed&page=1"),
                 ]);
 
                 // 解析各結果（任一失敗不影響其他）
                 let activeData: any = { commissions: [], total: 0 };
+                let queuedData: any = { commissions: [], total: 0 };
                 let progressData: any = { commissions: [], total: 0 };
                 let completedData: any = { commissions: [], total: 0 };
 
                 if (activeRes.status === "fulfilled" && activeRes.value.ok) {
                     activeData = await activeRes.value.json();
+                }
+                if (queuedRes.status === "fulfilled" && queuedRes.value.ok) {
+                    queuedData = await queuedRes.value.json();
                 }
                 if (progressRes.status === "fulfilled" && progressRes.value.ok) {
                     progressData = await progressRes.value.json();
@@ -36,10 +41,15 @@ export function CommissionWidget() {
                     completedData = await completedRes.value.json();
                 }
 
-                // 用刊登中的前 3 筆當預覽
-                setCommissions((activeData.commissions || []).slice(0, 3));
+                // 用刊登中（active）的前 3 筆當預覽，不夠的話補排隊中的
+                const preview = [
+                    ...(activeData.commissions || []),
+                    ...(queuedData.commissions || []),
+                ].slice(0, 3);
+                setCommissions(preview);
                 setStats({
                     active: activeData.total ?? 0,
+                    queued: queuedData.total ?? 0,
                     inProgress: progressData.total ?? 0,
                     completed: completedData.total ?? 0,
                 });
@@ -131,6 +141,7 @@ export function CommissionWidget() {
                 <div className="flex items-center justify-between rounded-lg bg-gradient-to-r from-indigo-500/10 to-purple-500/10 px-3 py-2">
                     <div className="flex items-center gap-3 text-[10px]">
                         <span className="text-green-400">● 刊登 {stats.active}</span>
+                        {stats.queued > 0 && <span className="text-yellow-400">● 排隊 {stats.queued}</span>}
                         <span className="text-blue-400">● 進行 {stats.inProgress}</span>
                         <span className="text-white/40">● 完成 {stats.completed}</span>
                     </div>
