@@ -251,15 +251,45 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
       {c.proof_images && c.proof_images.length > 0 && (
         <div className="glass-card p-6">
           <h2 className="mb-4 text-sm font-semibold text-white/70">📄 合法性證明</h2>
-          <div className="flex flex-wrap gap-3">
-            {c.proof_images.map((url: string, i: number) => (
-              <img
-                key={i}
-                src={url}
-                alt={`證明 ${i + 1}`}
-                className="h-32 w-32 rounded-xl border border-white/10 object-cover"
-              />
-            ))}
+          <div className="flex flex-col gap-3">
+            {/* 圖片類 */}
+            {(() => {
+              const images = c.proof_images.filter((url: string) => !url.startsWith("http://") && !url.startsWith("https://") || /\.(jpg|jpeg|png|gif|webp|svg|bmp)/i.test(url));
+              const links = c.proof_images.filter((url: string) => (url.startsWith("http://") || url.startsWith("https://")) && !/\.(jpg|jpeg|png|gif|webp|svg|bmp)/i.test(url));
+              return (
+                <>
+                  {images.length > 0 && (
+                    <div className="flex flex-wrap gap-3">
+                      {images.map((url: string, i: number) => (
+                        <img
+                          key={`img-${i}`}
+                          src={url}
+                          alt={`證明 ${i + 1}`}
+                          className="h-32 w-32 rounded-xl border border-white/10 object-cover"
+                        />
+                      ))}
+                    </div>
+                  )}
+                  {links.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      {links.map((url: string, i: number) => (
+                        <a
+                          key={`link-${i}`}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 rounded-lg bg-white/5 px-4 py-3 text-sm text-indigo-400 transition hover:bg-white/10"
+                        >
+                          <span>🔗</span>
+                          <span className="truncate">{url}</span>
+                          <span className="ml-auto text-xs text-white/30">↗</span>
+                        </a>
+                      ))}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

@@ -30,6 +30,8 @@ export default function CreateCommissionPage() {
   const [priceType, setPriceType] = useState<"points" | "twd">("points");
   const [posterFee, setPosterFee] = useState("");
   const [proofImages, setProofImages] = useState<string[]>([]);
+  const [proofLinks, setProofLinks] = useState<string[]>([]);
+  const [newLink, setNewLink] = useState("");
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -148,7 +150,7 @@ export default function CreateCommissionPage() {
         base_price: price,
         price_type: priceType,
         poster_fee: fee,
-        proof_images: proofImages,
+        proof_images: [...proofImages, ...proofLinks],
       }),
     });
 
@@ -348,34 +350,92 @@ export default function CreateCommissionPage() {
         </div>
         </div>
 
-        {/* 合法性證明上傳 */}
-        <div>
-          <label className="mb-2 block text-sm font-medium text-white/70">合法性證明（圖片上傳）</label>
-          <input
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handleImageUpload}
-            disabled={uploading}
-            className="w-full text-sm text-white/60 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-sm file:text-white hover:file:bg-indigo-500"
-          />
-          {uploading && <p className="mt-1 text-xs text-amber-400">上傳中...</p>}
-          {proofImages.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              {proofImages.map((url, i) => (
-                <div key={i} className="relative">
-                  <img src={url} alt="" className="h-20 w-20 rounded-lg object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => setProofImages(proofImages.filter((_, j) => j !== i))}
-                    className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
+        {/* 合法性證明 */}
+        <div className="flex flex-col gap-4">
+          <label className="block text-sm font-medium text-white/70">合法性證明</label>
+
+          {/* 圖片上傳 */}
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <p className="mb-2 text-xs font-medium text-white/50">📸 上傳圖片</p>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImageUpload}
+              disabled={uploading}
+              className="w-full text-sm text-white/60 file:mr-4 file:rounded-lg file:border-0 file:bg-indigo-600 file:px-4 file:py-2 file:text-sm file:text-white hover:file:bg-indigo-500"
+            />
+            {uploading && <p className="mt-1 text-xs text-amber-400">上傳中...</p>}
+            {proofImages.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {proofImages.map((url, i) => (
+                  <div key={i} className="relative">
+                    <img src={url} alt="" className="h-20 w-20 rounded-lg object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setProofImages(proofImages.filter((_, j) => j !== i))}
+                      className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs text-white"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 雲端連結 */}
+          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <p className="mb-2 text-xs font-medium text-white/50">🔗 雲端連結（Google Drive、Imgur 等）</p>
+            <div className="flex gap-2">
+              <input
+                type="url"
+                value={newLink}
+                onChange={(e) => setNewLink(e.target.value)}
+                placeholder="https://drive.google.com/..."
+                className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 placeholder-white/30 focus:border-indigo-500/50 focus:outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const link = newLink.trim();
+                  if (link && (link.startsWith("http://") || link.startsWith("https://"))) {
+                    setProofLinks([...proofLinks, link]);
+                    setNewLink("");
+                  } else if (link) {
+                    setError("請輸入有效的網址（以 http:// 或 https:// 開頭）");
+                  }
+                }}
+                className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm text-white transition hover:bg-indigo-500"
+              >
+                新增
+              </button>
             </div>
-          )}
+            {proofLinks.length > 0 && (
+              <div className="mt-3 flex flex-col gap-2">
+                {proofLinks.map((link, i) => (
+                  <div key={i} className="flex items-center gap-2 rounded-lg bg-white/5 px-3 py-2">
+                    <span className="text-xs text-indigo-400">🔗</span>
+                    <a
+                      href={link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex-1 truncate text-xs text-white/60 hover:text-white/80"
+                    >
+                      {link}
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => setProofLinks(proofLinks.filter((_, j) => j !== i))}
+                      className="text-xs text-red-400 hover:text-red-300"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* 押底提示 */}
