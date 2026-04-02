@@ -1,7 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import {
-  COMMISSION_POST_DESCRIPTIONS,
   pickRandom,
   generateBasePrice,
   generateFee,
@@ -50,7 +49,7 @@ export async function GET(request: NextRequest) {
     const postCount = 3 + Math.floor(Math.random() * 2); // 3 or 4
     const selectedVirtualUsers = pickRandom(virtualUsers, postCount);
     const selectedDistributions = pickRandom(distributions, postCount);
-    const selectedDescriptions = pickRandom(COMMISSION_POST_DESCRIPTIONS, postCount);
+    // 虛擬委託不需要說明文字
 
     let createdCount = 0;
     const createdIds: string[] = [];
@@ -68,7 +67,6 @@ export async function GET(request: NextRequest) {
     for (let i = 0; i < postCount; i++) {
       const vu = selectedVirtualUsers[i];
       const dist = selectedDistributions[i];
-      const desc = selectedDescriptions[i];
       const priceType = "twd";
       const rawPrice = generateBasePrice(dist.points);
       // TWD 計價：1 點 ≈ NT$0.3~0.5，取整到十位，限制合理範圍
@@ -87,7 +85,7 @@ export async function GET(request: NextRequest) {
           poster_type: "virtual",
           distribution_id: dist.id,
           pokemon_name: dist.pokemon_name,
-          description: desc,
+          description: "",
           base_price: basePrice,
           price_type: priceType,
           platform_fee: platformFee,
