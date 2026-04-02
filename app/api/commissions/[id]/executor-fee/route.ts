@@ -39,11 +39,10 @@ export async function POST(
       return NextResponse.json({ error: "抽成金額無效" }, { status: 400 });
     }
 
-    // 檢查 4/5 上限
-    const totalFee = (commission.platform_fee || 0) + executor_fee;
-    if (totalFee > (commission.base_price * 4) / 5) {
+    // 檢查上限：不超過執行者可抽成 (platform_fee)
+    if (executor_fee > (commission.platform_fee || 0)) {
       return NextResponse.json(
-        { error: `抽成總和不可超過底價的 4/5（上限 ${Math.floor((commission.base_price * 4) / 5)}）` },
+        { error: `抽成不可超過執行者可抽成上限（${commission.platform_fee}）` },
         { status: 400 }
       );
     }

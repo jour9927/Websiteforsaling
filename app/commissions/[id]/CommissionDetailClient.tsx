@@ -201,7 +201,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
           </div>
         </div>
         <p className="mt-3 text-center text-xs text-white/40">
-          抽成上限：{priceLabel(Math.floor((c.base_price * 4) / 5), c.price_type)}（底價的 4/5）
+          執行者可抽成上限：{priceLabel(c.platform_fee, c.price_type)}｜平台抽成：1%
         </p>
       </div>
 
@@ -376,7 +376,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
                 </span>
               </div>
               <p className="mt-2 text-xs text-white/40">
-                上限：{priceLabel(Math.floor(((c.base_price * 4) / 5 - c.platform_fee)), c.price_type)}
+                上限：{priceLabel(c.platform_fee, c.price_type)}
               </p>
             </div>
           </div>
@@ -421,7 +421,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
               </button>
             </div>
             <p className="text-xs text-white/40">
-              上限：{priceLabel(Math.floor(((c.base_price * 4) / 5 - c.platform_fee)), c.price_type)}
+              上限：{priceLabel(c.platform_fee, c.price_type)}
             </p>
           </div>
         )}
@@ -488,7 +488,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
                     </span>
                   </div>
                   <p className="mt-2 text-xs text-white/40">
-                    上限：{priceLabel(Math.floor(((c.base_price * 4) / 5 - c.platform_fee)), c.price_type)}
+                    上限：{priceLabel(c.platform_fee, c.price_type)}
                   </p>
                 </div>
               </div>

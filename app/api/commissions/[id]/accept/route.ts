@@ -46,7 +46,7 @@ export async function POST(
   try {
     const body = await request.json();
     if (body.executor_fee && typeof body.executor_fee === "number" && body.executor_fee > 0) {
-      const maxFee = Math.floor((commission.base_price * 4) / 5 - commission.platform_fee);
+      const maxFee = commission.platform_fee;
       if (body.executor_fee > maxFee) {
         return NextResponse.json({ error: `抽成不可超過 ${maxFee}` }, { status: 400 });
       }
