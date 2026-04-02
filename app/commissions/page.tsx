@@ -70,6 +70,12 @@ export default async function CommissionsPage() {
           為加強自由與開放的社群理念，群內、群外成員即日起皆可在場外委託區進行刊登委託、執行委託。
           所有委託均需通過嚴格的寶可夢合法性證明審核。
         </p>
+        <h3 className="mt-3 text-sm font-semibold text-amber-400">💰 抽成與款項說明</h3>
+        <p className="mt-1 text-xs text-white/60">
+          執行者完成委託後，可依照合約上約定的抽成金額直接從所得款項中保留，
+          扣除抽成後的餘額再匯入刊登者指定的帳戶。
+          刊登者的銀行帳號等收款資訊屬於個人隱私，平台不代為轉交，請雙方自行私下溝通確認。
+        </p>
       </div>
 
       {/* Tab 系統 */}
