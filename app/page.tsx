@@ -2,7 +2,9 @@ import { createServerSupabaseClient } from "@/lib/auth";
 import Link from "next/link";
 import { PersonalSpaceContent } from "@/components/PersonalSpaceContent";
 import AuctionCard from "@/components/AuctionCard";
-import { PopularityWidgetToggle } from "@/components/PopularityWidgetToggle";
+// [人氣排行榜] 暫時隱藏，改用委託小組件
+// import { PopularityWidgetToggle } from "@/components/PopularityWidgetToggle";
+import { CommissionWidget } from "@/components/CommissionWidget";
 import { MaintenanceToggle } from "@/components/MaintenanceToggle";
 // [伊布集點日] 活動已結束
 // import { EeveeDayWidget } from "@/components/EeveeDayWidget";
@@ -326,8 +328,11 @@ export default async function HomePage() {
       {/* [伊布 Day] 活動已結束 */}
       {/* <EeveeDayWidget /> */}
 
-      {/* 人氣排行榜小組件（可開關） */}
-      <PopularityWidgetToggle />
+      {/* [人氣排行榜] 暫時隱藏，改用委託小組件 */}
+      {/* <PopularityWidgetToggle /> */}
+
+      {/* 最新委託小組件 */}
+      <CommissionWidget />
 
       {/* 個人空間內容 */}
       <PersonalSpaceContent
