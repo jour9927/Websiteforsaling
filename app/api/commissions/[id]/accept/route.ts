@@ -1,0 +1,79 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createServerSupabaseClient } from "@/lib/auth";
+
+// POST /api/commissions/[id]/accept — 接受委託
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const supabase = createServerSupabaseClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: "請先登入" }, { status: 401 });
+  }
+
+  // 取得委託
+  const { data: commission, error: fetchError } = await supabase
+    .from("commissions")
+    .select("*")
+    .eq("id", params.id)
+    .single();
+
+  if (fetchError || !commission) {
+    return NextResponse.json({ error: "找不到此委託" }, { status: 404 });
+  }
+
+  // 檢查狀態必須是 active
+  if (commission.status !== "active") {
+    return NextResponse.json({ error: "此委託目前無法接單" }, { status: 400 });
+  }
+
+  // 不能接自己的委託
+  if (commission.poster_id === user.id) {
+    return NextResponse.json({ error: "不能接受自己的委託" }, { status: 400 });
+  }
+
+  // 已經有人接了
+  if (commission.executor_id || commission.executor_virtual_id) {
+    return NextResponse.json({ error: "此委託已被其他人接受" }, { status: 400 });
+  }
+
+  // 檢查是否為首次委託（需要押底）
+  const { count: prevCount } = await supabase
+    .from("commissions")
+    .select("id", { count: "exact", head: true })
+    .eq("executor_id", user.id)
+    .eq("status", "completed");
+
+  const isFirstTime = (prevCount || 0) === 0;
+
+  // 更新委託狀態
+  const { data: updated, error: updateError } = await supabase
+    .from("commissions")
+    .update({
+      executor_id: user.id,
+      executor_type: "user",
+      status: "accepted",
+      accepted_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", params.id)
+    .eq("status", "active") // 樂觀鎖
+    .select()
+    .single();
+
+  if (updateError || !updated) {
+    return NextResponse.json({ error: "接單失敗，請重試" }, { status: 500 });
+  }
+
+  return NextResponse.json({
+    commission: updated,
+    deposit_required: isFirstTime,
+    message: isFirstTime
+      ? "接單成功！由於是首次執行委託，需要提供押底寶可夢。"
+      : "接單成功！",
+  });
+}

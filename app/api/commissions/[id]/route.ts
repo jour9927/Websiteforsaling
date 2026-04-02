@@ -1,0 +1,31 @@
+import { NextRequest, NextResponse } from "next/server";
+import { createServerSupabaseClient } from "@/lib/auth";
+
+// GET /api/commissions/[id] — 取得單筆委託詳情
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const supabase = createServerSupabaseClient();
+
+  const { data, error } = await supabase
+    .from("commissions")
+    .select(
+      `*,
+       distributions(id, pokemon_name, pokemon_name_en, pokemon_sprite_url, pokemon_dex_number, generation, points, game_titles, original_trainer, distribution_method, region, is_shiny),
+       poster:profiles!commissions_poster_id_fkey(id, display_name),
+       poster_virtual:virtual_profiles!commissions_poster_virtual_id_fkey(id, display_name, avatar_seed),
+       executor:profiles!commissions_executor_id_fkey(id, display_name),
+       executor_virtual:virtual_profiles!commissions_executor_virtual_id_fkey(id, display_name, avatar_seed),
+       commission_deposits(id, deposit_pokemon_name, deposit_pokemon_value, status, return_eligible_at),
+       commission_messages(id, sender_id, sender_virtual_id, sender_type, content, created_at)`
+    )
+    .eq("id", params.id)
+    .single();
+
+  if (error || !data) {
+    return NextResponse.json({ error: "找不到此委託" }, { status: 404 });
+  }
+
+  return NextResponse.json({ commission: data });
+}

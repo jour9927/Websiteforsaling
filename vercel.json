@@ -11,6 +11,14 @@
         {
             "path": "/api/cron/update-points",
             "schedule": "5 0 * * *"
+        },
+        {
+            "path": "/api/cron/virtual-commissions",
+            "schedule": "0 4 * * *"
+        },
+        {
+            "path": "/api/cron/commission-maintenance",
+            "schedule": "0 20 * * *"
         }
     ]
 }
