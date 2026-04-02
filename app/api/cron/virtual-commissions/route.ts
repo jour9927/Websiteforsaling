@@ -31,10 +31,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "No virtual users found" });
     }
 
-    // 2. 取得可用配布
+    // 2. 取得可用配布（第八世代、排除 OT 為 HOME）
     const { data: distributions } = await supabase
       .from("distributions")
-      .select("id, pokemon_name, pokemon_name_en, points, generation")
+      .select("id, pokemon_name, pokemon_name_en, points, generation, original_trainer")
+      .eq("generation", 8)
+      .neq("original_trainer", "HOME")
       .not("points", "is", null)
       .gt("points", 100);
 
@@ -65,14 +67,12 @@ export async function GET(request: NextRequest) {
       const vu = selectedVirtualUsers[i];
       const dist = selectedDistributions[i];
       const desc = selectedDescriptions[i];
-      const priceType = Math.random() > 0.3 ? "points" : "twd";
-      let basePrice = generateBasePrice(dist.points);
-      // TWD 計價：1 點 ≈ NT$0.3~0.5，取整到十位，且限制在合理範圍
-      if (priceType === "twd") {
-        const rate = 0.3 + Math.random() * 0.2; // 0.3~0.5
-        basePrice = Math.round(basePrice * rate / 10) * 10;
-        basePrice = Math.max(50, Math.min(basePrice, 9990)); // NT$50 ~ NT$9,990
-      }
+      const priceType = "twd";
+      const rawPrice = generateBasePrice(dist.points);
+      // TWD 計價：1 點 ≈ NT$0.3~0.5，取整到十位，限制合理範圍
+      const rate = 0.3 + Math.random() * 0.2;
+      let basePrice = Math.round(rawPrice * rate / 10) * 10;
+      basePrice = Math.max(50, Math.min(basePrice, 9990));
       const platformFee = generateFee(basePrice);
 
       const status = todaySlots > 0 ? "active" : "queued";
