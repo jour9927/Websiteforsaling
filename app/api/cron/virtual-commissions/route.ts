@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
     // 4. 隨機讓 1-2 個虛擬用戶接單（從 active 的虛擬委託中選）
     const { data: activeVirtualCommissions } = await supabase
       .from("commissions")
-      .select("id")
+      .select("id, base_price, poster_fee")
       .eq("status", "active")
       .eq("poster_type", "virtual")
       .is("executor_id", null)
@@ -122,12 +122,19 @@ export async function GET(request: NextRequest) {
       const acceptors = pickRandom(virtualUsers, acceptCount);
 
       for (let i = 0; i < toAccept.length; i++) {
+        // 計算執行者抽成：剩餘空間（base_price*4/5 - poster_fee）的 40%~80%
+        const maxFee = Math.floor((toAccept[i].base_price * 4) / 5 - toAccept[i].poster_fee);
+        const execRatio = 0.4 + Math.random() * 0.4;
+        const executorFee = Math.round(maxFee * execRatio / 100) * 100;
+
         const { error } = await supabase
           .from("commissions")
           .update({
             executor_virtual_id: acceptors[i].id,
             executor_type: "virtual",
             status: "accepted",
+            executor_fee: Math.max(executorFee, 100),
+            executor_fee_approved: true,
             accepted_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
