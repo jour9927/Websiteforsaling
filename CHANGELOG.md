@@ -38,13 +38,38 @@
   - `components/admin/AdminSidebar.tsx` — 新增「委託管理」管理項目
   - `vercel.json` — 新增 2 個 cron schedule
 
-### Pending Manual Steps
-- 在 Supabase SQL Editor 執行 `050_commission_system.sql`
-- 在 Supabase Dashboard 建立 `commission-proofs` Storage bucket（private）
+### Changed — 委託系統增強與修復
+- **雙計價支援**：委託底價支援「點數」與「台幣」，新增 `price_type` 欄位
+  - `app/commissions/create/page.tsx` — 新增價格類型切換按鈕（🎯 點數 / 💵 台幣）
+  - `components/CommissionList.tsx` — 價格顯示加上單位（pts / NT$）
+  - `app/commissions/[id]/CommissionDetailClient.tsx` — `priceLabel()` helper
+  - `app/api/cron/virtual-commissions/route.ts` — 虛擬委託隨機選擇計價方式
+
+- **雲端連結證明**：合法性證明除圖片上傳外，亦可提供雲端連結（Google Drive、Imgur 等）
+  - `app/commissions/create/page.tsx` — 新增 URL 輸入欄位，合併至 `proof_images` 陣列
+  - `app/commissions/[id]/CommissionDetailClient.tsx` — 按副檔名區分圖片 vs 連結顯示
+
+- **委託說明簡化**：「委託說明」改為「備註（選填）」，降低刊登門檻
+
+- **虛擬用戶隱藏**：前端與 API 完全隱藏虛擬用戶身份，不可被辨識
+  - 5 個檔案新增 sanitization 層，移除 `poster_type`、`poster_virtual` 等敏感欄位
+  - 統一輸出 `poster: { id, display_name }` 格式
+
+- **列表分區調整**：從 4 區改為 3 區：「刊登中」「委託進行中」「委託已完成」
+
+### Fixed
+- **委託列表空白問題**：`profiles` 表使用 `full_name` 而非 `display_name`，導致 Supabase PostgREST join 靜默失敗
+  - 修正 5 個檔案的 profiles 查詢欄位，sanitize 層統一正規化為 `display_name`
+  - 涉及：`app/commissions/page.tsx`、`app/commissions/[id]/page.tsx`、`app/api/commissions/route.ts`、`app/api/commissions/[id]/route.ts`、`app/admin/commissions/page.tsx`
+
+### Database Migration（已執行）
+- `supabase/migrations/050_commission_rebuild.sql` — 重建委託表（含 `price_type` 欄位）
+- Storage bucket `commission-proofs` 已建立
 
 ### Technical Details
 - Build 驗證：`npm run build` ✅ 通過
-- Vercel 部署：commit `929b710` push → 自動部署
+- Vercel 部署：commit `4802539` ✅ 成功
+- 線上驗證：`/commissions` 正確顯示 3 筆刊登中 + 1 筆已完成
 - Git：worktree → master，主資料夾已同步
 
 ---
