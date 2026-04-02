@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { distribution_id, pokemon_name, description, base_price, price_type, poster_fee, proof_images } = body;
+  const { distribution_id, pokemon_name, description, base_price, price_type, platform_fee, proof_images } = body;
 
   // 驗證必填
   if (!pokemon_name || !base_price) {
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
   }
 
   // 驗證抽成上限
-  if (poster_fee && poster_fee > (base_price * 4) / 5) {
+  if (platform_fee && platform_fee > (base_price * 4) / 5) {
     return NextResponse.json({ error: "抽成不可超過底價的 4/5" }, { status: 400 });
   }
 
@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
       description: description || "",
       base_price,
       price_type: price_type === "twd" ? "twd" : "points",
-      poster_fee: poster_fee || 0,
+      platform_fee: platform_fee || 0,
       proof_images: proof_images || [],
       status: "pending_review",
     })

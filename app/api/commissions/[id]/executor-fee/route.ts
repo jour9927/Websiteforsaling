@@ -40,7 +40,7 @@ export async function POST(
     }
 
     // 檢查 4/5 上限
-    const totalFee = (commission.poster_fee || 0) + executor_fee;
+    const totalFee = (commission.platform_fee || 0) + executor_fee;
     if (totalFee > (commission.base_price * 4) / 5) {
       return NextResponse.json(
         { error: `抽成總和不可超過底價的 4/5（上限 ${Math.floor((commission.base_price * 4) / 5)}）` },

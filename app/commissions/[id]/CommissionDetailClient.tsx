@@ -192,8 +192,8 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
             <p className="mt-1 text-lg font-bold text-amber-400">{priceLabel(c.base_price, c.price_type)}</p>
           </div>
           <div className="rounded-xl bg-white/5 p-4 text-center">
-            <p className="text-xs text-white/40">刊登者抽成</p>
-            <p className="mt-1 text-lg font-bold text-white/70">{priceLabel(c.poster_fee, c.price_type)}</p>
+            <p className="text-xs text-white/40">平台抽成</p>
+            <p className="mt-1 text-lg font-bold text-white/70">{priceLabel(c.platform_fee, c.price_type)}</p>
           </div>
           <div className="rounded-xl bg-white/5 p-4 text-center">
             <p className="text-xs text-white/40">
@@ -382,7 +382,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
                 </span>
               </div>
               <p className="mt-2 text-xs text-white/40">
-                上限：{priceLabel(Math.floor(((c.base_price * 4) / 5 - c.poster_fee)), c.price_type)}
+                上限：{priceLabel(Math.floor(((c.base_price * 4) / 5 - c.platform_fee)), c.price_type)}
               </p>
             </div>
           </div>
@@ -420,7 +420,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
               </button>
             </div>
             <p className="text-xs text-white/40">
-              上限：{priceLabel(Math.floor(((c.base_price * 4) / 5 - c.poster_fee)), c.price_type)}
+              上限：{priceLabel(Math.floor(((c.base_price * 4) / 5 - c.platform_fee)), c.price_type)}
             </p>
           </div>
         )}

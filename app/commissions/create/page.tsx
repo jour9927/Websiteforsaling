@@ -28,7 +28,7 @@ export default function CreateCommissionPage() {
   const [description, setDescription] = useState("");
   const [basePrice, setBasePrice] = useState("");
   const [priceType, setPriceType] = useState<"points" | "twd">("points");
-  const [posterFee, setPosterFee] = useState("");
+  const [platformFee, setPlatformFee] = useState("");
   const [proofImages, setProofImages] = useState<string[]>([]);
   const [proofLinks, setProofLinks] = useState<string[]>([]);
   const [newLink, setNewLink] = useState("");
@@ -120,7 +120,7 @@ export default function CreateCommissionPage() {
     setSubmitting(true);
 
     const price = parseInt(basePrice);
-    const fee = parseInt(posterFee || "0");
+    const fee = parseInt(platformFee || "0");
 
     if (!pokemonName) {
       setError("請選擇或輸入寶可夢名稱");
@@ -149,7 +149,7 @@ export default function CreateCommissionPage() {
         description,
         base_price: price,
         price_type: priceType,
-        poster_fee: fee,
+        platform_fee: fee,
         proof_images: [...proofImages, ...proofLinks],
       }),
     });
@@ -331,19 +331,19 @@ export default function CreateCommissionPage() {
           </div>
           <div>
             <label className="mb-2 block text-sm font-medium text-white/70">
-              你的抽成
+              平台抽成
             </label>
             <input
               type="number"
-              value={posterFee}
-              onChange={(e) => setPosterFee(e.target.value)}
+              value={platformFee}
+              onChange={(e) => setPlatformFee(e.target.value)}
               placeholder="例：500"
               min="0"
               className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 placeholder-white/30 focus:border-indigo-500/50 focus:outline-none"
             />
             {basePrice && (
               <p className="mt-1 text-xs text-white/40">
-                抽成上限：{Math.floor((parseInt(basePrice) * 4) / 5).toLocaleString()}
+                平台抽成上限：{Math.floor((parseInt(basePrice) * 4) / 5).toLocaleString()}
               </p>
             )}
           </div>

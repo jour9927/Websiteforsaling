@@ -73,7 +73,7 @@ export async function GET(request: NextRequest) {
         basePrice = Math.round(basePrice * rate / 10) * 10;
         basePrice = Math.max(50, Math.min(basePrice, 9990)); // NT$50 ~ NT$9,990
       }
-      const posterFee = generateFee(basePrice);
+      const platformFee = generateFee(basePrice);
 
       const status = todaySlots > 0 ? "active" : "queued";
       const activatedDate = todaySlots > 0 ? today : null;
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
           description: desc,
           base_price: basePrice,
           price_type: priceType,
-          poster_fee: posterFee,
+          platform_fee: platformFee,
           status,
           activated_date: activatedDate,
           reviewed_at: new Date().toISOString(),
@@ -107,7 +107,7 @@ export async function GET(request: NextRequest) {
     // 4. 隨機讓 1-2 個虛擬用戶接單（從 active 的虛擬委託中選）
     const { data: activeVirtualCommissions } = await supabase
       .from("commissions")
-      .select("id, base_price, poster_fee")
+      .select("id, base_price, platform_fee")
       .eq("status", "active")
       .eq("poster_type", "virtual")
       .is("executor_id", null)
@@ -122,8 +122,8 @@ export async function GET(request: NextRequest) {
       const acceptors = pickRandom(virtualUsers, acceptCount);
 
       for (let i = 0; i < toAccept.length; i++) {
-        // 計算執行者抽成：剩餘空間（base_price*4/5 - poster_fee）的 40%~80%
-        const maxFee = Math.floor((toAccept[i].base_price * 4) / 5 - toAccept[i].poster_fee);
+        // 計算執行者抽成：剩餘空間（base_price*4/5 - platform_fee）的 40%~80%
+        const maxFee = Math.floor((toAccept[i].base_price * 4) / 5 - toAccept[i].platform_fee);
         const execRatio = 0.4 + Math.random() * 0.4;
         const executorFee = Math.round(maxFee * execRatio / 100) * 100;
 

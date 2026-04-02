@@ -13,7 +13,7 @@ interface Commission {
   description: string;
   base_price: number;
   price_type: string;
-  poster_fee: number;
+  platform_fee: number;
   executor_fee: number;
   status: string;
   queue_position: number | null;
@@ -91,9 +91,9 @@ export default function CommissionList({ commissions }: { commissions: Commissio
                 <span className="text-amber-400 font-semibold">
                   💰 {c.price_type === "twd" ? "NT$" : ""}{c.base_price.toLocaleString()} {priceUnit(c.price_type)}
                 </span>
-                {c.poster_fee > 0 && (
+                {c.platform_fee > 0 && (
                   <span className="text-white/40">
-                    抽成 {c.price_type === "twd" ? "NT$" : ""}{c.poster_fee.toLocaleString()}{c.price_type !== "twd" ? " pts" : ""}
+                    平台抽成 {c.price_type === "twd" ? "NT$" : ""}{c.platform_fee.toLocaleString()}{c.price_type !== "twd" ? " pts" : ""}
                   </span>
                 )}
               </div>
