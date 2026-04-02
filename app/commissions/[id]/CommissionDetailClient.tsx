@@ -398,16 +398,23 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
           </Link>
         )}
 
-        {/* 執行者提交抽成 */}
-        {isExecutor && c.status === "accepted" && !c.executor_fee_approved && c.executor_fee === 0 && (
+        {/* 執行者提交/修改抽成 */}
+        {isExecutor && (c.status === "accepted" || c.status === "queued") && !c.executor_fee_approved && (
           <div className="flex flex-col gap-3">
-            <h3 className="text-sm font-semibold text-white/70">設定你的抽成</h3>
+            <h3 className="text-sm font-semibold text-white/70">
+              {c.executor_fee > 0 ? "修改你的抽成" : "提出你的抽成"}
+            </h3>
+            {c.executor_fee > 0 && (
+              <p className="text-xs text-white/40">
+                目前提出：<span className="text-amber-400">{priceLabel(c.executor_fee, c.price_type)}</span>（等待刊登者確認）
+              </p>
+            )}
             <div className="flex gap-3">
               <input
                 type="number"
                 value={executorFeeInput}
                 onChange={(e) => setExecutorFeeInput(e.target.value)}
-                placeholder="抽成金額"
+                placeholder={`新的抽成金額（${c.price_type === "twd" ? "NT$" : "pts"}）`}
                 min="0"
                 className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 placeholder-white/30 focus:border-indigo-500/50 focus:outline-none"
               />
@@ -416,7 +423,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
                 disabled={loading}
                 className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm text-white hover:bg-indigo-500 disabled:opacity-50"
               >
-                提交
+                {c.executor_fee > 0 ? "重新提交" : "提交"}
               </button>
             </div>
             <p className="text-xs text-white/40">
@@ -452,9 +459,55 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
 
         {/* 排隊中 */}
         {c.status === "queued" && (
-          <div className="text-center text-white/60">
-            <p className="text-sm">此委託正在排隊中</p>
-            <p className="text-xs text-white/40">排隊位置 #{c.queue_position}，每日平台處理上限為 5 單</p>
+          <div className="flex flex-col gap-4">
+            <div className="text-center text-white/60">
+              <p className="text-sm">此委託正在排隊中</p>
+              <p className="text-xs text-white/40">排隊位置 #{c.queue_position}，每日平台處理上限為 5 單</p>
+            </div>
+
+            {currentUserId && !isPoster && (
+              <div className="flex flex-col gap-4">
+                <button
+                  onClick={handleAccept}
+                  disabled={loading}
+                  className="w-full rounded-xl bg-amber-600 py-3 text-sm font-semibold text-white transition hover:bg-amber-500 disabled:opacity-50"
+                >
+                  {loading ? "處理中..." : "📋 我要預約執行委託"}
+                </button>
+
+                <div className="rounded-xl border border-white/10 bg-white/5 p-4">
+                  <h3 className="mb-2 text-sm font-semibold text-white/70">💬 提出你的抽成價格（選填）</h3>
+                  <p className="mb-3 text-xs text-white/40">
+                    預約後，當委託正式啟用時你將成為執行者。不填抽成則以刊登者設定為準。
+                  </p>
+                  <div className="flex gap-3">
+                    <input
+                      type="number"
+                      value={executorFeeInput}
+                      onChange={(e) => setExecutorFeeInput(e.target.value)}
+                      placeholder={`抽成金額（${c.price_type === "twd" ? "NT$" : "pts"}）`}
+                      min="0"
+                      className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white/90 placeholder-white/30 focus:border-indigo-500/50 focus:outline-none"
+                    />
+                    <span className="flex items-center text-xs text-white/40">
+                      {c.price_type === "twd" ? "NT$" : "pts"}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-white/40">
+                    上限：{priceLabel(Math.floor(((c.base_price * 4) / 5 - c.platform_fee)), c.price_type)}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {!currentUserId && (
+              <Link
+                href={`/login?redirect=/commissions/${c.id}` as Route}
+                className="block w-full rounded-xl bg-amber-600 py-3 text-center text-sm font-semibold text-white transition hover:bg-amber-500"
+              >
+                登入以預約執行委託
+              </Link>
+            )}
           </div>
         )}
 

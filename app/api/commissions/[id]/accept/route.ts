@@ -26,8 +26,8 @@ export async function POST(
     return NextResponse.json({ error: "找不到此委託" }, { status: 404 });
   }
 
-  // 檢查狀態必須是 active
-  if (commission.status !== "active") {
+  // 檢查狀態必須是 active 或 queued
+  if (commission.status !== "active" && commission.status !== "queued") {
     return NextResponse.json({ error: "此委託目前無法接單" }, { status: 400 });
   }
 
@@ -67,13 +67,22 @@ export async function POST(
 
   // 更新委託狀態
   /* eslint-disable @typescript-eslint/no-explicit-any */
+  const isQueued = commission.status === "queued";
   const updateData: Record<string, any> = {
     executor_id: user.id,
     executor_type: "user",
-    status: "accepted",
-    accepted_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
+
+  if (isQueued) {
+    // 排隊中：記錄執行者但不改狀態，等啟用時自動變 accepted
+    updateData.accepted_at = new Date().toISOString();
+  } else {
+    // active：正式接單
+    updateData.status = "accepted";
+    updateData.accepted_at = new Date().toISOString();
+  }
+
   if (executorFee > 0) {
     updateData.executor_fee = executorFee;
     updateData.executor_fee_approved = false;
@@ -83,7 +92,7 @@ export async function POST(
     .from("commissions")
     .update(updateData)
     .eq("id", params.id)
-    .eq("status", "active") // 樂觀鎖
+    .in("status", ["active", "queued"])
     .select()
     .single();
 
@@ -93,7 +102,8 @@ export async function POST(
 
   const feeNote = executorFee > 0 ? `已提出抽成 ${executorFee.toLocaleString()}，等待刊登者確認。` : "";
   const depositNote = isFirstTime ? "由於是首次執行委託，需要提供押底寶可夢。" : "";
-  const msg = ["接單成功！", depositNote, feeNote].filter(Boolean).join(" ");
+  const queueNote = isQueued ? "已預約！當委託正式啟用時你將成為執行者。" : "接單成功！";
+  const msg = [queueNote, depositNote, feeNote].filter(Boolean).join(" ");
 
   return NextResponse.json({
     commission: updated,
