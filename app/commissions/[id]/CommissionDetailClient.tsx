@@ -184,7 +184,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
           </div>
           <div className="rounded-xl bg-white/5 p-4 text-center">
             <p className="text-xs text-white/40">刊登者抽成</p>
-            <p className="mt-1 text-lg font-bold text-white/70">{c.poster_fee.toLocaleString()}</p>
+            <p className="mt-1 text-lg font-bold text-white/70">{priceLabel(c.poster_fee, c.price_type)}</p>
           </div>
           <div className="rounded-xl bg-white/5 p-4 text-center">
             <p className="text-xs text-white/40">
@@ -194,7 +194,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
               )}
               {c.executor_fee_approved && <span className="ml-1 text-green-400">✓</span>}
             </p>
-            <p className="mt-1 text-lg font-bold text-white/70">{c.executor_fee.toLocaleString()}</p>
+            <p className="mt-1 text-lg font-bold text-white/70">{priceLabel(c.executor_fee, c.price_type)}</p>
           </div>
         </div>
         <p className="mt-3 text-center text-xs text-white/40">
@@ -394,7 +394,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
         {isPoster && c.executor_fee > 0 && !c.executor_fee_approved && (
           <div className="flex flex-col gap-3">
             <h3 className="text-sm font-semibold text-white/70">
-              執行者提出抽成：<span className="text-amber-400">{c.executor_fee.toLocaleString()}</span>
+              執行者提出抽成：<span className="text-amber-400">{priceLabel(c.executor_fee, c.price_type)}</span>
             </h3>
             <div className="flex gap-3">
               <button

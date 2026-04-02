@@ -93,7 +93,7 @@ export default function CommissionList({ commissions }: { commissions: Commissio
                 </span>
                 {c.poster_fee > 0 && (
                   <span className="text-white/40">
-                    抽成 {c.poster_fee.toLocaleString()}
+                    抽成 {c.price_type === "twd" ? "NT$" : ""}{c.poster_fee.toLocaleString()}{c.price_type !== "twd" ? " pts" : ""}
                   </span>
                 )}
               </div>
