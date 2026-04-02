@@ -90,7 +90,7 @@ export default function CommissionList({ commissions }: { commissions: Commissio
                 {c.platform_fee > 0 && (
                   <span className="text-white/40">
                     執行者可抽成{" "}
-                    <span className="animate-pulse font-semibold text-green-400 drop-shadow-[0_0_6px_rgba(74,222,128,0.6)]">
+                    <span className="inline-block font-bold text-green-400 glow-green">
                       {c.price_type === "twd" ? `NT$${c.platform_fee.toLocaleString()}` : `${c.platform_fee.toLocaleString()} pts`}
                     </span>
                   </span>

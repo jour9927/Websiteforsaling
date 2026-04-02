@@ -254,6 +254,19 @@ a {
 .animate-score-pop { animation: score-pop 0.3s ease-out; }
 .animate-slot-flash { animation: slot-flash 0.4s ease-in-out 3; }
 
+/* 綠色閃光效果 — 委託抽成金額 */
+@keyframes green-glow {
+  0%, 100% {
+    text-shadow: 0 0 4px rgba(74, 222, 128, 0.4), 0 0 8px rgba(74, 222, 128, 0.2);
+  }
+  50% {
+    text-shadow: 0 0 8px rgba(74, 222, 128, 0.8), 0 0 16px rgba(74, 222, 128, 0.4), 0 0 24px rgba(74, 222, 128, 0.2);
+  }
+}
+.glow-green {
+  animation: green-glow 2s ease-in-out infinite;
+}
+
 .stripe-bar {
   background-image: repeating-linear-gradient(
     -45deg,
