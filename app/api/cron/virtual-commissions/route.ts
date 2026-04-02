@@ -31,12 +31,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "No virtual users found" });
     }
 
-    // 2. 取得可用配布（第八世代、排除 OT 為 HOME）
+    // 2. 取得可用配布（第八世代、排除 OT=HOME、排除抽獎卷/抵用卷）
     const { data: distributions } = await supabase
       .from("distributions")
       .select("id, pokemon_name, pokemon_name_en, points, generation, original_trainer")
       .eq("generation", 8)
       .neq("original_trainer", "HOME")
+      .not("pokemon_name", "ilike", "%抽獎%")
+      .not("pokemon_name", "ilike", "%抵用%")
       .not("points", "is", null)
       .gt("points", 100);
 
