@@ -393,7 +393,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
         )}
 
         {/* 執行者提交/修改抽成 */}
-        {isExecutor && (c.status === "accepted" || c.status === "queued") && !c.executor_fee_approved && (
+        {isExecutor && (c.status === "accepted" || c.status === "queued") && c.executor_fee > 0 && !c.executor_fee_approved && (
           <div className="flex flex-col gap-3">
             <h3 className="text-sm font-semibold text-white/70">
               {c.executor_fee > 0 ? "修改你的抽成" : "提出你的抽成"}
