@@ -102,6 +102,13 @@ export async function POST(
     return NextResponse.json({ error: "接單失敗，請重試" }, { status: 500 });
   }
 
+  // 插入系統訊息：通知對話已開啟
+  await adminSupabase.from("commission_messages").insert({
+    commission_id: params.id,
+    sender_type: "system",
+    content: "委託已被接受，臨時對話已開啟。此對話僅限轉交帳號密碼與交換細節，請勿閒聊。",
+  });
+
   const feeNote = executorFee > 0 ? `已提出抽成 ${executorFee.toLocaleString()}，等待刊登者確認。` : "";
   const depositNote = isFirstTime ? "由於是首次執行委託，需要提供押底寶可夢。" : "";
   const queueNote = isQueued ? "已預約！當委託正式啟用時你將成為執行者。" : "接單成功！";

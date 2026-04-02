@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Route } from "next";
 import { NotificationBell } from "./NotificationBell";
+import { CommissionChatBell } from "./CommissionChatBell";
 
 type SiteHeaderProps = {
   displayName: string;
@@ -128,6 +129,7 @@ export function SiteHeader({ displayName, isAuthenticated, isAdmin }: SiteHeader
             </span>
           </Link>
           <NotificationBell isAuthenticated={isAuthenticated} />
+          <CommissionChatBell isAuthenticated={isAuthenticated} />
         </div>
         <nav className="hidden items-center gap-4 text-sm text-white/80 lg:flex">
           {visiblePrimaryLinks.map((item) => (

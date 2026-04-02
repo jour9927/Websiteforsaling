@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
+import CommissionChat from "@/components/CommissionChat";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 interface CommissionDetailClientProps {
@@ -341,6 +342,16 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
             </p>
           )}
         </div>
+      )}
+
+      {/* 委託臨時對話 — 接單後開啟 */}
+      {currentUserId && (isPoster || isExecutor) && ["accepted", "proof_submitted", "proof_approved", "completed"].includes(c.status) && (
+        <CommissionChat
+          commissionId={c.id}
+          currentUserId={currentUserId}
+          isPoster={isPoster}
+          isExecutor={isExecutor}
+        />
       )}
 
       {/* 互動區 — 只在有內容時顯示 */}
