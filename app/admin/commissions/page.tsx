@@ -38,9 +38,9 @@ export default function AdminCommissionsPage() {
       .select(
         `*,
          distributions(pokemon_name, pokemon_sprite_url),
-         poster:profiles!commissions_poster_id_fkey(display_name),
+         poster:profiles!commissions_poster_id_fkey(full_name),
          poster_virtual:virtual_profiles!commissions_poster_virtual_id_fkey(display_name),
-         executor:profiles!commissions_executor_id_fkey(display_name),
+         executor:profiles!commissions_executor_id_fkey(full_name),
          executor_virtual:virtual_profiles!commissions_executor_virtual_id_fkey(display_name)`
       )
       .in("status", currentTab.statuses)
@@ -99,12 +99,12 @@ export default function AdminCommissionsPage() {
   }
 
   function getPosterName(c: any) {
-    return c.poster_type === "virtual" ? c.poster_virtual?.display_name : c.poster?.display_name;
+    return c.poster_type === "virtual" ? c.poster_virtual?.display_name : c.poster?.full_name;
   }
 
   function getExecutorName(c: any) {
     if (!c.executor_id && !c.executor_virtual_id) return null;
-    return c.executor_type === "virtual" ? c.executor_virtual?.display_name : c.executor?.display_name;
+    return c.executor_type === "virtual" ? c.executor_virtual?.display_name : c.executor?.full_name;
   }
 
   return (
