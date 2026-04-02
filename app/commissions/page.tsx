@@ -34,13 +34,12 @@ export default async function CommissionsPage() {
     return { ...cleaned, poster } as any;
   });
 
-  const activeCommissions = commissions?.filter((c: any) => c.status === "active") || [];
+  const listedCommissions = commissions?.filter((c: any) => ["active", "queued"].includes(c.status)) || [];
   const inProgressCommissions =
     commissions?.filter((c: any) =>
       ["accepted", "proof_submitted", "proof_approved"].includes(c.status)
     ) || [];
   const completedCommissions = commissions?.filter((c: any) => c.status === "completed") || [];
-  const queuedCommissions = commissions?.filter((c: any) => c.status === "queued") || [];
 
   return (
     <div className="flex flex-col gap-8">
@@ -79,49 +78,38 @@ export default async function CommissionsPage() {
         </p>
       </div>
 
-      {/* 開放中的委託 */}
+      {/* 刊登中 */}
       <section>
         <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white/90">
           <span className="inline-block h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
-          開放中 ({activeCommissions.length})
+          刊登中 ({listedCommissions.length})
         </h2>
-        {activeCommissions.length === 0 ? (
+        {listedCommissions.length === 0 ? (
           <div className="glass-card p-8 text-center text-white/60">
-            <p>目前沒有開放中的委託，稍後再來看看吧！</p>
+            <p>目前沒有刊登中的委託，稍後再來看看吧！</p>
           </div>
         ) : (
-          <CommissionList commissions={activeCommissions} />
+          <CommissionList commissions={listedCommissions} />
         )}
       </section>
 
-      {/* 排隊中 */}
-      {queuedCommissions.length > 0 && (
-        <section>
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white/90">
-            <span className="inline-block h-2 w-2 rounded-full bg-yellow-400"></span>
-            排隊中 ({queuedCommissions.length})
-          </h2>
-          <CommissionList commissions={queuedCommissions} />
-        </section>
-      )}
-
-      {/* 進行中 */}
+      {/* 委託進行中 */}
       {inProgressCommissions.length > 0 && (
         <section>
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white/90">
             <span className="inline-block h-2 w-2 rounded-full bg-blue-400 animate-pulse"></span>
-            進行中 ({inProgressCommissions.length})
+            委託進行中 ({inProgressCommissions.length})
           </h2>
           <CommissionList commissions={inProgressCommissions} />
         </section>
       )}
 
-      {/* 已完成 */}
+      {/* 委託已完成 */}
       {completedCommissions.length > 0 && (
         <section>
           <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white/90">
             <span className="inline-block h-2 w-2 rounded-full bg-gray-400"></span>
-            已完成 ({completedCommissions.length})
+            委託已完成 ({completedCommissions.length})
           </h2>
           <CommissionList commissions={completedCommissions} />
         </section>
