@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createServerSupabaseClient, createAdminSupabaseClient } from "@/lib/auth";
 
 // POST /api/commissions/[id]/executor-fee — 執行者提交抽成 / 賣家同意或拒絕
 export async function POST(
@@ -48,7 +48,9 @@ export async function POST(
       );
     }
 
-    const { data, error } = await supabase
+    // 用 admin client 繞過 RLS
+    const adminSupabase = createAdminSupabaseClient();
+    const { data, error } = await adminSupabase
       .from("commissions")
       .update({
         executor_fee,
@@ -77,7 +79,8 @@ export async function POST(
         ? { executor_fee_approved: true, updated_at: new Date().toISOString() }
         : { executor_fee: 0, executor_fee_approved: false, updated_at: new Date().toISOString() };
 
-    const { data, error } = await supabase
+    const adminSupabase2 = createAdminSupabaseClient();
+    const { data, error } = await adminSupabase2
       .from("commissions")
       .update(updateData)
       .eq("id", params.id)

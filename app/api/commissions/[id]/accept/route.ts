@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createServerSupabaseClient, createAdminSupabaseClient } from "@/lib/auth";
 
 // POST /api/commissions/[id]/accept — 接受委託
 export async function POST(
@@ -88,7 +88,9 @@ export async function POST(
     updateData.executor_fee_approved = false;
   }
 
-  const { data: updated, error: updateError } = await supabase
+  // 用 admin client 繞過 RLS（因為接單者尚未成為 executor，RLS 會擋 UPDATE）
+  const adminSupabase = createAdminSupabaseClient();
+  const { data: updated, error: updateError } = await adminSupabase
     .from("commissions")
     .update(updateData)
     .eq("id", params.id)
