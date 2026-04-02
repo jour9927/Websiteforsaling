@@ -1,7 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/auth";
 import Link from "next/link";
 import type { Route } from "next";
-import CommissionList from "@/components/CommissionList";
+import CommissionTabs from "@/components/CommissionTabs";
 
 export const dynamic = "force-dynamic";
 
@@ -12,35 +12,28 @@ export default async function CommissionsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // 取得公開委託
-  const { data: rawCommissions } = await supabase
+  // 預載「刊登中」的委託（預設 tab）
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const { data: rawListed, count: listedCount } = await supabase
     .from("commissions")
     .select(
       `*,
        distributions(pokemon_name, pokemon_name_en, pokemon_sprite_url, generation, points),
        poster:profiles!commissions_poster_id_fkey(id, full_name),
-       poster_virtual:virtual_profiles!commissions_poster_virtual_id_fkey(id, display_name, avatar_seed)`
+       poster_virtual:virtual_profiles!commissions_poster_virtual_id_fkey(id, display_name, avatar_seed)`,
+      { count: "exact" }
     )
-    .in("status", ["active", "accepted", "proof_submitted", "proof_approved", "completed", "queued"])
+    .in("status", ["active", "queued"])
     .order("created_at", { ascending: false })
-    .limit(50);
+    .range(0, 19);
 
-  // 隱藏虛擬用戶身份：統一為 poster 欄位
-  /* eslint-disable @typescript-eslint/no-explicit-any */
   const hideKeys = ["poster_type", "poster_virtual", "poster_virtual_id", "admin_review_note", "reviewed_by"];
-  const commissions = (rawCommissions || []).map((c: any) => {
+  const listedCommissions = (rawListed || []).map((c: any) => {
     const rawPoster = c.poster_type === "virtual" ? c.poster_virtual : c.poster;
     const poster = rawPoster ? { id: rawPoster.id, display_name: rawPoster.display_name || rawPoster.full_name || "匿名" } : null;
     const cleaned = Object.fromEntries(Object.entries(c).filter(([k]) => !hideKeys.includes(k)));
     return { ...cleaned, poster } as any;
   });
-
-  const listedCommissions = commissions?.filter((c: any) => ["active", "queued"].includes(c.status)) || [];
-  const inProgressCommissions =
-    commissions?.filter((c: any) =>
-      ["accepted", "proof_submitted", "proof_approved"].includes(c.status)
-    ) || [];
-  const completedCommissions = commissions?.filter((c: any) => c.status === "completed") || [];
 
   return (
     <div className="flex flex-col gap-8">
@@ -79,42 +72,11 @@ export default async function CommissionsPage() {
         </p>
       </div>
 
-      {/* 刊登中 */}
-      <section>
-        <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white/90">
-          <span className="inline-block h-2 w-2 rounded-full bg-green-400 animate-pulse"></span>
-          刊登中 ({listedCommissions.length})
-        </h2>
-        {listedCommissions.length === 0 ? (
-          <div className="glass-card p-8 text-center text-white/60">
-            <p>目前沒有刊登中的委託，稍後再來看看吧！</p>
-          </div>
-        ) : (
-          <CommissionList commissions={listedCommissions} />
-        )}
-      </section>
-
-      {/* 委託進行中 */}
-      {inProgressCommissions.length > 0 && (
-        <section>
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white/90">
-            <span className="inline-block h-2 w-2 rounded-full bg-blue-400 animate-pulse"></span>
-            委託進行中 ({inProgressCommissions.length})
-          </h2>
-          <CommissionList commissions={inProgressCommissions} />
-        </section>
-      )}
-
-      {/* 委託已完成 */}
-      {completedCommissions.length > 0 && (
-        <section>
-          <h2 className="mb-4 flex items-center gap-2 text-lg font-semibold text-white/90">
-            <span className="inline-block h-2 w-2 rounded-full bg-gray-400"></span>
-            委託已完成 ({completedCommissions.length})
-          </h2>
-          <CommissionList commissions={completedCommissions} />
-        </section>
-      )}
+      {/* Tab 系統 */}
+      <CommissionTabs
+        initialCommissions={listedCommissions}
+        initialTotal={listedCount ?? 0}
+      />
 
       {!user && (
         <div className="glass-card p-6 text-center">

@@ -3,10 +3,6 @@
 import Link from "next/link";
 import type { Route } from "next";
 
-function priceUnit(type: string) {
-  return type === "twd" ? "NT$" : "pts";
-}
-
 interface Commission {
   id: string;
   pokemon_name: string;
@@ -89,7 +85,7 @@ export default function CommissionList({ commissions }: { commissions: Commissio
             <div className="mt-auto flex items-center justify-between border-t border-white/5 pt-3">
               <div className="flex items-center gap-3 text-xs">
                 <span className="text-amber-400 font-semibold">
-                  💰 {c.price_type === "twd" ? "NT$" : ""}{c.base_price.toLocaleString()} {priceUnit(c.price_type)}
+                  💰 {c.price_type === "twd" ? `NT$${c.base_price.toLocaleString()}` : `${c.base_price.toLocaleString()} pts`}
                 </span>
                 {c.platform_fee > 0 && (
                   <span className="text-white/40">

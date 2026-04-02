@@ -343,7 +343,16 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
         </div>
       )}
 
-      {/* 互動區 */}
+      {/* 互動區 — 只在有內容時顯示 */}
+      {(
+        (c.status === "active" && currentUserId && !isPoster) ||
+        (c.status === "active" && !currentUserId) ||
+        (isExecutor && (c.status === "accepted" || c.status === "queued") && c.executor_fee > 0 && !c.executor_fee_approved) ||
+        (isPoster && c.executor_fee > 0 && !c.executor_fee_approved) ||
+        (c.status === "queued") ||
+        (c.status === "completed") ||
+        error || message
+      ) && (
       <div className="glass-card p-6">
         {/* 接單按鈕 + 提出抽成 */}
         {c.status === "active" && currentUserId && !isPoster && (
@@ -529,6 +538,7 @@ export default function CommissionDetailClient({ commission, currentUserId }: Co
           </div>
         )}
       </div>
+      )}
     </div>
   );
 }

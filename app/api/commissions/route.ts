@@ -24,9 +24,14 @@ export async function GET(request: NextRequest) {
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
 
-  // 篩選狀態（預設顯示公開可見的）
+  // 篩選狀態（支援逗號分隔多狀態，預設顯示公開可見的）
   if (status) {
-    query = query.eq("status", status);
+    const statuses = status.split(",").map((s) => s.trim()).filter(Boolean);
+    if (statuses.length === 1) {
+      query = query.eq("status", statuses[0]);
+    } else {
+      query = query.in("status", statuses);
+    }
   } else {
     query = query.in("status", ["active", "accepted", "proof_submitted", "proof_approved", "completed", "queued"]);
   }
