@@ -6,7 +6,7 @@ const AUCTION_CONFIG = {
     starting_price: 100,
     min_increment: 100,
     duration_minutes: 10,
-    generation: 9,
+    generation: 7,
     // 每日時段：台灣時間 07:00 ~ 22:00
     start_hour: 7,   // 台灣時間
     end_hour: 22,     // 台灣時間
