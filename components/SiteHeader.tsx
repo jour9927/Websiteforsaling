@@ -128,7 +128,7 @@ export function SiteHeader({ displayName, isAuthenticated, isAdmin }: SiteHeader
               <span className="font-semibold text-white">{normalizedName}</span>
             </span>
           </Link>
-          <NotificationBell isAuthenticated={isAuthenticated} />
+          <NotificationBell isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
           <CommissionChatBell isAuthenticated={isAuthenticated} />
         </div>
         <nav className="hidden items-center gap-4 text-sm text-white/80 lg:flex">

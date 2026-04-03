@@ -9,6 +9,8 @@ type User = {
   email?: string;
 };
 
+type NotificationPreference = "site_only" | "site_email" | "site_discord" | "all";
+
 type Profile = {
   id: string;
   full_name: string | null;
@@ -18,6 +20,9 @@ type Profile = {
   pokemon_first_year: number | null;
   pokemon_first_game: string | null;
   username: string | null;
+  notification_preference: NotificationPreference | null;
+  notification_email: string | null;
+  discord_webhook_url: string | null;
 };
 
 type ProfileFormProps = {
@@ -33,6 +38,9 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
     bio: profile?.bio || "",
     pokemon_first_game: profile?.pokemon_first_game || "",
     username: profile?.username || "",
+    notification_preference: profile?.notification_preference || "site_only",
+    notification_email: profile?.notification_email || "",
+    discord_webhook_url: profile?.discord_webhook_url || "",
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -48,12 +56,47 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
       return;
     }
 
+    if (
+      formData.notification_email &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.notification_email)
+    ) {
+      setMessage("通知 Email 格式錯誤，請重新確認");
+      setSaving(false);
+      return;
+    }
+
+    const effectiveNotificationEmail =
+      formData.notification_email.trim() || user.email?.trim() || profile?.email?.trim() || "";
+
+    if (
+      (formData.notification_preference === "site_email" ||
+        formData.notification_preference === "all") &&
+      !effectiveNotificationEmail
+    ) {
+      setMessage("啟用 Email 推播前，請先填寫通知 Email 或確認帳號 Email 已存在");
+      setSaving(false);
+      return;
+    }
+
+    if (
+      (formData.notification_preference === "site_discord" ||
+        formData.notification_preference === "all") &&
+      !/^https:\/\/discord(?:app)?\.com\/api\/webhooks\/.+/.test(formData.discord_webhook_url)
+    ) {
+      setMessage("Discord Webhook URL 格式錯誤，請貼上完整 webhook 連結");
+      setSaving(false);
+      return;
+    }
+
     const { error } = await supabase
       .from("profiles")
       .update({
         bio: formData.bio || null,
         pokemon_first_game: formData.pokemon_first_game || null,
         username: formData.username || null,
+        notification_preference: formData.notification_preference,
+        notification_email: formData.notification_email || null,
+        discord_webhook_url: formData.discord_webhook_url || null,
       })
       .eq("id", user.id);
 
@@ -69,6 +112,13 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
     }
     setSaving(false);
   };
+
+  const notificationOptions: Array<{ value: NotificationPreference; label: string }> = [
+    { value: "site_only", label: "僅站內通知" },
+    { value: "site_email", label: "站內通知 + Email" },
+    { value: "site_discord", label: "站內通知 + Discord" },
+    { value: "all", label: "站內通知 + Email + Discord" },
+  ];
 
   // 寶可夢遊戲列表（本傳 + 外傳）
   const pokemonGames = [
@@ -234,6 +284,69 @@ export default function ProfileForm({ user, profile }: ProfileFormProps) {
             {formData.bio.length}/200 字元
           </span>
         </label>
+
+        <div className="md:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-4">
+          <div className="mb-4">
+            <p className="text-sm text-slate-200/80">通知偏好</p>
+            <p className="mt-1 text-xs text-white/50">
+              站內通知會保留在網站內，若啟用外送，私訊與管理通知也會同步送出。
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="text-slate-200/80">通知方式</span>
+              <select
+                value={formData.notification_preference}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    notification_preference: e.target.value as NotificationPreference,
+                  })
+                }
+                className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white focus:border-white/40 focus:outline-none"
+              >
+                {notificationOptions.map((option) => (
+                  <option key={option.value} value={option.value} className="bg-slate-800">
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="flex flex-col gap-2 text-sm">
+              <span className="text-slate-200/80">通知 Email</span>
+              <input
+                type="email"
+                value={formData.notification_email}
+                onChange={(e) =>
+                  setFormData({ ...formData, notification_email: e.target.value })
+                }
+                className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                placeholder={user.email || "you@example.com"}
+              />
+              <span className="text-xs text-white/50">
+                留空時會沿用帳號 Email：{user.email || "目前沒有可用帳號 Email"}
+              </span>
+            </label>
+
+            <label className="flex flex-col gap-2 text-sm md:col-span-2">
+              <span className="text-slate-200/80">Discord Webhook URL</span>
+              <input
+                type="url"
+                value={formData.discord_webhook_url}
+                onChange={(e) =>
+                  setFormData({ ...formData, discord_webhook_url: e.target.value })
+                }
+                className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+                placeholder="https://discord.com/api/webhooks/..."
+              />
+              <span className="text-xs text-white/50">
+                選擇 Discord 推播時必填。Webhook 只用於轉發通知，不會公開顯示。
+              </span>
+            </label>
+          </div>
+        </div>
 
         {message && (
           <div

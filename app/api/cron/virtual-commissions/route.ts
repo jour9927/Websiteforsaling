@@ -21,20 +21,51 @@ export async function GET(request: NextRequest) {
   );
 
   try {
+    // 0. 重置模式：結案所有現有虛擬委託（?reset=true 時觸發）
+    const isReset = request.nextUrl.searchParams.get("reset") === "true";
+    let closedCount = 0;
+
+    if (isReset) {
+      const today = new Date().toISOString().split("T")[0];
+
+      // 把所有非終態的虛擬委託結案，並清除 activated_date 釋放今日額度
+      const { data: closedRows } = await supabase
+        .from("commissions")
+        .update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          activated_date: null,
+        })
+        .eq("poster_type", "virtual")
+        .in("status", ["active", "queued", "accepted", "proof_submitted", "proof_approved", "pending_review"])
+        .select("id");
+
+      closedCount = closedRows?.length || 0;
+
+      // 同時清除今日已完成的虛擬委託的 activated_date，避免佔用額度
+      await supabase
+        .from("commissions")
+        .update({ activated_date: null })
+        .eq("poster_type", "virtual")
+        .eq("status", "completed")
+        .eq("activated_date", today);
+    }
+
     // 1. 取得虛擬用戶
     const { data: virtualUsers } = await supabase
       .from("virtual_profiles")
       .select("id, display_name");
 
     if (!virtualUsers || virtualUsers.length === 0) {
-      return NextResponse.json({ message: "No virtual users found" });
+      return NextResponse.json({ message: "No virtual users found", closed: closedCount });
     }
 
-    // 2. 取得可用配布（第八世代、排除 OT=HOME、排除抽獎卷/抵用卷）
+    // 2. 取得可用配布（第七世代、排除 OT=HOME、排除抽獎卷/抵用卷）
     const { data: distributions } = await supabase
       .from("distributions")
       .select("id, pokemon_name, pokemon_name_en, points, generation, original_trainer")
-      .eq("generation", 8)
+      .eq("generation", 7)
       .neq("original_trainer", "HOME")
       .not("pokemon_name", "ilike", "%抽獎%")
       .not("pokemon_name", "ilike", "%抵用%")
@@ -59,8 +90,8 @@ export async function GET(request: NextRequest) {
       const dist = selectedDistributions[i];
       const priceType = "twd";
       const rawPrice = generateBasePrice(dist.points);
-      // TWD 計價：1 點 ≈ NT$0.3~0.5，取整到十位，限制合理範圍
-      const rate = 0.3 + Math.random() * 0.2;
+      // TWD 計價：Gen7 points 10,000~50,000，rate 0.05~0.15 維持合理價格
+      const rate = 0.05 + Math.random() * 0.10;
       let basePrice = Math.round(rawPrice * rate / 10) * 10;
       basePrice = Math.max(50, Math.min(basePrice, 9990));
       const platformFee = generateFee(basePrice);
@@ -79,7 +110,6 @@ export async function GET(request: NextRequest) {
           status: "active",
           activated_date: today,
           reviewed_at: new Date().toISOString(),
-          admin_review_note: "虛擬用戶自動發佈",
         })
         .select("id")
         .single();
@@ -164,7 +194,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `虛擬委託：建立 ${createdCount}、接單 ${acceptedCount}、完成 ${completedCount}`,
+      message: `虛擬委託：${isReset ? `結案 ${closedCount}、` : ""}建立 ${createdCount}、接單 ${acceptedCount}、完成 ${completedCount}`,
+      closed: closedCount,
       created: createdCount,
       accepted: acceptedCount,
       completed: completedCount,
