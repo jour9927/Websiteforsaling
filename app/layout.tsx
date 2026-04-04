@@ -6,6 +6,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { MaintenanceProvider } from "@/components/MaintenanceContext";
 import GlobalAnnouncementOverlay from "@/components/GlobalAnnouncementOverlay";
+import { GlobalMessageToast } from "@/components/GlobalMessageToast";
 import { createServerSupabaseClient } from "@/lib/auth";
 
 // Force dynamic rendering for all pages (required for Supabase auth with cookies)
@@ -113,6 +114,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
     <html lang="zh-Hant">
       <body className="min-h-screen antialiased">
         <GlobalAnnouncementOverlay />
+        <GlobalMessageToast isAuthenticated={isAuthenticated} />
         <MaintenanceBanner />
         <MaintenanceProvider isAdmin={isAdmin}>
           <div className="flex min-h-screen flex-col">

@@ -327,7 +327,7 @@ export function NotificationBell({ isAuthenticated, isAdmin }: NotificationBellP
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-14 z-50 w-80 rounded-2xl border border-white/10 bg-midnight-900/95 p-3 shadow-xl backdrop-blur animate-fadeIn">
+        <div className="absolute left-0 top-14 z-50 w-80 rounded-2xl border border-white/10 bg-midnight-900/95 p-3 shadow-xl backdrop-blur animate-fadeIn">
           <div className="mb-2 flex items-center justify-between border-b border-white/10 pb-2">
             <div>
               <p className="text-xs font-semibold text-white/80">通知中心</p>
