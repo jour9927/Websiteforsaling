@@ -112,26 +112,28 @@ export async function GET(request: NextRequest) {
     }
 
     // 2. 取得可用配布：8代（便宜）+ 7代（貴）
-    const baseQuery = supabase
-      .from("distributions")
-      .select("id, pokemon_name, pokemon_name_en, points, generation, original_trainer")
-      .neq("original_trainer", "HOME")
-      .not("pokemon_name", "ilike", "%抽獎%")
-      .not("pokemon_name", "ilike", "%抵用%")
-      .not("points", "is", null)
-      .gt("points", 100);
+    // 禁止出現的寶可夢（馬基雅那、皮卡丘）及 HOME 配布
+    const BLOCKED_NAMES = ["%馬基雅那%", "%皮卡丘%"];
 
-    const [{ data: gen8Dist }, { data: gen7Dist }] = await Promise.all([
-      baseQuery.eq("generation", 8),
-      supabase
+    const buildDistQuery = (generation: number) => {
+      let q = supabase
         .from("distributions")
         .select("id, pokemon_name, pokemon_name_en, points, generation, original_trainer")
-        .eq("generation", 7)
+        .eq("generation", generation)
         .neq("original_trainer", "HOME")
         .not("pokemon_name", "ilike", "%抽獎%")
         .not("pokemon_name", "ilike", "%抵用%")
         .not("points", "is", null)
-        .gt("points", 100),
+        .gt("points", 100);
+      for (const name of BLOCKED_NAMES) {
+        q = q.not("pokemon_name", "ilike", name);
+      }
+      return q;
+    };
+
+    const [{ data: gen8Dist }, { data: gen7Dist }] = await Promise.all([
+      buildDistQuery(8),
+      buildDistQuery(7),
     ]);
 
     if ((!gen8Dist || gen8Dist.length === 0) && (!gen7Dist || gen7Dist.length === 0)) {
