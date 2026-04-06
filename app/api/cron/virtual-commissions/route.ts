@@ -111,63 +111,90 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "No virtual users found", closed: closedCount });
     }
 
-    // 2. 取得可用配布（第八世代、排除 OT=HOME、排除抽獎卷/抵用卷）
-    const { data: distributions } = await supabase
+    // 2. 取得可用配布：8代（便宜）+ 7代（貴）
+    const baseQuery = supabase
       .from("distributions")
       .select("id, pokemon_name, pokemon_name_en, points, generation, original_trainer")
-      .eq("generation", 8)
       .neq("original_trainer", "HOME")
       .not("pokemon_name", "ilike", "%抽獎%")
       .not("pokemon_name", "ilike", "%抵用%")
       .not("points", "is", null)
       .gt("points", 100);
 
-    if (!distributions || distributions.length === 0) {
+    const [{ data: gen8Dist }, { data: gen7Dist }] = await Promise.all([
+      baseQuery.eq("generation", 8),
+      supabase
+        .from("distributions")
+        .select("id, pokemon_name, pokemon_name_en, points, generation, original_trainer")
+        .eq("generation", 7)
+        .neq("original_trainer", "HOME")
+        .not("pokemon_name", "ilike", "%抽獎%")
+        .not("pokemon_name", "ilike", "%抵用%")
+        .not("points", "is", null)
+        .gt("points", 100),
+    ]);
+
+    if ((!gen8Dist || gen8Dist.length === 0) && (!gen7Dist || gen7Dist.length === 0)) {
       return NextResponse.json({ message: "No distributions found" });
     }
 
-    // 3. 隨機產生 16-18 則虛擬委託（全部直接 active，不限每日 5 單）
-    const postCount = 16 + Math.floor(Math.random() * 3); // 16-18
-    const selectedVirtualUsers = pickRandom(virtualUsers, postCount);
-    const selectedDistributions = pickRandom(distributions, postCount);
-
+    // 3. 生成兩批：8 筆八代（200~490 元）+ 8 筆七代（1,000~3,000 元）
+    const today = new Date().toISOString().split("T")[0];
     let createdCount = 0;
     const createdIds: string[] = [];
-    const today = new Date().toISOString().split("T")[0];
 
-    for (let i = 0; i < postCount; i++) {
-      const vu = selectedVirtualUsers[i];
-      const dist = selectedDistributions[i];
-      const priceType = "twd";
-      const rawPrice = generateBasePrice(dist.points);
-      // TWD 計價：Gen8，價格區間 200~490 元
-      const rate = 0.03 + Math.random() * 0.05;
-      let basePrice = Math.round(rawPrice * rate / 10) * 10;
-      basePrice = Math.max(200, Math.min(basePrice, 490));
-      const platformFee = generateFee(basePrice);
+    type DistRow = { id: string; pokemon_name: string; points: number | null };
 
-      const { data: created, error } = await supabase
-        .from("commissions")
-        .insert({
-          poster_virtual_id: vu.id,
-          poster_type: "virtual",
-          distribution_id: dist.id,
-          pokemon_name: dist.pokemon_name,
-          description: "",
-          base_price: basePrice,
-          price_type: priceType,
-          platform_fee: platformFee,
-          status: "active",
-          activated_date: today,
-          reviewed_at: new Date().toISOString(),
-        })
-        .select("id")
-        .single();
-
-      if (!error && created) {
-        createdCount++;
-        createdIds.push(created.id);
+    const insertBatch = async (
+      dists: DistRow[],
+      count: number,
+      priceFn: (rawPrice: number) => number,
+    ) => {
+      const selected = pickRandom(dists, count);
+      const users = pickRandom(virtualUsers, count);
+      for (let i = 0; i < count; i++) {
+        const dist = selected[i];
+        const rawPrice = generateBasePrice(dist.points);
+        const basePrice = priceFn(rawPrice);
+        const platformFee = generateFee(basePrice);
+        const { data: created, error } = await supabase
+          .from("commissions")
+          .insert({
+            poster_virtual_id: users[i].id,
+            poster_type: "virtual",
+            distribution_id: dist.id,
+            pokemon_name: dist.pokemon_name,
+            description: "",
+            base_price: basePrice,
+            price_type: "twd",
+            platform_fee: platformFee,
+            status: "active",
+            activated_date: today,
+            reviewed_at: new Date().toISOString(),
+          })
+          .select("id")
+          .single();
+        if (!error && created) {
+          createdCount++;
+          createdIds.push(created.id);
+        }
       }
+    };
+
+    // 八代：200~490 元
+    if (gen8Dist && gen8Dist.length > 0) {
+      await insertBatch(gen8Dist, 8, (raw) => {
+        const rate = 0.03 + Math.random() * 0.05;
+        return Math.max(200, Math.min(Math.round(raw * rate / 10) * 10, 490));
+      });
+    }
+
+    // 七代：1,000~3,000 元
+    if (gen7Dist && gen7Dist.length > 0) {
+      await insertBatch(gen7Dist, 8, (raw) => {
+        const rate = 0.08 + Math.random() * 0.08;
+        return Math.max(1000, Math.min(Math.round(raw * rate / 100) * 100, 3000));
+      });
     }
 
     // 4. 隨機讓 13-16 個虛擬用戶接單（從所有未被接的 active 虛擬委託中選）
