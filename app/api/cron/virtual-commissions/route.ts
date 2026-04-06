@@ -147,22 +147,32 @@ export async function GET(request: NextRequest) {
 
     type DistRow = { id: string; pokemon_name: string; points: number | null };
 
+    // 每批 8 筆：前 4 筆「刊登中(active)」，後 4 筆立刻「執行中(accepted)」
     const insertBatch = async (
       dists: DistRow[],
       count: number,
       priceFn: (rawPrice: number) => number,
     ) => {
       const selected = pickRandom(dists, count);
-      const users = pickRandom(virtualUsers, count);
+      const posters = pickRandom(virtualUsers, count);
+      const executors = pickRandom(virtualUsers, count);
+      const activeCount = Math.ceil(count / 2); // 前半刊登中
+
       for (let i = 0; i < count; i++) {
         const dist = selected[i];
         const rawPrice = generateBasePrice(dist.points);
         const basePrice = priceFn(rawPrice);
         const platformFee = generateFee(basePrice);
+        const isImmediate = i >= activeCount; // 後半立刻接單
+
+        const maxFee = Math.floor((basePrice * 4) / 5 - platformFee);
+        const execRatio = 0.4 + Math.random() * 0.4;
+        const executorFee = Math.max(Math.round(maxFee * execRatio / 100) * 100, 100);
+
         const { data: created, error } = await supabase
           .from("commissions")
           .insert({
-            poster_virtual_id: users[i].id,
+            poster_virtual_id: posters[i].id,
             poster_type: "virtual",
             distribution_id: dist.id,
             pokemon_name: dist.pokemon_name,
@@ -170,15 +180,23 @@ export async function GET(request: NextRequest) {
             base_price: basePrice,
             price_type: "twd",
             platform_fee: platformFee,
-            status: "active",
+            status: isImmediate ? "accepted" : "active",
             activated_date: today,
             reviewed_at: new Date().toISOString(),
+            ...(isImmediate && {
+              executor_virtual_id: executors[i].id,
+              executor_type: "virtual",
+              executor_fee: executorFee,
+              executor_fee_approved: true,
+              accepted_at: new Date().toISOString(),
+            }),
           })
           .select("id")
           .single();
+
         if (!error && created) {
           createdCount++;
-          createdIds.push(created.id);
+          if (!isImmediate) createdIds.push(created.id); // 只追蹤刊登中的
         }
       }
     };
@@ -213,7 +231,9 @@ export async function GET(request: NextRequest) {
     let acceptedCount = 0;
 
     if (activeVirtualCommissions && activeVirtualCommissions.length > 0) {
-      const acceptCount = 16 + Math.floor(Math.random() * 3); // 16-18
+      // 只搶舊刊登中的一部分（3~5 筆），不全搶光也不空手
+      const available = activeVirtualCommissions.length;
+      const acceptCount = Math.min(3 + Math.floor(Math.random() * 3), Math.ceil(available * 0.6));
       const toAccept = pickRandom(activeVirtualCommissions, acceptCount);
       const acceptors = pickRandom(virtualUsers, toAccept.length);
 
