@@ -126,8 +126,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "No distributions found" });
     }
 
-    // 3. 隨機產生 13-16 則虛擬委託（全部直接 active，不限每日 5 單）
-    const postCount = 13 + Math.floor(Math.random() * 4); // 13-16
+    // 3. 隨機產生 16-18 則虛擬委託（全部直接 active，不限每日 5 單）
+    const postCount = 16 + Math.floor(Math.random() * 3); // 16-18
     const selectedVirtualUsers = pickRandom(virtualUsers, postCount);
     const selectedDistributions = pickRandom(distributions, postCount);
 
@@ -140,10 +140,10 @@ export async function GET(request: NextRequest) {
       const dist = selectedDistributions[i];
       const priceType = "twd";
       const rawPrice = generateBasePrice(dist.points);
-      // TWD 計價：Gen8 points 5,000~10,000，rate 0.03~0.08 → 幾百元區間
+      // TWD 計價：Gen8，價格區間 200~490 元
       const rate = 0.03 + Math.random() * 0.05;
       let basePrice = Math.round(rawPrice * rate / 10) * 10;
-      basePrice = Math.max(200, Math.min(basePrice, 990));
+      basePrice = Math.max(200, Math.min(basePrice, 490));
       const platformFee = generateFee(basePrice);
 
       const { data: created, error } = await supabase
@@ -183,7 +183,7 @@ export async function GET(request: NextRequest) {
     let acceptedCount = 0;
 
     if (activeVirtualCommissions && activeVirtualCommissions.length > 0) {
-      const acceptCount = 13 + Math.floor(Math.random() * 4); // 13-16
+      const acceptCount = 16 + Math.floor(Math.random() * 3); // 16-18
       const toAccept = pickRandom(activeVirtualCommissions, acceptCount);
       const acceptors = pickRandom(virtualUsers, toAccept.length);
 
@@ -225,7 +225,7 @@ export async function GET(request: NextRequest) {
       .limit(50);
 
     if (acceptedVirtual && acceptedVirtual.length > 0) {
-      const completeCount = 13 + Math.floor(Math.random() * 4); // 13-16
+      const completeCount = 16 + Math.floor(Math.random() * 3); // 16-18
       const toComplete = pickRandom(acceptedVirtual, completeCount);
 
       for (const commission of toComplete) {
