@@ -52,6 +52,56 @@ export async function GET(request: NextRequest) {
         .eq("activated_date", today);
     }
 
+    // 0b. 接單模式：把所有 active 的虛擬委託標為 accepted（?accept-all=true）
+    const isAcceptAll = request.nextUrl.searchParams.get("accept-all") === "true";
+    let forcedAcceptCount = 0;
+
+    if (isAcceptAll) {
+      const { data: virtualUsers2 } = await supabase
+        .from("virtual_profiles")
+        .select("id");
+
+      const { data: activeToAccept } = await supabase
+        .from("commissions")
+        .select("id, base_price, platform_fee")
+        .eq("poster_type", "virtual")
+        .eq("status", "active")
+        .is("executor_virtual_id", null)
+        .is("executor_id", null)
+        .limit(200);
+
+      if (activeToAccept && activeToAccept.length > 0 && virtualUsers2 && virtualUsers2.length > 0) {
+        const acceptors = pickRandom(virtualUsers2, activeToAccept.length);
+        for (let i = 0; i < activeToAccept.length; i++) {
+          const maxFee = Math.floor((activeToAccept[i].base_price * 4) / 5 - activeToAccept[i].platform_fee);
+          const execRatio = 0.4 + Math.random() * 0.4;
+          const executorFee = Math.max(Math.round(maxFee * execRatio / 100) * 100, 100);
+
+          const { error } = await supabase
+            .from("commissions")
+            .update({
+              executor_virtual_id: acceptors[i].id,
+              executor_type: "virtual",
+              status: "accepted",
+              executor_fee: executorFee,
+              executor_fee_approved: true,
+              accepted_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", activeToAccept[i].id)
+            .eq("status", "active");
+
+          if (!error) forcedAcceptCount++;
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `強制接單完成：${forcedAcceptCount} 筆`,
+        forcedAccepted: forcedAcceptCount,
+      });
+    }
+
     // 1. 取得虛擬用戶
     const { data: virtualUsers } = await supabase
       .from("virtual_profiles")
@@ -61,11 +111,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "No virtual users found", closed: closedCount });
     }
 
-    // 2. 取得可用配布（第七世代、排除 OT=HOME、排除抽獎卷/抵用卷）
+    // 2. 取得可用配布（第八世代、排除 OT=HOME、排除抽獎卷/抵用卷）
     const { data: distributions } = await supabase
       .from("distributions")
       .select("id, pokemon_name, pokemon_name_en, points, generation, original_trainer")
-      .eq("generation", 7)
+      .eq("generation", 8)
       .neq("original_trainer", "HOME")
       .not("pokemon_name", "ilike", "%抽獎%")
       .not("pokemon_name", "ilike", "%抵用%")
@@ -90,10 +140,10 @@ export async function GET(request: NextRequest) {
       const dist = selectedDistributions[i];
       const priceType = "twd";
       const rawPrice = generateBasePrice(dist.points);
-      // TWD 計價：Gen7 points 10,000~50,000，rate 0.05~0.15 維持合理價格
-      const rate = 0.05 + Math.random() * 0.10;
+      // TWD 計價：Gen8 points 5,000~10,000，rate 0.03~0.08 → 幾百元區間
+      const rate = 0.03 + Math.random() * 0.05;
       let basePrice = Math.round(rawPrice * rate / 10) * 10;
-      basePrice = Math.max(50, Math.min(basePrice, 9990));
+      basePrice = Math.max(200, Math.min(basePrice, 990));
       const platformFee = generateFee(basePrice);
 
       const { data: created, error } = await supabase
