@@ -197,7 +197,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 4. 隨機讓 13-16 個虛擬用戶接單（從所有未被接的 active 虛擬委託中選）
+    // 4. 隨機讓虛擬用戶接單（排除本輪剛建立的，讓它們保持「刊登中」）
     const { data: activeVirtualCommissions } = await supabase
       .from("commissions")
       .select("id, base_price, platform_fee")
@@ -205,6 +205,7 @@ export async function GET(request: NextRequest) {
       .eq("poster_type", "virtual")
       .is("executor_id", null)
       .is("executor_virtual_id", null)
+      .not("id", "in", `(${createdIds.length > 0 ? createdIds.join(",") : "00000000-0000-0000-0000-000000000000"})`)
       .limit(50);
 
     let acceptedCount = 0;
