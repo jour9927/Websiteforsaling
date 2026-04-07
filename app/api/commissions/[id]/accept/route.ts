@@ -36,6 +36,11 @@ export async function POST(
     return NextResponse.json({ error: "不能接受自己的委託" }, { status: 400 });
   }
 
+  // 虛擬委託不開放真實用戶接單（虛擬委託僅用於活絡市場，無真人可回應）
+  if (commission.poster_type === "virtual") {
+    return NextResponse.json({ error: "此委託目前暫不開放接單" }, { status: 400 });
+  }
+
   // 已經有人接了
   if (commission.executor_id || commission.executor_virtual_id) {
     return NextResponse.json({ error: "此委託已被其他人接受" }, { status: 400 });
