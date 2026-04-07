@@ -7,10 +7,11 @@ export default async function PokedexPage() {
     // 獲取當前用戶
     const { data: { user } } = await supabase.auth.getUser();
 
-    // 獲取所有配布資料
+    // 獲取所有配布資料（隱藏 HOME 配布）
     const { data: distributions } = await supabase
         .from("distributions")
         .select("*")
+        .neq("original_trainer", "HOME")
         .order("distribution_period_start", { ascending: false });
 
     // 獲取用戶已收集的配布
