@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createServerSupabaseClient, createAdminSupabaseClient } from "@/lib/auth";
 
 // GET /api/commissions/[id]/messages — 取得委託對話訊息
 export async function GET(
@@ -15,10 +15,12 @@ export async function GET(
     return NextResponse.json({ error: "請先登入" }, { status: 401 });
   }
 
-  // 確認使用者是委託的 poster 或 executor
-  const { data: commission, error: commissionError } = await supabase
+  // 確認使用者是委託的 poster 或 executor（或管理員）
+  const adminSupabase = createAdminSupabaseClient();
+
+  const { data: commission, error: commissionError } = await adminSupabase
     .from("commissions")
-    .select("id, poster_id, executor_id")
+    .select("id, poster_id, poster_type, poster_virtual_id, executor_id")
     .eq("id", params.id)
     .single();
 
@@ -26,7 +28,21 @@ export async function GET(
     return NextResponse.json({ error: "找不到此委託" }, { status: 404 });
   }
 
-  if (commission.poster_id !== user.id && commission.executor_id !== user.id) {
+  // 查詢是否為 admin
+  const { data: profile } = await adminSupabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  const isAdmin = profile?.role === "admin";
+
+  const isParticipant =
+    commission.poster_id === user.id || commission.executor_id === user.id;
+
+  // 虛擬委託：admin 也可以存取（代虛擬用戶回覆）
+  const isVirtualPoster = commission.poster_type === "virtual";
+
+  if (!isParticipant && !(isAdmin && isVirtualPoster)) {
     return NextResponse.json({ error: "無權限查看此對話" }, { status: 403 });
   }
 
@@ -70,23 +86,36 @@ export async function POST(
     return NextResponse.json({ error: "請先登入" }, { status: 401 });
   }
 
-  // 確認使用者是委託的 poster 或 executor
-  const { data: commission, error: commissionError } = await supabase
+  // 確認使用者是委託的 poster 或 executor（或管理員）
+  const adminSupabasePost = createAdminSupabaseClient();
+
+  const { data: commissionPost, error: commissionError } = await adminSupabasePost
     .from("commissions")
-    .select("id, poster_id, executor_id")
+    .select("id, poster_id, poster_type, poster_virtual_id, executor_id")
     .eq("id", params.id)
     .single();
 
-  if (commissionError || !commission) {
+  if (commissionError || !commissionPost) {
     return NextResponse.json({ error: "找不到此委託" }, { status: 404 });
   }
 
-  if (commission.poster_id !== user.id && commission.executor_id !== user.id) {
+  const { data: profilePost } = await adminSupabasePost
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+  const isAdminPost = profilePost?.role === "admin";
+
+  const isParticipantPost =
+    commissionPost.poster_id === user.id || commissionPost.executor_id === user.id;
+  const isVirtualPosterPost = commissionPost.poster_type === "virtual";
+
+  if (!isParticipantPost && !(isAdminPost && isVirtualPosterPost)) {
     return NextResponse.json({ error: "無權限在此對話發送訊息" }, { status: 403 });
   }
 
   // 解析並驗證 body
-  let body: { content?: string };
+  let body: { content?: string; as_virtual?: boolean };
   try {
     body = await request.json();
   } catch {
@@ -104,15 +133,28 @@ export async function POST(
     );
   }
 
+  // admin 以虛擬用戶名義回覆（as_virtual: true）
+  const sendAsVirtual =
+    isAdminPost && isVirtualPosterPost && body.as_virtual === true;
+
+  const insertPayload = sendAsVirtual
+    ? {
+        commission_id: params.id,
+        sender_virtual_id: commissionPost.poster_virtual_id,
+        sender_type: "virtual" as const,
+        content,
+      }
+    : {
+        commission_id: params.id,
+        sender_id: user.id,
+        sender_type: "user" as const,
+        content,
+      };
+
   // 插入訊息
-  const { data: message, error: insertError } = await supabase
+  const { data: message, error: insertError } = await adminSupabasePost
     .from("commission_messages")
-    .insert({
-      commission_id: params.id,
-      sender_id: user.id,
-      sender_type: "user",
-      content,
-    })
+    .insert(insertPayload)
     .select()
     .single();
 
