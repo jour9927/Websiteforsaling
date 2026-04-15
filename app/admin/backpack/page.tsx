@@ -24,6 +24,7 @@ type BackpackItemRow = {
   note: string | null;
   is_active: boolean;
   created_at: string;
+  expires_at: string | null;
 };
 
 export default function AdminBackpackPage() {
@@ -34,6 +35,8 @@ export default function AdminBackpackPage() {
     "blindbox_discount_500",
   );
   const [note, setNote] = useState("");
+  const [customGrantedAt, setCustomGrantedAt] = useState("");
+  const [expiresAt, setExpiresAt] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -61,7 +64,7 @@ export default function AdminBackpackPage() {
             .order("full_name", { ascending: true }),
           supabase
             .from("backpack_items")
-            .select("id, user_id, granted_by, item_type, item_name, note, is_active, created_at")
+            .select("id, user_id, granted_by, item_type, item_name, note, is_active, created_at, expires_at")
             .order("created_at", { ascending: false }),
         ]);
 
@@ -100,6 +103,20 @@ export default function AdminBackpackPage() {
       }
 
       const itemName = getBackpackItemName(selectedType);
+      const parsedGrantedAt = customGrantedAt ? new Date(customGrantedAt) : null;
+      const parsedExpiresAt = expiresAt ? new Date(expiresAt) : null;
+
+      if (parsedGrantedAt && Number.isNaN(parsedGrantedAt.getTime())) {
+        throw new Error("發放時間格式不正確");
+      }
+
+      if (parsedExpiresAt && Number.isNaN(parsedExpiresAt.getTime())) {
+        throw new Error("有效期限格式不正確");
+      }
+
+      if (parsedExpiresAt && parsedGrantedAt && parsedExpiresAt <= parsedGrantedAt) {
+        throw new Error("有效期限必須晚於發放時間");
+      }
 
       const { error: insertError } = await supabase.from("backpack_items").insert({
         user_id: selectedUserId,
@@ -107,12 +124,16 @@ export default function AdminBackpackPage() {
         item_name: itemName,
         note: note.trim() || null,
         granted_by: user.id,
+        created_at: parsedGrantedAt?.toISOString(),
+        expires_at: parsedExpiresAt?.toISOString() || null,
       });
 
       if (insertError) throw insertError;
 
       setSuccess("道具已發放到會員背包");
       setNote("");
+      setCustomGrantedAt("");
+      setExpiresAt("");
       await loadData();
     } catch (err) {
       console.error(err);
@@ -246,6 +267,28 @@ export default function AdminBackpackPage() {
             />
           </label>
 
+          <label className="flex flex-col gap-2 text-sm text-white/70">
+            發放時間（選填）
+            <input
+              type="datetime-local"
+              value={customGrantedAt}
+              onChange={(e) => setCustomGrantedAt(e.target.value)}
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white focus:border-white/40 focus:outline-none"
+            />
+            <span className="text-xs text-white/45">未填則使用系統當前時間。</span>
+          </label>
+
+          <label className="flex flex-col gap-2 text-sm text-white/70">
+            有效期限（選填）
+            <input
+              type="datetime-local"
+              value={expiresAt}
+              onChange={(e) => setExpiresAt(e.target.value)}
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white focus:border-white/40 focus:outline-none"
+            />
+            <span className="text-xs text-white/45">設定後超過期限會視為過期。</span>
+          </label>
+
           <button
             type="submit"
             disabled={submitting || loading}
@@ -284,6 +327,8 @@ export default function AdminBackpackPage() {
             {filteredItems.map((item) => {
               const owner = userMap.get(item.user_id);
               const issuer = item.granted_by ? userMap.get(item.granted_by) : null;
+              const isExpired =
+                Boolean(item.expires_at) && new Date(item.expires_at as string) <= new Date();
               return (
                 <article
                   key={item.id}
@@ -301,17 +346,29 @@ export default function AdminBackpackPage() {
                     </div>
                     <span
                       className={`rounded-full px-2 py-0.5 text-xs ${
-                        item.is_active
+                        item.is_active && !isExpired
                           ? "bg-emerald-500/20 text-emerald-200"
-                          : "bg-white/10 text-white/50"
+                          : isExpired
+                            ? "bg-red-500/20 text-red-200"
+                            : "bg-white/10 text-white/50"
                       }`}
                     >
-                      {item.is_active ? "可使用" : "已停用"}
+                      {item.is_active && !isExpired
+                        ? "可使用"
+                        : isExpired
+                          ? "已過期"
+                          : "已停用"}
                     </span>
                   </div>
 
                   <p className="mt-2 text-xs text-white/45">
                     發放時間：{new Date(item.created_at).toLocaleString("zh-TW")}
+                  </p>
+                  <p className={`mt-1 text-xs ${isExpired ? "text-red-300" : "text-white/45"}`}>
+                    有效期限：
+                    {item.expires_at
+                      ? new Date(item.expires_at).toLocaleString("zh-TW")
+                      : "無期限"}
                   </p>
                   <p className="mt-2 text-sm text-white/80">
                     備註：{item.note?.trim() ? item.note : "無備註"}

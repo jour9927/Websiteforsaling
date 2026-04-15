@@ -35,6 +35,7 @@ export function GlobalBackpackToast({
         .select("id", { count: "exact", head: true })
         .eq("user_id", userId)
         .eq("is_active", true)
+        .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
         .gt("created_at", lastRead);
 
       const newCount = count || 0;

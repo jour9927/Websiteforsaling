@@ -22,6 +22,11 @@
 - 修正背包管理收件名單
   - `/admin/backpack` 發放對象改為包含管理員帳號，管理員可給自己發放道具
   - 成員選單補上管理員角色標示（管理員）
+- 背包道具新增時間調整與限時機制
+  - 管理員發放時可自訂「發放時間」
+  - 管理員可設定「有效期限」，逾期後道具顯示為已到期
+  - 會員背包頁對限時/將到期道具顯示紅字閃爍提示
+  - 新道具氣泡未讀計算改為忽略已過期道具
 
 ### Changed
 - `app/admin/messages/page.tsx`
@@ -40,6 +45,8 @@
   - 新增 `backpack_items` 表與 RLS（會員可讀自己的背包，管理員可全管理）
 - `supabase/migrations/20260415113500_add_last_read_backpack_items_at_to_profiles.sql`
   - 新增 `profiles.last_read_backpack_items_at` 欄位，供背包氣泡計算未讀新道具
+- `supabase/migrations/20260415121000_add_expiry_to_backpack_items.sql`
+  - 新增 `backpack_items.expires_at` 欄位，供道具有效期限與到期提醒使用
 
 ## [2026-04-02]
 
