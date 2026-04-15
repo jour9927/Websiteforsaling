@@ -14,6 +14,7 @@ type Message = {
   id: string;
   sender_id: string;
   recipient_id: string;
+  sender_display_name?: string | null;
   subject: string;
   body: string;
   is_read: boolean;
@@ -23,6 +24,8 @@ type Message = {
   sender?: User;
 };
 
+const DEFAULT_ANONYMOUS_SENDER = "客服團隊";
+
 export default function AdminMessagesPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [sentMessages, setSentMessages] = useState<Message[]>([]);
@@ -31,6 +34,8 @@ export default function AdminMessagesPage() {
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [customSentAt, setCustomSentAt] = useState("");
+  const [senderIdentityMode, setSenderIdentityMode] = useState<"anonymous" | "real" | "custom">("anonymous");
+  const [customSenderName, setCustomSenderName] = useState("");
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
@@ -181,15 +186,40 @@ export default function AdminMessagesPage() {
         throw new Error("自訂發送時間格式不正確");
       }
 
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, email")
+        .eq("id", user.id)
+        .single();
+
+      const realSenderName =
+        profile?.full_name?.trim() ||
+        profile?.email?.split("@")[0] ||
+        "管理員";
+
+      let senderDisplayName = DEFAULT_ANONYMOUS_SENDER;
+      if (senderIdentityMode === "real") {
+        senderDisplayName = realSenderName;
+      }
+      if (senderIdentityMode === "custom") {
+        const trimmedCustomName = customSenderName.trim();
+        if (!trimmedCustomName) {
+          throw new Error("請輸入自訂回覆者名稱");
+        }
+        senderDisplayName = trimmedCustomName;
+      }
+
       const insertPayload: {
         sender_id: string;
         recipient_id: string;
+        sender_display_name: string;
         subject: string;
         body: string;
         created_at?: string;
       } = {
         sender_id: user.id,
         recipient_id: selectedUser,
+        sender_display_name: senderDisplayName,
         subject: subject.trim(),
         body: body.trim()
       };
@@ -219,6 +249,8 @@ export default function AdminMessagesPage() {
       setSubject("");
       setBody("");
       setCustomSentAt("");
+      setSenderIdentityMode("anonymous");
+      setCustomSenderName("");
       
       // 延迟一下再重新载入，确保数据已写入
       setTimeout(() => {
@@ -376,6 +408,52 @@ export default function AdminMessagesPage() {
             />
           </label>
 
+          <fieldset className="space-y-2">
+            <legend className="text-sm text-white/70">回覆者身分 *</legend>
+            <div className="grid gap-2 md:grid-cols-3">
+              <label className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm text-white/80">
+                <input
+                  type="radio"
+                  name="senderIdentity"
+                  checked={senderIdentityMode === "anonymous"}
+                  onChange={() => setSenderIdentityMode("anonymous")}
+                />
+                匿名（客服團隊）
+              </label>
+              <label className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm text-white/80">
+                <input
+                  type="radio"
+                  name="senderIdentity"
+                  checked={senderIdentityMode === "real"}
+                  onChange={() => setSenderIdentityMode("real")}
+                />
+                使用管理員真名
+              </label>
+              <label className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/5 px-3 py-2 text-sm text-white/80">
+                <input
+                  type="radio"
+                  name="senderIdentity"
+                  checked={senderIdentityMode === "custom"}
+                  onChange={() => setSenderIdentityMode("custom")}
+                />
+                自訂名稱
+              </label>
+            </div>
+
+            {senderIdentityMode === "custom" && (
+              <input
+                type="text"
+                value={customSenderName}
+                onChange={(e) => setCustomSenderName(e.target.value)}
+                placeholder="例如：小菜、活動小編"
+                className="w-full rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
+              />
+            )}
+            <p className="text-xs text-white/45">
+              預設為匿名「客服團隊」，會員端會看到你選擇的回覆者名稱。
+            </p>
+          </fieldset>
+
           <label className="flex flex-col gap-2 text-sm text-white/70">
             自訂發送時間（選填）
             <input
@@ -424,6 +502,9 @@ export default function AdminMessagesPage() {
                         </span>
                       )}
                     </div>
+                    <p className="mt-1 text-sm text-white/60">
+                      回覆者: {message.sender_display_name || "(未設定)"}
+                    </p>
                     <p className="mt-1 text-sm text-white/60">
                       收件人: {message.recipient?.full_name || message.recipient?.email}
                     </p>

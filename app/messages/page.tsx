@@ -7,6 +7,7 @@ type Message = {
   id: string;
   sender_id: string;
   recipient_id: string;
+  sender_display_name?: string | null;
   subject: string;
   body: string;
   is_read: boolean;
@@ -296,7 +297,7 @@ export default function MessagesPage() {
                         )}
                       </div>
                       <p className="mt-1 text-xs text-white/60">
-                        來自: {message.sender?.full_name || message.sender?.email}
+                        來自: {message.sender_display_name || message.sender?.full_name || message.sender?.email}
                       </p>
                       <p className="mt-1 text-xs text-white/50">
                         {new Date(message.created_at).toLocaleString('zh-TW')}
@@ -317,7 +318,7 @@ export default function MessagesPage() {
                 <div>
                   <h2 className="text-xl font-semibold text-white">{selectedMessage.subject}</h2>
                   <p className="mt-2 text-sm text-white/60">
-                    來自: {selectedMessage.sender?.full_name || selectedMessage.sender?.email}
+                    來自: {selectedMessage.sender_display_name || selectedMessage.sender?.full_name || selectedMessage.sender?.email}
                     {selectedMessage.sender?.role === 'admin' && (
                       <span className="ml-2 rounded-full bg-purple-500/20 px-2 py-0.5 text-xs text-purple-200">
                         管理員

@@ -7,12 +7,23 @@
   - 管理員可在發送會員訊息時手動指定時間（例如將 4/16 補發訊息顯示為 4/11）
   - 儲存時會把指定時間寫入 `messages.created_at`，收件者與管理後台看到的訊息時間會一致
   - 未填則維持原本系統當下發送時間
+- 管理員訊息支援「回覆者身分」顯示名稱
+  - 後台發送時可選擇：匿名（預設客服團隊）/ 管理員真名 / 自訂名稱
+  - 會員端顯示會優先使用 `sender_display_name`
 
 ### Changed
 - `app/admin/messages/page.tsx`
   - 發送表單新增 `datetime-local` 的自訂發送時間欄位（選填）
   - 發送邏輯改為支援可選的 `created_at` 寫入，並加入時間格式驗證
   - 發送成功後會清空自訂時間欄位
+  - 發送表單新增回覆者身分欄位與自訂名稱輸入
+  - 發送寫入 `sender_display_name`，預設為「客服團隊」
+- `app/messages/page.tsx`
+  - 訊息「來自」顯示邏輯改為優先使用 `sender_display_name`
+
+### Database Migration
+- `supabase/migrations/20260415093000_add_sender_display_name_to_messages.sql`
+  - 新增 `messages.sender_display_name` 欄位（可為空，向下相容舊資料）
 
 ## [2026-04-02]
 
