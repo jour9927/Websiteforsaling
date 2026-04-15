@@ -23,6 +23,11 @@ export default async function BackpackPage() {
     redirect("/login?redirect=/backpack");
   }
 
+  await supabase
+    .from("profiles")
+    .update({ last_read_backpack_items_at: new Date().toISOString() })
+    .eq("id", user.id);
+
   const { data: items } = await supabase
     .from("backpack_items")
     .select("id, item_type, item_name, note, is_active, created_at")

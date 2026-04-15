@@ -15,6 +15,10 @@
   - 管理員新增 `/admin/backpack` 頁面，可發放/停用/刪除會員背包道具
   - 支援道具類型：盲盒折抵券 500、盲盒折抵券 1000、競標費用報銷券（30%）、競標費用報銷券（40%）
   - 全站導航新增「我的背包」，管理後台側欄新增「背包管理」
+- 新增「背包新道具」全域氣泡提示（不影響原本訊息氣泡）
+  - 當管理員發放新道具時，會員端會出現「你有新的道具放入背包」氣泡提示
+  - 若未讀新道具達 2 件以上，氣泡左上紅點顯示數字
+  - 點擊氣泡或進入背包頁後，會更新讀取時間並清除提示
 
 ### Changed
 - `app/admin/messages/page.tsx`
@@ -31,6 +35,8 @@
   - 新增 `messages.sender_display_name` 欄位（可為空，向下相容舊資料）
 - `supabase/migrations/20260415102000_create_backpack_items.sql`
   - 新增 `backpack_items` 表與 RLS（會員可讀自己的背包，管理員可全管理）
+- `supabase/migrations/20260415113500_add_last_read_backpack_items_at_to_profiles.sql`
+  - 新增 `profiles.last_read_backpack_items_at` 欄位，供背包氣泡計算未讀新道具
 
 ## [2026-04-02]
 
