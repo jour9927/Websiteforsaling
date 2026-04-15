@@ -30,6 +30,7 @@ export default function AdminMessagesPage() {
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
+  const [customSentAt, setCustomSentAt] = useState("");
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState("");
   const [error, setError] = useState("");
@@ -175,21 +176,36 @@ export default function AdminMessagesPage() {
         throw new Error("請先登入");
       }
 
-      console.log('發送訊息:', {
+      const parsedCustomSentAt = customSentAt ? new Date(customSentAt) : null;
+      if (parsedCustomSentAt && Number.isNaN(parsedCustomSentAt.getTime())) {
+        throw new Error("自訂發送時間格式不正確");
+      }
+
+      const insertPayload: {
+        sender_id: string;
+        recipient_id: string;
+        subject: string;
+        body: string;
+        created_at?: string;
+      } = {
         sender_id: user.id,
         recipient_id: selectedUser,
         subject: subject.trim(),
         body: body.trim()
+      };
+
+      if (parsedCustomSentAt) {
+        insertPayload.created_at = parsedCustomSentAt.toISOString();
+      }
+
+      console.log('發送訊息:', {
+        ...insertPayload,
+        custom_sent_at: customSentAt || null
       });
 
       const { data, error: insertError } = await supabase
         .from('messages')
-        .insert({
-          sender_id: user.id,
-          recipient_id: selectedUser,
-          subject: subject.trim(),
-          body: body.trim()
-        })
+        .insert(insertPayload)
         .select();
 
       if (insertError) {
@@ -202,6 +218,7 @@ export default function AdminMessagesPage() {
       setSelectedUser("");
       setSubject("");
       setBody("");
+      setCustomSentAt("");
       
       // 延迟一下再重新载入，确保数据已写入
       setTimeout(() => {
@@ -357,6 +374,19 @@ export default function AdminMessagesPage() {
               placeholder="輸入訊息內容"
               className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white placeholder:text-white/40 focus:border-white/40 focus:outline-none"
             />
+          </label>
+
+          <label className="flex flex-col gap-2 text-sm text-white/70">
+            自訂發送時間（選填）
+            <input
+              type="datetime-local"
+              value={customSentAt}
+              onChange={(e) => setCustomSentAt(e.target.value)}
+              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white focus:border-white/40 focus:outline-none"
+            />
+            <span className="text-xs text-white/45">
+              有設定時，收件者看到的訊息時間會是你指定的時間。
+            </span>
           </label>
 
           <button
