@@ -19,6 +19,7 @@ export const adminNavItems = [
   { href: "/admin/deliveries" as Route, label: "交付紀錄", icon: "📦" },
   { href: "/admin/notifications" as Route, label: "通知中心", icon: "🔔" },
   { href: "/admin/messages" as Route, label: "會員訊息", icon: "✉️" },
+  { href: "/admin/backpack" as Route, label: "背包管理", icon: "🎒" },
   { href: "/admin/virtual-commission-chats" as Route, label: "虛擬委託對話", icon: "💬" },
   { href: "/admin/virtual-comments" as Route, label: "水軍留言", icon: "🤖" },
   { href: "/admin/ai-settings" as Route, label: "AI 個人化", icon: "🧠" },

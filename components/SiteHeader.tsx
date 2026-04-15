@@ -30,6 +30,7 @@ const primaryLinks = [
 
 const signedInLinks = [
   { label: "我的帳號", href: "/profile" as Route },
+  { label: "我的背包", href: "/backpack" as Route },
   // { label: "我的物品", href: "/items" as Route }, // 暫時隱藏
   { label: "我的付款", href: "/payments" as Route },
   { label: "交付紀錄", href: "/deliveries" as Route },

@@ -24,6 +24,7 @@
 | `user_deliveries` | 配送紀錄 |
 | `messages` | 訊息系統 |
 | `notifications` | 通知系統 |
+| `backpack_items` | 會員背包道具（折抵券/報銷券） |
 
 ### Events 資料結構
 ```typescript
@@ -75,6 +76,7 @@
 | `/profile` | 個人資料管理 |
 | `/history` | 報名歷史紀錄 |
 | `/messages` | 訊息中心 |
+| `/backpack` | 我的背包 |
 | `/payments` | 我的付款紀錄 |
 | `/deliveries` | 配送狀態查詢 |
 | `/items` | 我的商品/獎品 |
@@ -91,6 +93,7 @@
 | `/admin/announcements` | 公告管理 |
 | `/admin/announcements/[id]` | 編輯公告 |
 | `/admin/messages` | 訊息管理 |
+| `/admin/backpack` | 背包管理（道具發放） |
 | `/admin/notifications` | 通知管理 |
 | `/admin/payments` | 付款管理 |
 | `/admin/deliveries` | 配送管理 |
@@ -180,6 +183,15 @@
 
 ### 9. 通知系統
 - **系統通知**: 管理員可發送通知給使用者
+
+### 10. 背包系統
+- **會員背包頁**: 使用者可在 `/backpack` 查看可用道具與獲得原因備註
+- **管理發放**: 管理員可在 `/admin/backpack` 發放以下道具：
+  - 盲盒折抵券 500
+  - 盲盒折抵券 1000
+  - 競標費用報銷券（30%）
+  - 競標費用報銷券（40%）
+- **後台管理**: 管理員可停用/啟用或刪除指定會員背包道具
 
 ---
 

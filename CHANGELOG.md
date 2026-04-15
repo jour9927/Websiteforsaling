@@ -10,6 +10,11 @@
 - 管理員訊息支援「回覆者身分」顯示名稱
   - 後台發送時可選擇：匿名（預設客服團隊）/ 管理員真名 / 自訂名稱
   - 會員端顯示會優先使用 `sender_display_name`
+- 新增會員「背包」系統與管理後台
+  - 會員新增 `/backpack` 子頁面，可查看管理員發放的背包道具與獲得備註
+  - 管理員新增 `/admin/backpack` 頁面，可發放/停用/刪除會員背包道具
+  - 支援道具類型：盲盒折抵券 500、盲盒折抵券 1000、競標費用報銷券（30%）、競標費用報銷券（40%）
+  - 全站導航新增「我的背包」，管理後台側欄新增「背包管理」
 
 ### Changed
 - `app/admin/messages/page.tsx`
@@ -24,6 +29,8 @@
 ### Database Migration
 - `supabase/migrations/20260415093000_add_sender_display_name_to_messages.sql`
   - 新增 `messages.sender_display_name` 欄位（可為空，向下相容舊資料）
+- `supabase/migrations/20260415102000_create_backpack_items.sql`
+  - 新增 `backpack_items` 表與 RLS（會員可讀自己的背包，管理員可全管理）
 
 ## [2026-04-02]
 
