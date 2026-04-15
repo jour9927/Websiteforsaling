@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import {
   BACKPACK_ITEM_OPTIONS,
   type BackpackItemType,
+  getBackpackItemMeta,
   getBackpackItemName,
 } from "@/lib/backpack";
 
@@ -244,16 +245,21 @@ export default function AdminBackpackPage() {
             >
               {BACKPACK_ITEM_OPTIONS.map((option) => (
                 <option key={option.type} value={option.type} className="text-gray-900">
-                  {option.name}
+                  {option.icon} {option.name}
                 </option>
               ))}
             </select>
-            <span className="text-xs text-white/45">
-              {
-                BACKPACK_ITEM_OPTIONS.find((option) => option.type === selectedType)
-                  ?.description
-              }
-            </span>
+            <div className="flex items-center gap-2 text-xs text-white/45">
+              <span className={`inline-flex h-6 w-6 items-center justify-center rounded-md ${getBackpackItemMeta(selectedType).badgeClass}`}>
+                {getBackpackItemMeta(selectedType).icon}
+              </span>
+              <span>
+                {
+                  BACKPACK_ITEM_OPTIONS.find((option) => option.type === selectedType)
+                    ?.description
+                }
+              </span>
+            </div>
           </label>
 
           <label className="flex flex-col gap-2 text-sm text-white/70">
@@ -329,6 +335,7 @@ export default function AdminBackpackPage() {
               const issuer = item.granted_by ? userMap.get(item.granted_by) : null;
               const isExpired =
                 Boolean(item.expires_at) && new Date(item.expires_at as string) <= new Date();
+              const itemMeta = getBackpackItemMeta(item.item_type);
               return (
                 <article
                   key={item.id}
@@ -336,7 +343,12 @@ export default function AdminBackpackPage() {
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="text-sm font-semibold text-white/90">{item.item_name}</p>
+                      <p className="flex items-center gap-2 text-sm font-semibold text-white/90">
+                        <span className={`inline-flex h-7 w-7 items-center justify-center rounded-md ${itemMeta.badgeClass}`}>
+                          {itemMeta.icon}
+                        </span>
+                        <span>{item.item_name}</span>
+                      </p>
                       <p className="mt-1 text-xs text-white/55">
                         會員：{owner?.full_name || owner?.email || item.user_id}
                       </p>

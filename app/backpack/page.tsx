@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { getBackpackItemMeta } from "@/lib/backpack";
 
 export const dynamic = "force-dynamic";
 
@@ -83,6 +84,7 @@ export default async function BackpackPage() {
                   Boolean(item.expires_at) &&
                   !isExpired &&
                   new Date(item.expires_at as string).getTime() - Date.now() <= 48 * 60 * 60 * 1000;
+                const itemMeta = getBackpackItemMeta(item.item_type);
 
                 return (
                   <article
@@ -96,6 +98,9 @@ export default async function BackpackPage() {
                     }`}
                   >
                 <div className="flex flex-wrap items-center gap-2">
+                  <span className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-base ${itemMeta.badgeClass}`}>
+                    {itemMeta.icon}
+                  </span>
                   <h2 className="text-base font-semibold text-white/90">{item.item_name}</h2>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
