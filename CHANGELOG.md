@@ -31,6 +31,7 @@
   - 每個道具類型新增專屬 icon 與色彩標籤
   - 會員背包頁與管理後台背包清單同步顯示道具 icon
   - 管理員發放道具下拉選單同步顯示 icon
+  - 會員背包頁 icon 放大並加入高亮邊框與光點，提升辨識與刺激感
 
 ### Changed
 - `app/admin/messages/page.tsx`

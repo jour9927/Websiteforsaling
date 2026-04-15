@@ -98,8 +98,17 @@ export default async function BackpackPage() {
                     }`}
                   >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={`inline-flex h-8 w-8 items-center justify-center rounded-lg text-base ${itemMeta.badgeClass}`}>
-                    {itemMeta.icon}
+                  <span className="relative inline-flex">
+                    <span
+                      className={`inline-flex h-11 w-11 items-center justify-center rounded-xl border border-white/20 text-2xl shadow-lg transition ${itemMeta.badgeClass} ${
+                        item.is_active && !isExpired
+                          ? "ring-2 ring-white/20"
+                          : "opacity-70"
+                      } ${isUrgent || isExpired ? "animate-pulse" : ""}`}
+                    >
+                      {itemMeta.icon}
+                    </span>
+                    <span className="absolute -right-1 -top-1 h-3 w-3 rounded-full bg-white/70" />
                   </span>
                   <h2 className="text-base font-semibold text-white/90">{item.item_name}</h2>
                   <span
