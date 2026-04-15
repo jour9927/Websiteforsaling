@@ -28,6 +28,17 @@ type BackpackItemRow = {
   expires_at: string | null;
 };
 
+function toDatetimeLocalValue(date: Date) {
+  const tzOffsetMs = date.getTimezoneOffset() * 60 * 1000;
+  return new Date(date.getTime() - tzOffsetMs).toISOString().slice(0, 16);
+}
+
+function getDefaultExpiryInput(baseDate = new Date()) {
+  const expiry = new Date(baseDate);
+  expiry.setFullYear(expiry.getFullYear() + 50);
+  return toDatetimeLocalValue(expiry);
+}
+
 export default function AdminBackpackPage() {
   const [users, setUsers] = useState<ProfileRow[]>([]);
   const [items, setItems] = useState<BackpackItemRow[]>([]);
@@ -37,7 +48,7 @@ export default function AdminBackpackPage() {
   );
   const [note, setNote] = useState("");
   const [customGrantedAt, setCustomGrantedAt] = useState("");
-  const [expiresAt, setExpiresAt] = useState("");
+  const [expiresAt, setExpiresAt] = useState(() => getDefaultExpiryInput());
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -106,6 +117,7 @@ export default function AdminBackpackPage() {
       const itemName = getBackpackItemName(selectedType);
       const parsedGrantedAt = customGrantedAt ? new Date(customGrantedAt) : null;
       const parsedExpiresAt = expiresAt ? new Date(expiresAt) : null;
+      const resolvedGrantedAt = parsedGrantedAt || new Date();
 
       if (parsedGrantedAt && Number.isNaN(parsedGrantedAt.getTime())) {
         throw new Error("發放時間格式不正確");
@@ -115,7 +127,11 @@ export default function AdminBackpackPage() {
         throw new Error("有效期限格式不正確");
       }
 
-      if (parsedExpiresAt && parsedGrantedAt && parsedExpiresAt <= parsedGrantedAt) {
+      const defaultExpiresAt = new Date(resolvedGrantedAt);
+      defaultExpiresAt.setFullYear(defaultExpiresAt.getFullYear() + 50);
+      const resolvedExpiresAt = parsedExpiresAt || defaultExpiresAt;
+
+      if (resolvedExpiresAt <= resolvedGrantedAt) {
         throw new Error("有效期限必須晚於發放時間");
       }
 
@@ -125,8 +141,8 @@ export default function AdminBackpackPage() {
         item_name: itemName,
         note: note.trim() || null,
         granted_by: user.id,
-        created_at: parsedGrantedAt?.toISOString(),
-        expires_at: parsedExpiresAt?.toISOString() || null,
+        created_at: resolvedGrantedAt.toISOString(),
+        expires_at: resolvedExpiresAt.toISOString(),
       });
 
       if (insertError) throw insertError;
@@ -134,7 +150,7 @@ export default function AdminBackpackPage() {
       setSuccess("道具已發放到會員背包");
       setNote("");
       setCustomGrantedAt("");
-      setExpiresAt("");
+      setExpiresAt(getDefaultExpiryInput());
       await loadData();
     } catch (err) {
       console.error(err);
@@ -292,7 +308,9 @@ export default function AdminBackpackPage() {
               onChange={(e) => setExpiresAt(e.target.value)}
               className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-white focus:border-white/40 focus:outline-none"
             />
-            <span className="text-xs text-white/45">設定後超過期限會視為過期。</span>
+            <span className="text-xs text-white/45">
+              預設為發放時間後 50 年，可手動調整；若留空也會自動套用 50 年。
+            </span>
           </label>
 
           <button
