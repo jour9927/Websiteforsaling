@@ -58,7 +58,6 @@ export default function AdminBackpackPage() {
           supabase
             .from("profiles")
             .select("id, full_name, email, role")
-            .neq("role", "admin")
             .order("full_name", { ascending: true }),
           supabase
             .from("backpack_items")
@@ -209,6 +208,7 @@ export default function AdminBackpackPage() {
               {users.map((user) => (
                 <option key={user.id} value={user.id} className="text-gray-900">
                   {user.full_name || user.email || "未命名會員"}
+                  {user.role === "admin" ? "（管理員）" : ""}
                 </option>
               ))}
             </select>
