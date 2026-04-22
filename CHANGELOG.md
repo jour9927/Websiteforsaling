@@ -1,5 +1,51 @@
 # Changelog
 
+## [2026-04-22]
+
+### Added
+- 新增「勳章型伊布蒐集控系列護衛活動」完整第一版（活動入口 + 首頁小組件 + API + 資料模型）
+  - 活動頁：`app/eevee-guardian/page.tsx`
+  - 對戰入口 UI（Gen3 風格 MVP）：`components/EeveeGuardianBattleHub.tsx`
+  - 首頁即時戰況小組件：`components/EeveeGuardianWidget.tsx`
+  - 全站導航新增活動入口：`components/SiteHeader.tsx`
+  - 首頁新增活動小組件掛載（未登入/已登入區塊）：`app/page.tsx`
+
+- 新增伊布護衛活動 API（狀態、即時戰況、開戰、結算）
+  - `app/api/eevee-guardian/status/route.ts`
+  - `app/api/eevee-guardian/live/route.ts`
+  - `app/api/eevee-guardian/battle/start/route.ts`
+  - `app/api/eevee-guardian/battle/resolve/route.ts`
+  - `app/api/eevee-guardian/_shared.ts`
+
+- 新增活動規則與計算 helper
+  - `lib/eeveeGuardian.ts`
+  - 規則：9 天活動、每日 1 場、勝場 1 點、敗場 0.5 點、9 勳章解鎖稀有伊布
+
+### Database Migration
+- 新增 `supabase/migrations/20260422120000_add_eevee_guardian_event.sql`
+  - 建立 `eevee_guardian_campaigns`、`eevee_guardian_players`、`eevee_guardian_battles`
+  - 建立索引與 RLS policy
+  - 預設寫入活動 seed 資料（slug: `eevee-medal-guardians`）
+
+### Technical Details
+- Build 驗證：`npm run build` ✅ 通過
+- Lint 驗證：`npm run lint` ✅ 通過（僅既有 hooks dependency warning，非本次新增）
+
+## [2026-04-16]
+
+### Changed
+- 自動競標改為只使用伊布配布池
+  - `app/api/cron/auto-auction/route.ts` 改為從 `distributions` 只篩選 `pokemon_name` 包含「伊布」或 `pokemon_name_en` 包含 `eevee`
+  - 每日自動建立場次維持原時段與間隔，但競標標的固定為伊布相關配布
+  - cron 回應訊息同步標示為「伊布自動競標」
+
+### Database Migration
+- 新增 Gen5 Global Link 伊布進化型歷史配布補資料（21 筆）
+  - `supabase/migrations/20260416110000_add_gen5_global_link_eeveelutions.sql`
+  - 補齊 `Global Link：Eeveelution Labyrinth`（7 筆）
+  - 補齊 `Global Link：Play to Befriend a Pokemon` 第 1 / 第 2 彈（14 筆）
+  - 使用 `NOT EXISTS` 去重條件，避免重複插入
+
 ## [2026-04-15]
 
 ### Added

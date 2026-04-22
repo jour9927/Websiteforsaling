@@ -6,6 +6,7 @@ import AuctionCard from "@/components/AuctionCard";
 // import { PopularityWidgetToggle } from "@/components/PopularityWidgetToggle";
 import { CommissionWidget } from "@/components/CommissionWidget";
 import { MaintenanceToggle } from "@/components/MaintenanceToggle";
+import { EeveeGuardianWidget } from "@/components/EeveeGuardianWidget";
 // [伊布集點日] 活動已結束
 // import { EeveeDayWidget } from "@/components/EeveeDayWidget";
 // [春節活動] 明年再啟用
@@ -111,6 +112,9 @@ export default async function HomePage() {
 
         {/* 熱門競標區塊 */}
         <HotAuctionsSection />
+
+        {/* 伊布勳章活動入口 */}
+        <EeveeGuardianWidget />
       </div>
     );
   }
@@ -327,6 +331,9 @@ export default async function HomePage() {
 
       {/* [伊布 Day] 活動已結束 */}
       {/* <EeveeDayWidget /> */}
+
+      {/* 伊布勳章活動入口 */}
+      <EeveeGuardianWidget />
 
       {/* [人氣排行榜] 暫時隱藏，改用委託小組件 */}
       {/* <PopularityWidgetToggle /> */}
