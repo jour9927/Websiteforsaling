@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   GEN3_BATTLE_MOVESET,
@@ -88,6 +89,42 @@ type BattleResult = {
 };
 
 const MAX_HP = 180;
+const MATCH_POOL = [
+  "烈焰訓練家 Aria",
+  "深林守衛 Luka",
+  "港口巡查 Rena",
+  "紫苑塔守夜人 Kyo",
+  "冠軍道路旅者 Mina",
+  "彩虹市對戰師 Theo",
+] as const;
+
+function MatchmakingOverlay({ opponentName }: { opponentName: string }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-sm">
+      <div className="mx-4 w-full max-w-md rounded-3xl border border-amber-400/30 bg-[linear-gradient(160deg,#1a1530,#0d1a2a)] p-8 shadow-2xl">
+        <div className="text-center">
+          <p className="text-xs uppercase tracking-[0.35em] text-amber-300/70">Random Matchmaking</p>
+          <h2 className="mt-3 text-2xl font-black text-white">正在匹配對手</h2>
+
+          <div className="mt-5 flex items-center justify-center gap-2">
+            <div className="h-2 w-2 animate-bounce rounded-full bg-amber-400" style={{ animationDelay: "0ms" }} />
+            <div className="h-2 w-2 animate-bounce rounded-full bg-amber-400" style={{ animationDelay: "150ms" }} />
+            <div className="h-2 w-2 animate-bounce rounded-full bg-amber-400" style={{ animationDelay: "300ms" }} />
+          </div>
+
+          <div className="mt-6 rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
+            <p className="text-xs text-white/55">匹配到的訓練家</p>
+            <p className="mt-1 text-lg font-semibold text-amber-200">{opponentName}</p>
+          </div>
+
+          <p className="mt-4 text-sm text-white/60">
+            即將進入 3gen 對戰畫面...
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function formatDate(dateString: string) {
   const date = new Date(dateString);
@@ -149,6 +186,8 @@ export function EeveeGuardianBattleHub() {
   const [playerDamage, setPlayerDamage] = useState(0);
   const [opponentDamage, setOpponentDamage] = useState(0);
   const [actionLocked, setActionLocked] = useState(false);
+  const [isMatchmaking, setIsMatchmaking] = useState(false);
+  const [matchOpponent, setMatchOpponent] = useState<string>(MATCH_POOL[0]);
   const [battleLog, setBattleLog] = useState<string[]>([]);
   const [battleResult, setBattleResult] = useState<BattleResult | null>(null);
 
@@ -226,6 +265,10 @@ export function EeveeGuardianBattleHub() {
   const startBattle = useCallback(async () => {
     setMessage(null);
     setActionLocked(true);
+    setIsMatchmaking(true);
+
+    const randomOpponent = MATCH_POOL[Math.floor(Math.random() * MATCH_POOL.length)];
+    setMatchOpponent(randomOpponent);
 
     try {
       const res = await fetch("/api/eevee-guardian/battle/start", {
@@ -235,6 +278,7 @@ export function EeveeGuardianBattleHub() {
 
       if (!res.ok) {
         setMessage(data.error || "無法開始對戰");
+        setIsMatchmaking(false);
         setActionLocked(false);
         return;
       }
@@ -262,16 +306,22 @@ export function EeveeGuardianBattleHub() {
       setOpponentHp(MAX_HP);
       setPlayerDamage(0);
       setOpponentDamage(0);
+
+      await new Promise((resolve) => {
+        window.setTimeout(resolve, 2200);
+      });
+
       setBattleLog([
         data.resuming
-          ? "已恢復你今天未完成的戰局。"
-          : "對戰開始：你踏入了 Gen3 經典戰場。",
+          ? `已恢復你今天未完成的戰局，對手 ${randomOpponent} 再度向你發起挑戰。`
+          : `匹配成功：你遭遇 ${randomOpponent}，戰鬥開始。`,
       ]);
       setBattleResult(null);
       setBattlePhase("fighting");
     } catch {
       setMessage("開場失敗，請稍後再試");
     } finally {
+      setIsMatchmaking(false);
       setActionLocked(false);
     }
   }, []);
@@ -441,13 +491,25 @@ export function EeveeGuardianBattleHub() {
 
   return (
     <div className="space-y-6">
+      <section className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-white/45">Battle Route</p>
+          <h2 className="mt-1 text-base font-semibold text-white">伊布護衛活動・對戰匹配</h2>
+        </div>
+        <Link
+          href="/eevee-guardian"
+          className="rounded-lg border border-white/20 px-3 py-1.5 text-sm text-white/75 transition hover:bg-white/10"
+        >
+          返回活動入口
+        </Link>
+      </section>
+
       <section className="relative overflow-hidden rounded-3xl border border-amber-400/20 bg-[radial-gradient(ellipse_at_top_left,rgba(245,158,11,0.18),transparent_42%),radial-gradient(ellipse_at_bottom_right,rgba(56,189,248,0.16),transparent_42%),linear-gradient(160deg,#0f1220,#131a2d_45%,#0b111f)] p-8">
         <p className="text-xs uppercase tracking-[0.35em] text-amber-300/70">Eevee Medal Guardians</p>
         <h1 className="mt-3 text-3xl font-black text-white md:text-4xl">{campaign.title}</h1>
         <p className="mt-4 max-w-3xl text-sm leading-7 text-white/70">
-          活動期間共 {campaign.totalDays} 天，每天可參與 {campaign.dailyBattles} 場守衛對戰。
-          勝利獲得 {campaign.winPoints} 點，落敗獲得 {campaign.losePoints} 點。
-          累積 {campaign.targetMedals} 勳章後即可解鎖獎勵：{campaign.rareRewardName}。
+          你已經進入獨立對戰頁。開始匹配後會先隨機連線對手，再進入 3gen 戰鬥畫面。
+          每日限定 {campaign.dailyBattles} 場，勝利獲得 {campaign.winPoints} 點，落敗獲得 {campaign.losePoints} 點。
         </p>
         <div className="mt-5 flex flex-wrap gap-2">
           <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/70">
@@ -512,19 +574,19 @@ export function EeveeGuardianBattleHub() {
       <section className="rounded-2xl border border-white/10 bg-black/30 p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-white">對戰入口</h2>
+            <h2 className="text-xl font-semibold text-white">對戰匹配</h2>
             <p className="mt-1 text-sm text-white/60">
-              每日限 1 場，完成即計分。這是 Gen3 對戰入口的第一版，可直接擴充成完整即時引擎。
+              先進行隨機匹配，再開始戰鬥。匹配成功後會進入三世代戰場介面。
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => void startBattle()}
-              disabled={!canStartBattle || actionLocked || battlePhase === "resolving"}
+              disabled={!canStartBattle || actionLocked || battlePhase === "resolving" || isMatchmaking}
               className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-5 py-2 text-sm font-semibold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              {statusData.pendingBattle ? "續戰" : "開始今日對戰"}
+              {statusData.pendingBattle ? "重新匹配並續戰" : "開始隨機匹配"}
             </button>
             {(battlePhase === "fighting" || battlePhase === "result") && (
               <button
@@ -616,6 +678,8 @@ export function EeveeGuardianBattleHub() {
           </div>
         )}
       </section>
+
+      {isMatchmaking ? <MatchmakingOverlay opponentName={matchOpponent} /> : null}
     </div>
   );
 }

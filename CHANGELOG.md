@@ -31,6 +31,13 @@
 - Build 驗證：`npm run build` ✅ 通過
 - Lint 驗證：`npm run lint` ✅ 通過（僅既有 hooks dependency warning，非本次新增）
 
+### Changed
+- 伊布護衛活動流程調整為「活動入口頁」與「對戰匹配頁」分離
+  - 活動頁僅保留進度、規則、即時戰況與入口按鈕，不再內嵌整個戰場
+  - 新增對戰子路由：`app/eevee-guardian/battle/page.tsx`
+  - 對戰頁新增隨機匹配過渡（匹配成功後才進入 3gen 戰鬥介面）
+  - 新增入口大廳元件：`components/EeveeGuardianLobby.tsx`
+
 ## [2026-04-16]
 
 ### Changed

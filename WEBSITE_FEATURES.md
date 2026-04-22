@@ -70,6 +70,7 @@
 | `/announcements` | 公告列表頁 |
 | `/announcements/[id]` | 公告詳情頁 |
 | `/eevee-guardian` | 伊布勳章護衛活動入口頁（含對戰大廳） |
+| `/eevee-guardian/battle` | 伊布勳章護衛活動對戰匹配頁（隨機匹配後進入戰場） |
 | `/login` | 登入頁 |
 | `/signup` | 註冊頁 (支援邀請碼) |
 | `/privacy` | 隱私政策頁 |
