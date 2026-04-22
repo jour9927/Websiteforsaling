@@ -6,11 +6,15 @@ const AUCTION_CONFIG = {
     starting_price: 100,
     min_increment: 100,
     duration_minutes: 10,
-    generation: 7,
     // 每日時段：台灣時間 07:00 ~ 22:00
     start_hour: 7,   // 台灣時間
     end_hour: 22,     // 台灣時間
     interval_minutes: 10,
+};
+
+const AUCTION_TARGET = {
+    nameZh: "伊布",
+    nameEn: "Eevee",
 };
 
 // 隨機競標描述池
@@ -79,18 +83,18 @@ export async function GET(request: NextRequest) {
             .select("id");
 
         // ============================================
-        // 2. 查詢第 9 世代所有可用配布
+        // 2. 查詢伊布相關可用配布
         // ============================================
         const { data: distributions, error: distError } = await supabase
             .from("distributions")
             .select("id, pokemon_name, pokemon_name_en, pokemon_dex_number, pokemon_sprite_url, image_url, is_shiny, original_trainer, level")
-            .eq("generation", AUCTION_CONFIG.generation);
+            .or("pokemon_name.ilike.%伊布%,pokemon_name_en.ilike.%eevee%");
 
         if (distError) throw new Error(`查詢配布失敗: ${distError.message}`);
         if (!distributions || distributions.length === 0) {
             return NextResponse.json({
                 success: false,
-                message: "沒有第 9 世代的配布資料",
+                message: "沒有可用的伊布配布資料",
             });
         }
 
@@ -113,7 +117,7 @@ export async function GET(request: NextRequest) {
         }
 
         // ============================================
-        // 4. 偽隨機選擇寶可夢（基於日期 + 場次 seed）
+        // 4. 偽隨機選擇伊布配布（基於日期 + 場次 seed）
         // ============================================
         const auctions = slots.map((slot, index) => {
             const seed = hashCode(`${todayDateStr}-${index}`);
@@ -155,12 +159,13 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            message: `已建立 ${auctions.length} 場自動競標（${todayDateStr} 07:00~22:00）`,
+            message: `已建立 ${auctions.length} 場${AUCTION_TARGET.nameZh}自動競標（${todayDateStr} 07:00~22:00）`,
             expired: expiredAuctions?.length || 0,
             cleaned: deletedAuctions?.length || 0,
             created: insertedAuctions?.length || 0,
             totalSlots: slots.length,
             sampleTitles: auctions.slice(0, 3).map(a => a.title),
+            targetPokemon: AUCTION_TARGET.nameEn,
             timestamp: now.toISOString(),
         });
 
