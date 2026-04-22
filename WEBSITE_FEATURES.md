@@ -25,9 +25,6 @@
 | `messages` | 訊息系統 |
 | `notifications` | 通知系統 |
 | `backpack_items` | 會員背包道具（折抵券/報銷券） |
-| `eevee_guardian_campaigns` | 伊布勳章活動設定 |
-| `eevee_guardian_players` | 伊布勳章活動玩家進度 |
-| `eevee_guardian_battles` | 伊布勳章活動每日對戰紀錄 |
 
 ### Events 資料結構
 ```typescript
@@ -69,8 +66,6 @@
 | `/events/[id]` | 活動詳情頁 |
 | `/announcements` | 公告列表頁 |
 | `/announcements/[id]` | 公告詳情頁 |
-| `/eevee-guardian` | 伊布勳章護衛活動入口頁（含對戰大廳） |
-| `/eevee-guardian/battle` | 伊布勳章護衛活動對戰匹配頁（隨機匹配後進入戰場） |
 | `/login` | 登入頁 |
 | `/signup` | 註冊頁 (支援邀請碼) |
 | `/privacy` | 隱私政策頁 |
@@ -118,10 +113,6 @@
 | DELETE | `/api/events/[id]` | 刪除活動 (管理員) |
 | POST | `/api/events/[id]/register` | 報名活動 |
 | POST | `/api/events/[id]/draw` | 執行抽獎 (管理員) |
-| GET | `/api/eevee-guardian/status` | 取得活動狀態與個人進度 |
-| GET | `/api/eevee-guardian/live` | 取得今日即時戰況與排行數據 |
-| POST | `/api/eevee-guardian/battle/start` | 開始/續接今日對戰 |
-| POST | `/api/eevee-guardian/battle/resolve` | 提交對戰結算（勝負/傷害/回合） |
 
 ### 使用者相關
 | 方法 | 路徑 | 功能 |
@@ -202,21 +193,6 @@
   - 競標費用報銷券（40%）
 - **後台管理**: 管理員可停用/啟用或刪除指定會員背包道具
 
-### 11. 勳章型伊布蒐集控系列護衛活動
-- **活動週期**: 9 天（每日 1 場）
-- **計分規則**: 勝場 +1 點、敗場 +0.5 點
-- **獎勵門檻**: 累積 9 勳章後解鎖「五種勳章以上稀有伊布」
-- **前端入口**:
-  - `/eevee-guardian` 活動專屬頁（遊戲入口大廳）
-  - 首頁活動小組件（顯示進度與即時戰況）
-- **即時戰況看板**:
-  - 今日已對戰人數
-  - 今日最高單場傷害
-  - 最高總累積傷害
-- **對戰系統（MVP）**:
-  - Gen3 風格即時互動回合制入口
-  - 預留完整即時引擎擴充接口（battle/start + battle/resolve）
-
 ---
 
 ## UI 元件
@@ -281,7 +257,6 @@
 17. `017_fix_events_update_policy.sql` - 活動更新權限修復
 18. `018_fix_announcements_policies.sql` - 公告權限修復
 19. `019_fix_registrations_select_policy.sql` - 報名查詢權限修復
-20. `20260422120000_add_eevee_guardian_event.sql` - 伊布勳章護衛活動資料表與 RLS
 
 ---
 
@@ -307,13 +282,11 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 |------|------|------|
 | 30週年守護戰 (`/anniversary-30th`) | ❌ 已關閉 | 活動截止 2026/3/27 23:59:59，前端入口已註解（導航、首頁 Banner、管理側欄），程式碼保留可恢復 |
 | 伊布集點日 (`/eevee-day`) | ✅ 仍可存取 | 管理側欄保留 |
-| 勳章型伊布護衛活動 (`/eevee-guardian`) | ✅ 進行中 | 9 天活動；每日 1 場、勝 1 分敗 0.5 分、9 勳章解鎖稀有伊布 |
 | 春節活動 | ❌ 已關閉 | SpringFestivalBanner 已註解，明年再啟用 |
 
 ## 變更記錄（近期）
 
 | 日期 | 變更 | Commit |
 |------|------|--------|
-| 2026-04-22 | 新增「勳章型伊布蒐集控系列護衛活動」：活動頁、首頁小組件、battle API、migration | — |
 | 2026-03-31 | 發布公告：30週年活動延誤關閉及獎勵處理說明 | — |
 | 2026-03-31 | 註解關閉 30 週年活動所有前端入口 | `0bd9223` |
