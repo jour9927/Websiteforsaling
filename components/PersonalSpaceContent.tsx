@@ -1095,8 +1095,8 @@ export function PersonalSpaceContent({
                 <DailyCheckInWidget />
             )} */}
 
-            {/* 留言區 */}
-            <section className="glass-card p-6 relative overflow-hidden">
+            {/* [留言區] 全面隱藏（所有用戶含虛擬用戶） */}
+            <section className="glass-card p-6 relative overflow-hidden hidden">
                 {/* 🔒 鎖定遮罩 (留言區) - 暫時註解 */}
                 {/* <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px]">
                     <div className="rounded-full bg-white/10 px-6 py-3 text-sm font-medium text-white shadow-xl backdrop-blur-md border border-white/20 flex items-center gap-2">
