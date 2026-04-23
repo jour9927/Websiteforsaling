@@ -13,6 +13,7 @@ export const ANNIVERSARY_30TH_TOTAL_BATTLES = ANNIVERSARY_30TH_TOTAL_DAYS * ANNI
 export const ANNIVERSARY_30TH_STARTS_AT = "2026-04-25T00:00:00+08:00";
 export const ANNIVERSARY_30TH_ENDS_AT = "2026-05-03T23:59:59+08:00";
 export const ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS = 15;
+export const ANNIVERSARY_30TH_BATTLE_ABANDONED_TIMEOUT_SECONDS = 90;
 export const ANNIVERSARY_30TH_WIN_POINTS = 2;
 export const ANNIVERSARY_30TH_LOSS_POINTS = 1;
 export const ANNIVERSARY_30TH_EEVEE_POINT_GOAL = 19;
@@ -656,7 +657,7 @@ export function isBattleSessionExpired(lastActiveAt: string | null, now = new Da
   if (!lastActiveAt) return false;
   const lastActive = new Date(lastActiveAt);
   if (Number.isNaN(lastActive.getTime())) return false;
-  return now.getTime() - lastActive.getTime() > ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS * 1000;
+  return now.getTime() - lastActive.getTime() > ANNIVERSARY_30TH_BATTLE_ABANDONED_TIMEOUT_SECONDS * 1000;
 }
 
 export function resolveBattlesRemaining(
