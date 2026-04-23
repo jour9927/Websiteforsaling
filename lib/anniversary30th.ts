@@ -1,16 +1,21 @@
-// ─── 30th Anniversary Battle Event ───
-// 7 days × 3 battles/day = 21 total
-// 3 challenge types: dice, trivia, slots
-// System guarantees real user always wins
+// ─── Random Distribution Battle Event ───
+// 9 days × 2 battles/day = 18 total
+// Wins grant 2 points, losses grant 1 point. Eevee requires 19 points.
 
-export const ANNIVERSARY_30TH_SLUG = "guardian-trial-30th";
-export const ANNIVERSARY_30TH_EVENT_TITLE = "30 週年寶可夢對決祭典";
-export const ANNIVERSARY_30TH_TOTAL_DAYS = 7;
-export const ANNIVERSARY_30TH_BATTLES_PER_DAY = 3;
+export const ANNIVERSARY_30TH_EVENT_ID = "4d7e3f3f-f4a2-4d3c-9d0f-042520260001";
+export const ANNIVERSARY_30TH_SLUG = "random-distribution-eevee-2026";
+export const ANNIVERSARY_30TH_EVENT_TITLE = "隨機型配布對戰活動";
+export const ANNIVERSARY_30TH_PREREG_STARTS_AT = "2026-04-23T00:00:00+08:00";
+export const ANNIVERSARY_30TH_TOTAL_DAYS = 9;
+export const ANNIVERSARY_30TH_BATTLES_PER_DAY = 2;
 export const ANNIVERSARY_30TH_MIN_DAILY = 1;
-export const ANNIVERSARY_30TH_TOTAL_BATTLES = ANNIVERSARY_30TH_TOTAL_DAYS * ANNIVERSARY_30TH_BATTLES_PER_DAY; // 21
-export const ANNIVERSARY_30TH_STARTS_AT = "2026-03-20T20:00:00+08:00";
+export const ANNIVERSARY_30TH_TOTAL_BATTLES = ANNIVERSARY_30TH_TOTAL_DAYS * ANNIVERSARY_30TH_BATTLES_PER_DAY;
+export const ANNIVERSARY_30TH_STARTS_AT = "2026-04-25T00:00:00+08:00";
+export const ANNIVERSARY_30TH_ENDS_AT = "2026-05-03T23:59:59+08:00";
 export const ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS = 15;
+export const ANNIVERSARY_30TH_WIN_POINTS = 2;
+export const ANNIVERSARY_30TH_LOSS_POINTS = 1;
+export const ANNIVERSARY_30TH_EEVEE_POINT_GOAL = 19;
 
 // ─── Unlock Conditions ───
 export const UNLOCK_PARTNER_CONSECUTIVE_WINS = 2; // 連贏2場 → 永久獲得伴侶
@@ -160,8 +165,28 @@ export function resolveVirtualOpponent(seed: string) {
   return VIRTUAL_OPPONENTS[hash % VIRTUAL_OPPONENTS.length];
 }
 
+export const RETRO_VIRTUAL_OPPONENTS = [
+  { name: "小智", pokemon: "皮卡丘", spriteId: "25" },
+  { name: "小霞", pokemon: "寶石海星", spriteId: "121" },
+  { name: "小剛", pokemon: "大岩蛇", spriteId: "95" },
+  { name: "阿渡", pokemon: "快龍", spriteId: "149" },
+  { name: "綠", pokemon: "噴火龍", spriteId: "6" },
+  { name: "娜姿", pokemon: "胡地", spriteId: "65" },
+  { name: "馬志士", pokemon: "雷丘", spriteId: "26" },
+  { name: "莉佳", pokemon: "霸王花", spriteId: "45" },
+  { name: "夏伯", pokemon: "風速狗", spriteId: "59" },
+  { name: "坂木", pokemon: "尼多王", spriteId: "34" },
+  { name: "科拿", pokemon: "拉普拉斯", spriteId: "131" },
+  { name: "菊子", pokemon: "耿鬼", spriteId: "94" },
+] as const;
+
+export function resolveRetroVirtualOpponent(seed: string) {
+  const hash = hashString(seed);
+  return RETRO_VIRTUAL_OPPONENTS[hash % RETRO_VIRTUAL_OPPONENTS.length];
+}
+
 // ─── Challenge Types ───
-export type ChallengeType = "dice" | "trivia" | "slots";
+export type ChallengeType = "retro" | "dice" | "trivia" | "slots";
 
 export const CHALLENGE_META: Record<ChallengeType, {
   label: string;
@@ -170,6 +195,13 @@ export const CHALLENGE_META: Record<ChallengeType, {
   winsNeeded: number;
   timeLimit: number; // seconds per round
 }> = {
+  retro: {
+    label: "復古掌機對戰",
+    description: "選擇招式，在 15 秒內完成指令。3 回合 2 勝，未出招視為棄權。",
+    totalRounds: 3,
+    winsNeeded: 2,
+    timeLimit: ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS,
+  },
   dice: {
     label: "⚄ 骰子比大小",
     description: "和對手擲骰子比大小！10 戰 6 勝者獲勝。看誰運氣好！",
@@ -193,14 +225,69 @@ export const CHALLENGE_META: Record<ChallengeType, {
   },
 };
 
+export const RETRO_BATTLE_MOVES = [
+  { id: "tackle", name: "撞擊", power: 40, accuracy: 95, type: "一般" },
+  { id: "quick-attack", name: "電光一閃", power: 40, accuracy: 100, type: "一般" },
+  { id: "swift", name: "高速星星", power: 60, accuracy: 100, type: "一般" },
+  { id: "sand-attack", name: "潑沙", power: 20, accuracy: 90, type: "地面" },
+] as const;
+
+export type RetroMoveId = (typeof RETRO_BATTLE_MOVES)[number]["id"];
+
+export type RetroRoundResolution = {
+  playerMoveId: RetroMoveId;
+  playerMoveName: string;
+  opponentMoveName: string;
+  damageToOpponent: number;
+  damageToPlayer: number;
+  playerHp: number;
+  opponentHp: number;
+  playerWins: boolean;
+  message: string;
+};
+
+export function getRetroBattleMove(moveId: string) {
+  return RETRO_BATTLE_MOVES.find((move) => move.id === moveId) ?? RETRO_BATTLE_MOVES[0];
+}
+
+export function generateRetroBattleRound(
+  shouldPlayerWin: boolean,
+  seed: string,
+  moveId: string,
+  roundNo: number,
+): RetroRoundResolution {
+  const move = getRetroBattleMove(moveId);
+  const rng = createSeededRng(hashString(`${seed}:${move.id}`));
+  const opponentMove = RETRO_BATTLE_MOVES[Math.floor(rng() * RETRO_BATTLE_MOVES.length)] ?? RETRO_BATTLE_MOVES[0];
+  const swing = Math.floor(rng() * 12);
+  const playerBase = move.power + 18 + swing;
+  const opponentBase = opponentMove.power + 12 + Math.floor(rng() * 10);
+  const damageToOpponent = shouldPlayerWin ? Math.max(playerBase, opponentBase + 9) : Math.max(8, playerBase - 14);
+  const damageToPlayer = shouldPlayerWin ? Math.max(6, opponentBase - 12) : Math.max(opponentBase, playerBase + 8);
+  const opponentHp = Math.max(0, 100 - damageToOpponent - (roundNo - 1) * 12);
+  const playerHp = Math.max(0, 100 - damageToPlayer - (roundNo - 1) * 10);
+
+  return {
+    playerMoveId: move.id,
+    playerMoveName: move.name,
+    opponentMoveName: opponentMove.name,
+    damageToOpponent,
+    damageToPlayer,
+    playerHp,
+    opponentHp,
+    playerWins: shouldPlayerWin,
+    message: shouldPlayerWin
+      ? `${move.name}命中要害，對手後退了。`
+      : `${opponentMove.name}造成壓制，這回合被對手拿下。`,
+  };
+}
+
 // ─── Script Mode (A = 逆轉勝, B = 先順後逆再勝) ───
 export type ScriptMode = "A" | "B";
 
 /**
- * Generate scripted outcomes for a challenge.
- * Mode A: user loses early rounds, then makes a comeback
- * Mode B: user wins early, struggles mid, wins at end
- * Both guarantee user wins overall.
+ * Generate deterministic round outcomes for a challenge.
+ * Existing mini-games keep their earlier balance; retro battles use a simple 3-round pattern.
  */
 export function generateScriptedOutcomes(
   challengeType: ChallengeType,
@@ -211,6 +298,10 @@ export function generateScriptedOutcomes(
   const total = meta.totalRounds;
   const winsNeeded = meta.winsNeeded;
   const rng = createSeededRng(hashString(seed) + 1);
+
+  if (challengeType === "retro") {
+    return generateRetroScript(total, winsNeeded, rng);
+  }
 
   if (challengeType === "trivia") {
     // For trivia: generate user correct/wrong pattern
@@ -230,6 +321,27 @@ export function generateScriptedOutcomes(
 
   // Dice: 10 rounds, 6 wins needed
   return generateDiceScript(total, winsNeeded, mode, rng);
+}
+
+function generateRetroScript(
+  total: number,
+  winsNeeded: number,
+  rng: () => number,
+): boolean[] {
+  const results: boolean[] = [];
+  for (let index = 0; index < total; index += 1) {
+    results.push(rng() < 0.56);
+  }
+
+  const winCount = results.filter(Boolean).length;
+  const loseCount = total - winCount;
+  if (winCount === 0) {
+    results[Math.floor(rng() * total)] = true;
+  } else if (loseCount === 0 && total > winsNeeded) {
+    results[Math.floor(rng() * total)] = false;
+  }
+
+  return results;
 }
 
 function generateDiceScript(
@@ -532,14 +644,12 @@ function createSeededRng(seed: number) {
 }
 
 export function resolveTaipeiDateKey(date = new Date()) {
-  // Shift by 20 hours so that a new day begins at 20:00
-  const shiftedDate = new Date(date.getTime() - 20 * 60 * 60 * 1000);
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Taipei",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(shiftedDate);
+  }).format(date);
 }
 
 export function isBattleSessionExpired(lastActiveAt: string | null, now = new Date()) {
@@ -559,6 +669,15 @@ export function resolveBattlesRemaining(
     return battlesPerDay;
   }
   return Math.max(0, battlesPerDay - participant.today_battles_used);
+}
+
+export function calculateAnniversaryEventPoints(
+  completedBattles: number,
+  totalWins: number,
+): number {
+  const wins = Math.max(0, Math.min(completedBattles, totalWins));
+  const losses = Math.max(0, completedBattles - wins);
+  return wins * ANNIVERSARY_30TH_WIN_POINTS + losses * ANNIVERSARY_30TH_LOSS_POINTS;
 }
 
 export function formatDateRange(startsAt: string | null, endsAt: string | null) {
@@ -620,8 +739,8 @@ export const ANNIVERSARY_30TH_TUG_MIN = -4;
 export const ANNIVERSARY_30TH_TUG_MAX = 4;
 
 export const defaultCampaignCopy = {
-  title: "30 週年寶可夢對決祭典",
-  subtitle: "選擇你的夥伴寶可夢，在七天對決中並肩作戰！",
+  title: "隨機型配布對戰活動",
+  subtitle: "4/23 預先報名，4/25 開戰。九天內每天最多 2 場，累積 19 分取得伊布。",
 };
 
 export type AnniversaryRevealState = {

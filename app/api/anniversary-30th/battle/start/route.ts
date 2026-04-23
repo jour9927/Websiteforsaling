@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 import {
+  ANNIVERSARY_30TH_EEVEE_POINT_GOAL,
   ANNIVERSARY_30TH_SLUG,
   CHALLENGE_META,
+  calculateAnniversaryEventPoints,
   generateScriptedOutcomes,
   isBattleSessionExpired,
-  resolveVirtualOpponent,
+  resolveRetroVirtualOpponent,
   resolveTaipeiDateKey,
   resolveNarrativeBattleDay,
   hashString,
@@ -18,7 +20,20 @@ import {
 
 export const dynamic = "force-dynamic";
 
-const CHALLENGE_TYPES: ChallengeType[] = ["dice", "trivia", "slots"];
+const CHALLENGE_TYPES: ChallengeType[] = ["retro"];
+
+async function countCompletedBattles(
+  adminSupabase: ReturnType<typeof createAdminSupabaseClient>,
+  participantId: string,
+) {
+  const { count } = await adminSupabase
+    .from("anniversary_battles")
+    .select("id", { count: "exact", head: true })
+    .eq("participant_id", participantId)
+    .in("status", ["won", "lost"]);
+
+  return count ?? 0;
+}
 
 function sanitizeBattleForClient(battle: AnniversaryBattle): Partial<AnniversaryBattle> {
   // Hide scripted data from client
@@ -108,6 +123,15 @@ export async function POST() {
         ended_at: now,
       })
       .eq("id", existingBattle.id);
+    const completedBattles = await countCompletedBattles(adminSupabase, participant.id);
+    const eventPoints = calculateAnniversaryEventPoints(completedBattles, participant.total_wins ?? 0);
+    await adminSupabase
+      .from("anniversary_participants")
+      .update({
+        win_streak: 0,
+        partner_unlocked: participant.partner_unlocked || eventPoints >= ANNIVERSARY_30TH_EEVEE_POINT_GOAL,
+      })
+      .eq("id", participant.id);
   } else if (existingBattle) {
     const { data: resumedBattleData } = await adminSupabase
       .from("anniversary_battles")
@@ -118,8 +142,10 @@ export async function POST() {
       .select("*")
       .single();
 
+    const resumedBattle = (resumedBattleData || existingBattle) as AnniversaryBattle;
     return NextResponse.json({
-      battle: sanitizeBattleForClient((resumedBattleData || existingBattle) as AnniversaryBattle),
+      battle: sanitizeBattleForClient(resumedBattle),
+      challengeMeta: CHALLENGE_META[resumedBattle.challenge_type],
       resuming: true,
     });
   }
@@ -146,17 +172,17 @@ export async function POST() {
   const seed = `${participant.id}:${battleSerial}:challenge`;
   const rngValue = hashString(seed);
 
-  // Random challenge type
+  // Random Distribution currently uses the retro battle flow.
   const challengeType = CHALLENGE_TYPES[rngValue % CHALLENGE_TYPES.length];
 
   // Random script mode (A or B, balanced)
   const scriptMode: ScriptMode = rngValue % 2 === 0 ? "A" : "B";
 
-  // Generate scripted outcomes (guaranteed user win)
+  // Generate deterministic round outcomes.
   const scriptedOutcomes = generateScriptedOutcomes(challengeType, scriptMode, seed);
 
-  // Generate virtual opponent
-  const opponent = resolveVirtualOpponent(`${participant.id}:${battleSerial}:opponent`);
+  // Generate a Gen 1 virtual opponent for the retro battle format.
+  const opponent = resolveRetroVirtualOpponent(`${participant.id}:${battleSerial}:opponent`);
 
   // Calculate battle day (no cap to avoid collisions)
   const battleDay = resolveNarrativeBattleDay(

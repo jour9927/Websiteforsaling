@@ -15,7 +15,7 @@ export function Anniversary30thBanner() {
                     </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-3">
-                    <Link href="/anniversary-30th" className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl hover:scale-105 transition-transform border border-pink-400/50 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(236,72,153,0.5)]">
+                    <Link href="/random-distribution" className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl hover:scale-105 transition-transform border border-pink-400/50 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(236,72,153,0.5)]">
                         <span>⚔️</span> 立即參戰
                     </Link>
                 </div>

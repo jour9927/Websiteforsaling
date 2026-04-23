@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
-import { ANNIVERSARY_30TH_SLUG } from "@/lib/anniversary30th";
+import { ANNIVERSARY_30TH_EVENT_ID, ANNIVERSARY_30TH_SLUG } from "@/lib/anniversary30th";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+export async function POST() {
   const supabase = createServerSupabaseClient();
   const adminSupabase = createAdminSupabaseClient();
   const {
@@ -15,117 +15,101 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const payload = await request.json().catch(() => ({}));
-  const targetPokemon = typeof payload.targetPokemon === "string" ? payload.targetPokemon.trim() : "";
-
-  if (!targetPokemon) {
-    return NextResponse.json({ error: "targetPokemon is required" }, { status: 400 });
-  }
-
-  const { data: campaign, error: campaignError } = await supabase
+  const { data: campaign, error: campaignError } = await adminSupabase
     .from("anniversary_campaigns")
-    .select("id, event_id, entry_fee, additional_fee")
+    .select("id, event_id")
     .eq("slug", ANNIVERSARY_30TH_SLUG)
     .maybeSingle();
 
   if (campaignError || !campaign) {
-    return NextResponse.json({ error: "Campaign is not configured yet" }, { status: 503 });
+    return NextResponse.json({ error: "活動尚未建立。" }, { status: 503 });
   }
-  const entryFeeLabel = Number(campaign.entry_fee || 0).toLocaleString("zh-TW");
 
-  const { data: existingParticipant } = await supabase
+  const eventId = campaign.event_id || ANNIVERSARY_30TH_EVENT_ID;
+  const now = new Date().toISOString();
+
+  const { data: existingRegistration, error: registrationLookupError } = await adminSupabase
+    .from("registrations")
+    .select("id, status")
+    .eq("event_id", eventId)
+    .eq("user_id", session.user.id)
+    .maybeSingle();
+
+  if (registrationLookupError) {
+    return NextResponse.json({ error: registrationLookupError.message }, { status: 500 });
+  }
+
+  if (!existingRegistration) {
+    const { error: registrationError } = await adminSupabase
+      .from("registrations")
+      .insert({
+        event_id: eventId,
+        user_id: session.user.id,
+        status: "pending",
+        registered_at: now,
+      });
+
+    if (registrationError) {
+      return NextResponse.json({ error: registrationError.message }, { status: 500 });
+    }
+  } else if (existingRegistration.status === "cancelled") {
+    const { error: registrationError } = await adminSupabase
+      .from("registrations")
+      .update({ status: "pending" })
+      .eq("id", existingRegistration.id);
+
+    if (registrationError) {
+      return NextResponse.json({ error: registrationError.message }, { status: 500 });
+    }
+  }
+
+  const { data: existingParticipant, error: participantLookupError } = await adminSupabase
     .from("anniversary_participants")
     .select("id")
     .eq("campaign_id", campaign.id)
     .eq("user_id", session.user.id)
     .maybeSingle();
 
-  if (existingParticipant) {
-    return NextResponse.json({ error: "你已經建立過主契約了" }, { status: 409 });
+  if (participantLookupError) {
+    return NextResponse.json({ error: participantLookupError.message }, { status: 500 });
   }
 
-  const { data: participant, error: participantError } = await supabase
+  if (existingParticipant) {
+    return NextResponse.json({
+      success: true,
+      eventId,
+      participantId: existingParticipant.id,
+      alreadyRegistered: true,
+    });
+  }
+
+  const { data: participant, error: participantError } = await adminSupabase
     .from("anniversary_participants")
     .insert({
       campaign_id: campaign.id,
       user_id: session.user.id,
-      target_pokemon: targetPokemon,
-      entry_fee_amount: campaign.entry_fee,
+      target_pokemon: "伊布",
+      entry_fee_amount: 0,
+      entry_fee_paid_at: now,
+      total_battles_used: 0,
+      today_battles_used: 0,
+      win_streak: 0,
+      max_win_streak: 0,
+      total_wins: 0,
+      partner_unlocked: false,
+      has_entered_top_cut: false,
     })
     .select("id")
     .single();
 
   if (participantError || !participant) {
-    return NextResponse.json({ error: participantError?.message || "Unable to create participant" }, { status: 500 });
-  }
-
-  const { data: insertedContracts, error: contractError } = await supabase
-    .from("anniversary_contracts")
-    .insert([
-      {
-        participant_id: participant.id,
-        contract_type: "main",
-        pokemon_name: targetPokemon,
-        price: campaign.entry_fee,
-        status: "holding",
-        notes: "主契約已建立，目前進入暫時持有階段。若未守到最後，保證金將在結算時退回。",
-      },
-      {
-        participant_id: participant.id,
-        contract_type: "additional",
-        pokemon_name: null,
-        price: campaign.additional_fee,
-        status: "pending",
-        notes: "活動期間曾踏入前 10，即可解鎖守護伊布的追加契約顯現儀式。",
-      },
-    ])
-    .select("*");
-
-  if (contractError) {
-    await supabase.from("anniversary_participants").delete().eq("id", participant.id);
-    return NextResponse.json({ error: contractError.message }, { status: 500 });
-  }
-
-  const mainContract = (insertedContracts || []).find((contract) => contract.contract_type === "main");
-
-  if (campaign.event_id && mainContract) {
-    const now = new Date().toISOString();
-    const { data: paymentRecord, error: paymentError } = await adminSupabase
-      .from("user_payments")
-      .insert({
-        user_id: session.user.id,
-        event_id: campaign.event_id,
-        amount: campaign.entry_fee,
-        status: "paid",
-        payment_date: now,
-        notes: `30 週年主契約暫持保證金。目標寶可夢：${targetPokemon}。若未守到最後，${entryFeeLabel} 退還。`,
-      })
-      .select("id")
-      .single();
-
-    if (paymentError || !paymentRecord) {
-      await supabase.from("anniversary_participants").delete().eq("id", participant.id);
-      return NextResponse.json({ error: paymentError?.message || "Unable to create payment record" }, { status: 500 });
-    }
-
-    const { error: mainContractError } = await adminSupabase
-      .from("anniversary_contracts")
-      .update({
-        payment_record_id: paymentRecord.id,
-        status: "holding",
-        notes: "主契約已建立，暫持保證金已記錄完成；若未守到最後，系統會在結算時退回。",
-      })
-      .eq("id", mainContract.id);
-
-    if (mainContractError) {
-      await adminSupabase.from("user_payments").delete().eq("id", paymentRecord.id);
-      await supabase.from("anniversary_participants").delete().eq("id", participant.id);
-      return NextResponse.json({ error: mainContractError.message }, { status: 500 });
-    }
+    return NextResponse.json({ error: participantError?.message || "無法建立參戰資料。" }, { status: 500 });
   }
 
   return NextResponse.json({
     success: true,
+    eventId,
     participantId: participant.id,
+    alreadyRegistered: false,
   });
 }

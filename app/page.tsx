@@ -6,6 +6,7 @@ import AuctionCard from "@/components/AuctionCard";
 // import { PopularityWidgetToggle } from "@/components/PopularityWidgetToggle";
 import { CommissionWidget } from "@/components/CommissionWidget";
 import { MaintenanceToggle } from "@/components/MaintenanceToggle";
+import { RandomDistributionWidget } from "@/components/RandomDistributionWidget";
 // [伊布集點日] 活動已結束
 // import { EeveeDayWidget } from "@/components/EeveeDayWidget";
 // [春節活動] 明年再啟用
@@ -81,6 +82,7 @@ export default async function HomePage() {
     return (
       <div className="flex flex-col gap-8 py-12">
         {/* 30週年預先報名 (已移除) */}
+        <RandomDistributionWidget />
 
         <section className="glass-card max-w-lg mx-auto p-8 text-center">
           <p className="text-sm uppercase tracking-[0.35em] text-slate-200">Event Glass</p>
@@ -316,6 +318,7 @@ export default async function HomePage() {
       <MaintenanceToggle />
 
       {/* 30週年預先報名 (已移除) */}
+      <RandomDistributionWidget />
 
       {/* [春節活動] 明年再啟用 */}
       {/* <SpringFestivalBanner /> */}
@@ -354,4 +357,3 @@ export default async function HomePage() {
     </div>
   );
 }
-

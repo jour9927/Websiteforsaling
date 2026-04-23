@@ -1,15 +1,14 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 import {
+  ANNIVERSARY_30TH_EEVEE_POINT_GOAL,
+  ANNIVERSARY_30TH_LOSS_POINTS,
   ANNIVERSARY_30TH_SLUG,
+  ANNIVERSARY_30TH_WIN_POINTS,
   CHALLENGE_META,
-  UNLOCK_PARTNER_CONSECUTIVE_WINS,
-  UNLOCK_SECOND_POKEMON_TOTAL_WINS,
-  UNLOCK_TITLE_TOTAL_WINS,
-  UNLOCK_THIRD_POKEMON_TOTAL_WINS,
-  UNLOCK_MASTER_BALL_TOTAL_WINS,
-  UNLOCK_LEGENDARY_TOTAL_WINS,
+  calculateAnniversaryEventPoints,
   generateDiceRoll,
+  generateRetroBattleRound,
   generateSlotResult,
   isBattleSessionExpired,
   pickTriviaQuestions,
@@ -20,6 +19,27 @@ import {
 } from "@/lib/anniversary30th";
 
 export const dynamic = "force-dynamic";
+
+function parseScriptedOutcomes(value: AnniversaryBattle["scripted_outcomes"]): boolean[] {
+  try {
+    return typeof value === "string" ? JSON.parse(value) : value as unknown as boolean[];
+  } catch {
+    return [];
+  }
+}
+
+async function countCompletedBattles(
+  adminSupabase: ReturnType<typeof createAdminSupabaseClient>,
+  participantId: string,
+) {
+  const { count } = await adminSupabase
+    .from("anniversary_battles")
+    .select("id", { count: "exact", head: true })
+    .eq("participant_id", participantId)
+    .in("status", ["won", "lost"]);
+
+  return count ?? 0;
+}
 
 export async function POST(request: Request) {
   const supabase = createServerSupabaseClient();
@@ -33,12 +53,13 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const battleId = typeof body.battleId === "string" ? body.battleId : "";
   const roundNo = Number(body.roundNo);
+  const submittedAction = typeof body.action === "string" ? body.action : "";
+  const isForfeit = submittedAction === "timeout" || submittedAction === "forfeit";
 
   if (!battleId || !Number.isInteger(roundNo) || roundNo <= 0) {
     return NextResponse.json({ error: "battleId 和 roundNo 必填。" }, { status: 400 });
   }
 
-  // Load campaign + participant + battle
   const { data: campaignData } = await supabase
     .from("anniversary_campaigns")
     .select("*")
@@ -71,122 +92,35 @@ export async function POST(request: Request) {
 
   const battle = (battleData || null) as AnniversaryBattle | null;
   if (!battle) {
-    return NextResponse.json({ error: "找不到這場對決。" }, { status: 404 });
+    return NextResponse.json({ error: "找不到對戰。" }, { status: 404 });
   }
 
-  if (battle.status === "won" || battle.status === "lost") {
-    return NextResponse.json({ error: "這場對決已結束。" }, { status: 409 });
-  }
-
-  const now = new Date().toISOString();
-
-  if (isBattleSessionExpired(battle.last_active_at || battle.started_at)) {
-    await adminSupabase
-      .from("anniversary_battles")
-      .update({
-        status: "lost",
-        last_active_at: now,
-        ended_at: now,
-      })
-      .eq("id", battle.id);
-
-    return NextResponse.json({
-      error: "這場對決已逾時，已自動結束，無法繼續。",
-      battleExpired: true,
-    }, { status: 409 });
-  }
-
-  const challengeType = battle.challenge_type as ChallengeType;
+  const challengeType = (battle.challenge_type || "retro") as ChallengeType;
   const meta = CHALLENGE_META[challengeType];
-
-  // Parse scripted outcomes
-  let scriptedOutcomes: boolean[];
-  try {
-    scriptedOutcomes = typeof battle.scripted_outcomes === "string"
-      ? JSON.parse(battle.scripted_outcomes)
-      : battle.scripted_outcomes as unknown as boolean[];
-  } catch {
-    scriptedOutcomes = [];
+  if (!meta) {
+    return NextResponse.json({ error: "不支援的對戰類型。" }, { status: 400 });
   }
 
-  if (roundNo > meta.totalRounds || roundNo - 1 >= scriptedOutcomes.length) {
-    return NextResponse.json({ error: "回合超出範圍。" }, { status: 400 });
+  if ((battle.status as string) === "won" || (battle.status as string) === "lost") {
+    const completedBattles = await countCompletedBattles(adminSupabase, participant.id);
+    return NextResponse.json({
+      roundNo,
+      roundResult: null,
+      roundPayload: null,
+      playerScore: battle.player_score,
+      opponentScore: battle.opponent_score,
+      battleFinished: true,
+      battleResult: battle.status,
+      duplicate: true,
+      challengeType,
+      totalRounds: meta.totalRounds,
+      winsNeeded: meta.winsNeeded,
+      eventPoints: calculateAnniversaryEventPoints(completedBattles, participant.total_wins ?? 0),
+      pointsEarned: 0,
+      lastActiveAt: battle.last_active_at,
+    });
   }
 
-  const shouldWin = scriptedOutcomes[roundNo - 1];
-  const roundSeed = `${battle.id}:round:${roundNo}`;
-  let roundPayload: Record<string, unknown> = {};
-  let roundResult: "win" | "lose" = shouldWin ? "win" : "lose";
-
-  // ─── Process by challenge type ───
-  if (challengeType === "dice") {
-    // Dice: player chooses "high" or "low" (but outcome is scripted)
-    const diceResult = generateDiceRoll(shouldWin, roundSeed);
-    roundPayload = {
-      playerDice: diceResult.playerDice,
-      opponentDice: diceResult.opponentDice,
-      playerWins: shouldWin,
-    };
-  } else if (challengeType === "trivia") {
-    // Trivia: player submits answer index
-    const selectedAnswer = typeof body.selectedAnswer === "number" ? body.selectedAnswer : -1;
-    const questions = pickTriviaQuestions(`${battle.id}:trivia`, 10);
-    const question = questions[roundNo - 1];
-
-    if (!question) {
-      return NextResponse.json({ error: "題目載入失敗。" }, { status: 500 });
-    }
-
-    const isCorrect = selectedAnswer === question.correctIndex;
-    // In scripted mode: if should win this round, player is "correct"
-    // Opponent correctness is inverse of script
-    const opponentCorrect = !shouldWin;
-    roundResult = shouldWin ? "win" : "lose";
-
-    roundPayload = {
-      questionId: question.id,
-      question: question.question,
-      options: question.options,
-      correctIndex: question.correctIndex,
-      selectedAnswer,
-      playerCorrect: isCorrect,
-      opponentCorrect,
-      scriptedResult: shouldWin, // the scripted battle result for this round
-    };
-  } else if (challengeType === "slots") {
-    // Slots: just spin
-    const slotResult = generateSlotResult(shouldWin, roundSeed);
-    const opponentResult = generateSlotResult(!shouldWin, `${roundSeed}:opponent`);
-
-    roundPayload = {
-      playerReels: slotResult,
-      opponentReels: opponentResult,
-      playerWins: shouldWin,
-    };
-  }
-
-  // Update scores
-  let newPlayerScore = battle.player_score;
-  let newOpponentScore = battle.opponent_score;
-  if (roundResult === "win") {
-    newPlayerScore += 1;
-  } else {
-    newOpponentScore += 1;
-  }
-
-  // Check if battle is finished
-  const isLastRound = roundNo >= meta.totalRounds;
-  const playerReachedWins = newPlayerScore >= meta.winsNeeded;
-  const opponentReachedWins = newOpponentScore >= meta.winsNeeded;
-  const battleFinished = isLastRound || playerReachedWins || opponentReachedWins;
-
-  // Determine final result
-  let finalStatus: "in_progress" | "won" | "lost" = "in_progress";
-  if (battleFinished) {
-    finalStatus = newPlayerScore > newOpponentScore ? "won" : "lost";
-  }
-
-  // Check if this round was already played (prevent double-click race condition)
   const { data: existingRound } = await adminSupabase
     .from("anniversary_battle_rounds")
     .select("id, round_result, payload")
@@ -195,7 +129,7 @@ export async function POST(request: Request) {
     .maybeSingle();
 
   if (existingRound) {
-    // Round already recorded — return current battle state instead of inserting again
+    const completedBattles = await countCompletedBattles(adminSupabase, participant.id);
     return NextResponse.json({
       roundNo,
       roundResult: existingRound.round_result,
@@ -208,11 +142,121 @@ export async function POST(request: Request) {
       challengeType,
       totalRounds: meta.totalRounds,
       winsNeeded: meta.winsNeeded,
+      eventPoints: calculateAnniversaryEventPoints(completedBattles, participant.total_wins ?? 0),
+      pointsEarned: 0,
       lastActiveAt: battle.last_active_at,
     });
   }
 
-  // Insert round record
+  const now = new Date().toISOString();
+
+  if (!isForfeit && isBattleSessionExpired(battle.last_active_at || battle.started_at)) {
+    await adminSupabase
+      .from("anniversary_battles")
+      .update({
+        status: "lost",
+        last_active_at: now,
+        ended_at: now,
+      })
+      .eq("id", battle.id);
+
+    const completedBattles = await countCompletedBattles(adminSupabase, participant.id);
+    const eventPoints = calculateAnniversaryEventPoints(completedBattles, participant.total_wins ?? 0);
+    const partnerJustUnlocked = !participant.partner_unlocked && eventPoints >= ANNIVERSARY_30TH_EEVEE_POINT_GOAL;
+    await adminSupabase
+      .from("anniversary_participants")
+      .update({
+        win_streak: 0,
+        partner_unlocked: participant.partner_unlocked || partnerJustUnlocked,
+      })
+      .eq("id", participant.id);
+
+    return NextResponse.json({
+      error: "這場對決已逾時，已自動結束，無法繼續。",
+      battleExpired: true,
+      eventPoints,
+      pointsEarned: ANNIVERSARY_30TH_LOSS_POINTS,
+      partnerJustUnlocked,
+    }, { status: 409 });
+  }
+
+  let roundPayload: Record<string, unknown>;
+  let roundResult: "win" | "lose";
+
+  if (isForfeit) {
+    roundResult = "lose";
+    roundPayload = {
+      forfeit: true,
+      reason: submittedAction === "timeout" ? "timeout" : "forfeit",
+      message: "倒數結束，這場對戰判定為棄權。",
+    };
+  } else {
+    const scriptedOutcomes = parseScriptedOutcomes(battle.scripted_outcomes);
+    if (roundNo > meta.totalRounds || roundNo - 1 >= scriptedOutcomes.length) {
+      return NextResponse.json({ error: "回合超出範圍。" }, { status: 400 });
+    }
+
+    const shouldWin = scriptedOutcomes[roundNo - 1];
+    const roundSeed = `${battle.id}:round:${roundNo}`;
+    roundResult = shouldWin ? "win" : "lose";
+
+    if (challengeType === "retro") {
+      roundPayload = generateRetroBattleRound(shouldWin, roundSeed, submittedAction, roundNo);
+    } else if (challengeType === "dice") {
+      const diceResult = generateDiceRoll(shouldWin, roundSeed);
+      roundPayload = {
+        playerDice: diceResult.playerDice,
+        opponentDice: diceResult.opponentDice,
+        playerWins: shouldWin,
+      };
+    } else if (challengeType === "trivia") {
+      const selectedAnswer = typeof body.selectedAnswer === "number" ? body.selectedAnswer : -1;
+      const questions = pickTriviaQuestions(`${battle.id}:trivia`, 10);
+      const question = questions[roundNo - 1];
+
+      if (!question) {
+        return NextResponse.json({ error: "題目載入失敗。" }, { status: 500 });
+      }
+
+      roundPayload = {
+        questionId: question.id,
+        question: question.question,
+        options: question.options,
+        correctIndex: question.correctIndex,
+        selectedAnswer,
+        playerCorrect: selectedAnswer === question.correctIndex,
+        opponentCorrect: !shouldWin,
+        scriptedResult: shouldWin,
+      };
+    } else {
+      const slotResult = generateSlotResult(shouldWin, roundSeed);
+      const opponentResult = generateSlotResult(!shouldWin, `${roundSeed}:opponent`);
+      roundPayload = {
+        playerReels: slotResult,
+        opponentReels: opponentResult,
+        playerWins: shouldWin,
+      };
+    }
+  }
+
+  let newPlayerScore = battle.player_score;
+  let newOpponentScore = battle.opponent_score;
+  if (isForfeit) {
+    newOpponentScore = Math.max(meta.winsNeeded, battle.opponent_score + 1);
+  } else if (roundResult === "win") {
+    newPlayerScore += 1;
+  } else {
+    newOpponentScore += 1;
+  }
+
+  const isLastRound = roundNo >= meta.totalRounds;
+  const playerReachedWins = newPlayerScore >= meta.winsNeeded;
+  const opponentReachedWins = newOpponentScore >= meta.winsNeeded;
+  const battleFinished = isForfeit || isLastRound || playerReachedWins || opponentReachedWins;
+  const finalStatus: "in_progress" | "won" | "lost" = battleFinished
+    ? newPlayerScore > newOpponentScore ? "won" : "lost"
+    : "in_progress";
+
   const { error: roundInsertError } = await adminSupabase.from("anniversary_battle_rounds").insert({
     battle_id: battle.id,
     round_no: roundNo,
@@ -224,11 +268,9 @@ export async function POST(request: Request) {
   });
 
   if (roundInsertError) {
-    // If insert fails due to race condition, return conflict
     return NextResponse.json({ error: "回合已記錄，請勿重複送出。", duplicate: true }, { status: 409 });
   }
 
-  // Update battle
   await adminSupabase
     .from("anniversary_battles")
     .update({
@@ -241,38 +283,37 @@ export async function POST(request: Request) {
     })
     .eq("id", battle.id);
 
-  // If battle won, update win tracking
   let partnerJustUnlocked = false;
-  let secondPokemonJustUnlocked = false;
-  let titleJustUnlocked = false;
-  let thirdPokemonJustUnlocked = false;
-  let masterBallJustUnlocked = false;
-  let legendaryJustUnlocked = false;
+  let updatedTotalWins = participant.total_wins ?? 0;
+  let updatedWinStreak = participant.win_streak ?? 0;
+  let updatedMaxWinStreak = participant.max_win_streak ?? 0;
+  let eventPoints = calculateAnniversaryEventPoints(
+    await countCompletedBattles(adminSupabase, participant.id),
+    updatedTotalWins,
+  );
 
-  if (battleFinished && (finalStatus as string) === "won") {
-    const newTotalWins = (participant.total_wins ?? 0) + 1;
-    const newWinStreak = (participant.win_streak ?? 0) + 1;
-    const newMaxWinStreak = Math.max(participant.max_win_streak ?? 0, newWinStreak);
+  if (battleFinished) {
+    if (finalStatus === "won") {
+      updatedTotalWins += 1;
+      updatedWinStreak += 1;
+      updatedMaxWinStreak = Math.max(updatedMaxWinStreak, updatedWinStreak);
+    } else {
+      updatedWinStreak = 0;
+    }
 
-    partnerJustUnlocked = !participant.partner_unlocked && newWinStreak >= UNLOCK_PARTNER_CONSECUTIVE_WINS;
-    secondPokemonJustUnlocked = !participant.second_pokemon_unlocked && newTotalWins >= UNLOCK_SECOND_POKEMON_TOTAL_WINS;
-    titleJustUnlocked = !participant.title_unlocked && newTotalWins >= UNLOCK_TITLE_TOTAL_WINS;
-    thirdPokemonJustUnlocked = !participant.third_pokemon_unlocked && newTotalWins >= UNLOCK_THIRD_POKEMON_TOTAL_WINS;
-    masterBallJustUnlocked = !participant.master_ball_unlocked && newTotalWins >= UNLOCK_MASTER_BALL_TOTAL_WINS;
-    legendaryJustUnlocked = !participant.legendary_unlocked && newTotalWins >= UNLOCK_LEGENDARY_TOTAL_WINS;
+    eventPoints = calculateAnniversaryEventPoints(
+      await countCompletedBattles(adminSupabase, participant.id),
+      updatedTotalWins,
+    );
+    partnerJustUnlocked = !participant.partner_unlocked && eventPoints >= ANNIVERSARY_30TH_EEVEE_POINT_GOAL;
 
     await adminSupabase
       .from("anniversary_participants")
       .update({
-        total_wins: newTotalWins,
-        win_streak: newWinStreak,
-        max_win_streak: newMaxWinStreak,
+        total_wins: updatedTotalWins,
+        win_streak: updatedWinStreak,
+        max_win_streak: updatedMaxWinStreak,
         partner_unlocked: participant.partner_unlocked || partnerJustUnlocked,
-        second_pokemon_unlocked: participant.second_pokemon_unlocked || secondPokemonJustUnlocked,
-        title_unlocked: participant.title_unlocked || titleJustUnlocked,
-        third_pokemon_unlocked: participant.third_pokemon_unlocked || thirdPokemonJustUnlocked,
-        master_ball_unlocked: participant.master_ball_unlocked || masterBallJustUnlocked,
-        legendary_unlocked: participant.legendary_unlocked || legendaryJustUnlocked,
       })
       .eq("id", participant.id);
   }
@@ -286,14 +327,16 @@ export async function POST(request: Request) {
     battleFinished,
     battleResult: battleFinished ? finalStatus : null,
     partnerJustUnlocked,
-    secondPokemonJustUnlocked,
-    titleJustUnlocked,
-    thirdPokemonJustUnlocked,
-    masterBallJustUnlocked,
-    legendaryJustUnlocked,
+    secondPokemonJustUnlocked: false,
+    titleJustUnlocked: false,
+    thirdPokemonJustUnlocked: false,
+    masterBallJustUnlocked: false,
+    legendaryJustUnlocked: false,
     challengeType,
     totalRounds: meta.totalRounds,
     winsNeeded: meta.winsNeeded,
+    eventPoints,
+    pointsEarned: battleFinished ? finalStatus === "won" ? ANNIVERSARY_30TH_WIN_POINTS : ANNIVERSARY_30TH_LOSS_POINTS : 0,
     lastActiveAt: now,
   });
 }

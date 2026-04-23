@@ -1,52 +1,134 @@
 import Link from "next/link";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 import {
+  ANNIVERSARY_30TH_BATTLES_PER_DAY,
+  ANNIVERSARY_30TH_EEVEE_POINT_GOAL,
+  ANNIVERSARY_30TH_EVENT_ID,
   ANNIVERSARY_30TH_SLUG,
   ANNIVERSARY_30TH_STARTS_AT,
-  isEventStarted,
-  isBattleSessionExpired,
-  resolveBattlesRemaining,
+  calculateAnniversaryEventPoints,
   getPartnerPokemon,
   getPokemonSpriteUrl,
+  isBattleSessionExpired,
+  isEventStarted,
+  resolveBattlesRemaining,
+  type AnniversaryBattle,
   type AnniversaryCampaign,
   type AnniversaryParticipant,
-  type AnniversaryBattle,
 } from "@/lib/anniversary30th";
 import { Anniversary30thBattleConsole } from "@/components/Anniversary30thBattleConsole";
+import { Anniversary30thCountdown } from "@/components/Anniversary30thCountdown";
 
 export const dynamic = "force-dynamic";
 
-async function loadBattleState(userId?: string) {
-  const supabase = createServerSupabaseClient();
+type BattleState = {
+  campaign: AnniversaryCampaign | null;
+  participant: AnniversaryParticipant | null;
+  battle: AnniversaryBattle | null;
+  completedBattleCount: number;
+  displayName: string;
+};
+
+type NoticeActionHref = "/random-distribution" | "/login?redirect=/random-distribution/battle";
+
+type ProfileName = {
+  full_name: string | null;
+  username: string | null;
+};
+
+async function countCompletedBattles(participantId: string) {
+  const adminSupabase = createAdminSupabaseClient();
+  const { count } = await adminSupabase
+    .from("anniversary_battles")
+    .select("id", { count: "exact", head: true })
+    .eq("participant_id", participantId)
+    .in("status", ["won", "lost"]);
+
+  return count ?? 0;
+}
+
+async function loadBattleState(userId?: string, fallbackEmail?: string | null): Promise<BattleState> {
   const adminSupabase = createAdminSupabaseClient();
 
-  const { data: campaignData } = await supabase
+  const { data: campaignData } = await adminSupabase
     .from("anniversary_campaigns")
     .select("*")
     .eq("slug", ANNIVERSARY_30TH_SLUG)
     .maybeSingle();
 
   const campaign = (campaignData || null) as AnniversaryCampaign | null;
-
   if (!campaign || !userId) {
-    return { campaign, participant: null as AnniversaryParticipant | null, battle: null as AnniversaryBattle | null };
+    return {
+      campaign,
+      participant: null,
+      battle: null,
+      completedBattleCount: 0,
+      displayName: fallbackEmail?.split("@")[0] || "你",
+    };
   }
 
-  const { data: participantData } = await supabase
+  const { data: profileData } = await adminSupabase
+    .from("profiles")
+    .select("full_name, username")
+    .eq("id", userId)
+    .maybeSingle();
+
+  const profile = (profileData || null) as ProfileName | null;
+  const displayName = profile?.full_name || profile?.username || fallbackEmail?.split("@")[0] || "你";
+
+  let { data: participantData } = await adminSupabase
     .from("anniversary_participants")
     .select("*")
     .eq("campaign_id", campaign.id)
     .eq("user_id", userId)
     .maybeSingle();
 
-  const participant = (participantData || null) as AnniversaryParticipant | null;
+  let participant = (participantData || null) as AnniversaryParticipant | null;
 
   if (!participant) {
-    return { campaign, participant: null, battle: null };
+    const { data: registrationData } = await adminSupabase
+      .from("registrations")
+      .select("id")
+      .eq("event_id", campaign.event_id || ANNIVERSARY_30TH_EVENT_ID)
+      .eq("user_id", userId)
+      .in("status", ["pending", "confirmed"])
+      .maybeSingle();
+
+    if (registrationData) {
+      const now = new Date().toISOString();
+      const { data: insertedParticipant } = await adminSupabase
+        .from("anniversary_participants")
+        .insert({
+          campaign_id: campaign.id,
+          user_id: userId,
+          target_pokemon: "伊布",
+          entry_fee_amount: 0,
+          entry_fee_paid_at: now,
+          total_battles_used: 0,
+          today_battles_used: 0,
+          win_streak: 0,
+          max_win_streak: 0,
+          total_wins: 0,
+          partner_unlocked: false,
+          second_pokemon_unlocked: false,
+          title_unlocked: false,
+          third_pokemon_unlocked: false,
+          master_ball_unlocked: false,
+          legendary_unlocked: false,
+        })
+        .select("*")
+        .single();
+
+      participant = (insertedParticipant || null) as AnniversaryParticipant | null;
+      participantData = insertedParticipant;
+    }
   }
 
-  // Check for existing in-progress battle
-  const { data: battleData } = await supabase
+  if (!participant) {
+    return { campaign, participant: null, battle: null, completedBattleCount: 0, displayName };
+  }
+
+  const { data: battleData } = await adminSupabase
     .from("anniversary_battles")
     .select("*")
     .eq("participant_id", participant.id)
@@ -56,24 +138,37 @@ async function loadBattleState(userId?: string) {
     .maybeSingle();
 
   let battle = (battleData || null) as AnniversaryBattle | null;
+  const now = new Date().toISOString();
 
   if (battle && isBattleSessionExpired(battle.last_active_at || battle.started_at)) {
     await adminSupabase
       .from("anniversary_battles")
       .update({
         status: "lost",
-        last_active_at: new Date().toISOString(),
-        ended_at: new Date().toISOString(),
+        last_active_at: now,
+        ended_at: now,
       })
       .eq("id", battle.id);
 
+    const completedAfterLoss = await countCompletedBattles(participant.id);
+    const pointsAfterLoss = calculateAnniversaryEventPoints(completedAfterLoss, participant.total_wins ?? 0);
+
+    const { data: refreshedParticipant } = await adminSupabase
+      .from("anniversary_participants")
+      .update({
+        win_streak: 0,
+        partner_unlocked: participant.partner_unlocked || pointsAfterLoss >= ANNIVERSARY_30TH_EEVEE_POINT_GOAL,
+      })
+      .eq("id", participant.id)
+      .select("*")
+      .single();
+
+    participant = (refreshedParticipant || participantData || participant) as AnniversaryParticipant;
     battle = null;
   } else if (battle) {
     const { data: refreshedBattle } = await adminSupabase
       .from("anniversary_battles")
-      .update({
-        last_active_at: new Date().toISOString(),
-      })
+      .update({ last_active_at: now })
       .eq("id", battle.id)
       .select("*")
       .single();
@@ -81,95 +176,94 @@ async function loadBattleState(userId?: string) {
     battle = (refreshedBattle || battle) as AnniversaryBattle;
   }
 
-  return {
-    campaign,
-    participant,
-    battle,
-  };
+  const completedBattleCount = await countCompletedBattles(participant.id);
+
+  return { campaign, participant, battle, completedBattleCount, displayName };
+}
+
+function Notice({
+  title,
+  body,
+  actionLabel = "返回活動頁",
+  actionHref = "/random-distribution",
+}: {
+  title: string;
+  body: string;
+  actionLabel?: string;
+  actionHref?: NoticeActionHref;
+}) {
+  return (
+    <div className="rounded-lg border border-white/12 bg-black/30 p-8 text-center text-white">
+      <h1 className="text-3xl font-black">{title}</h1>
+      <p className="mt-4 text-sm leading-6 text-white/65">{body}</p>
+      <Link
+        href={actionHref}
+        className="mt-6 inline-flex rounded bg-emerald-300 px-6 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-200"
+      >
+        {actionLabel}
+      </Link>
+    </div>
+  );
 }
 
 export default async function Anniversary30thBattlePage() {
   const supabase = createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const { campaign, participant, battle } = await loadBattleState(user?.id);
-
-  // Fetch user display name
-  let displayName = "你";
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("full_name, username")
-      .eq("id", user.id)
-      .maybeSingle();
-    displayName = profile?.full_name || profile?.username || user.email?.split("@")[0] || "你";
-  }
-
-  const started = isEventStarted(campaign?.starts_at || ANNIVERSARY_30TH_STARTS_AT);
-  const battlesRemaining = resolveBattlesRemaining(participant, campaign?.battles_per_day || 3);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     return (
-      <div className="rounded-3xl border border-white/10 bg-black/30 p-8 text-center">
-        <h1 className="text-3xl font-bold text-white">⚔️ 對決戰場</h1>
-        <p className="mt-4 text-sm text-white/60">請先登入後再進入對決。</p>
-        <Link
-          href="/login?redirect=/anniversary-30th/battle"
-          className="mt-6 inline-flex rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-sm font-bold text-white transition hover:brightness-110"
-        >
-          登入後進入
-        </Link>
-      </div>
+      <Notice
+        title="隨機對戰視窗"
+        body="請先登入，才能進入活動對戰。"
+        actionLabel="登入後進入"
+        actionHref="/login?redirect=/random-distribution/battle"
+      />
     );
   }
 
-  if (!campaign || !participant) {
-    return (
-      <div className="rounded-3xl border border-rose-500/20 bg-black/30 p-8 text-center">
-        <h1 className="text-3xl font-bold text-white">⚔️ 對決戰場</h1>
-        <p className="mt-4 text-sm text-white/60">
-          {!campaign ? "活動尚未建立。" : "你尚未報名此活動。"}
-        </p>
-        <Link
-          href="/anniversary-30th"
-          className="mt-6 inline-flex rounded-2xl bg-white/10 px-5 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/15"
-        >
-          返回活動中心
-        </Link>
-      </div>
-    );
+  const { campaign, participant, battle, completedBattleCount, displayName } = await loadBattleState(
+    user.id,
+    user.email,
+  );
+
+  if (!campaign) {
+    return <Notice title="隨機對戰視窗" body="活動尚未建立，請先套用本次活動 migration。" />;
+  }
+
+  if (!participant) {
+    return <Notice title="隨機對戰視窗" body="你尚未完成預先報名。" actionLabel="前往預先報名" />;
   }
 
   if (!participant.partner_pokemon) {
+    return <Notice title="隨機對戰視窗" body="請先選擇一隻出場寶可夢。" actionLabel="前往選擇寶可夢" />;
+  }
+
+  const startsAt = campaign.starts_at || ANNIVERSARY_30TH_STARTS_AT;
+  const started = isEventStarted(startsAt);
+  if (!started) {
     return (
-      <div className="rounded-3xl border border-amber-500/20 bg-black/30 p-8 text-center">
-        <h1 className="text-3xl font-bold text-white">⚔️ 對決戰場</h1>
-        <p className="mt-4 text-sm text-white/60">請先選擇你的攜帶伴侶寶可夢。</p>
-        <Link
-          href="/anniversary-30th"
-          className="mt-6 inline-flex rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-sm font-bold text-white transition hover:brightness-110"
-        >
-          返回選擇伴侶
-        </Link>
+      <div className="space-y-5 text-white">
+        <Notice title="隨機對戰視窗" body="活動尚未正式開戰。" />
+        <Anniversary30thCountdown startsAt={startsAt} />
       </div>
     );
   }
 
-  if (!started) {
+  const battlesPerDay = campaign.battles_per_day || ANNIVERSARY_30TH_BATTLES_PER_DAY;
+  const battlesRemaining = resolveBattlesRemaining(participant, battlesPerDay);
+  if (battlesRemaining <= 0 && !battle) {
     return (
-      <div className="rounded-3xl border border-amber-500/20 bg-black/30 p-8 text-center">
-        <h1 className="text-3xl font-bold text-white">⚔️ 對決戰場</h1>
-        <p className="mt-4 text-sm text-amber-200/60">活動尚未開始，請於 3/20 20:00 後再來。</p>
-        <Link
-          href="/anniversary-30th"
-          className="mt-6 inline-flex rounded-2xl bg-white/10 px-5 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/15"
-        >
-          返回活動中心
-        </Link>
-      </div>
+      <Notice
+        title="今日對戰已完成"
+        body="每天最多可打兩場。明天 00:00 後會重新開放場次。"
+      />
     );
   }
 
   const partner = getPartnerPokemon(participant.partner_pokemon);
+  const eventPoints = calculateAnniversaryEventPoints(completedBattleCount, participant.total_wins ?? 0);
 
   return (
     <Anniversary30thBattleConsole
@@ -180,6 +274,7 @@ export default async function Anniversary30thBattlePage() {
       totalWins={participant.total_wins ?? 0}
       winStreak={participant.win_streak ?? 0}
       initialBattle={battle}
+      initialEventPoints={eventPoints}
     />
   );
 }
