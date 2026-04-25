@@ -21,6 +21,20 @@
   - 同步把 `battleRefresh` 倒數改成 5 分鐘
   - 改動位置：`components/RandomDistributionLiveStats.tsx`
 
+### Internal — 1gen 對戰機制復刻 Phase 3a（battle/start 寫入 battle_state，UI 仍走 legacy）
+- `app/api/anniversary-30th/battle/start/route.ts`：
+  - 新建 battle 時，產生 3 隻 opponent lineup（取代原本單一 opponent）+ 初始化 battle_state JSONB
+  - battle_state 含：player team (來自 participant.team_pokemon, backfill 至少 1 隻) / activeIndex / pp / opponent team / rngSeed / turn
+  - opponent_name/pokemon/sprite_id 仍寫入第 1 隻對手（向後兼容 legacy UI）
+- `lib/anniversary30th.ts` 型別：
+  - `AnniversaryParticipant.team_pokemon: string[]`
+  - `AnniversaryBattle.battle_state: RetroBattleState | null`
+- ⚠️ Phase 3b（battle/play 改吃 battle_state 走 1gen）+ Phase 4 (UI HP/PP/屬性訊息) + Phase 5 (team picker) 未完成；此 commit 後新建 battle 的 battle_state 會寫進 DB 但 battle/play 還是走 legacy scripted_outcomes，**玩家戰鬥體驗無變化**
+
+### Internal — 1gen 對戰機制復刻 Phase 2（DB migration 已執行）
+- `supabase/migrations/20260426030000_retro_battle_team_state.sql` 已透過 `supabase db query --linked --file` 執行於 production
+- 驗證：anniversary_participants 7 位玩家 team_pokemon 全 backfill 為 [partner_pokemon]；anniversary_battles.battle_state column 存在預設 NULL
+
 ### Internal — 1gen 對戰機制復刻 Phase 1（純 lib 加 export，未啟用）
 - `lib/anniversary30th.ts` 新增（append-only，不破現有功能）：
   - `RetroType` (15 屬性) + `RETRO_TYPE_LABEL_ZH` 中文對照

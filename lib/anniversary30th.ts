@@ -550,6 +550,7 @@ export type AnniversaryParticipant = {
   user_id: string;
   target_pokemon: string;
   partner_pokemon: string | null;
+  team_pokemon: string[];
   entry_fee_amount: number;
   entry_fee_paid_at: string;
   current_rank: number | null;
@@ -615,6 +616,7 @@ export type AnniversaryBattle = {
   last_active_at: string | null;
   ended_at: string | null;
   created_at: string;
+  battle_state: RetroBattleState | null;
 };
 
 export type AnniversaryBattleRound = {

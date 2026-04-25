@@ -4,10 +4,15 @@ import {
   ANNIVERSARY_30TH_EEVEE_POINT_GOAL,
   ANNIVERSARY_30TH_SLUG,
   CHALLENGE_META,
+  RETRO_MAX_HP,
+  RETRO_MOVE_PP,
+  RETRO_OPPONENT_TEAM_SIZE,
+  RETRO_TEAM_SIZE,
   calculateAnniversaryEventPoints,
+  generateRetroOpponentLineup,
   generateScriptedOutcomes,
+  getRetroPartnerType,
   isBattleSessionExpired,
-  resolveRetroVirtualOpponent,
   resolveTaipeiDateKey,
   resolveNarrativeBattleDay,
   hashString,
@@ -15,6 +20,8 @@ import {
   type AnniversaryCampaign,
   type AnniversaryParticipant,
   type ChallengeType,
+  type PartnerPokemonId,
+  type RetroBattleState,
   type ScriptMode,
 } from "@/lib/anniversary30th";
 
@@ -178,11 +185,47 @@ export async function POST() {
   // Random script mode (A or B, balanced)
   const scriptMode: ScriptMode = rngValue % 2 === 0 ? "A" : "B";
 
-  // Generate deterministic round outcomes.
+  // Generate deterministic round outcomes (legacy scripted path; 1gen path 不讀但保留供舊 battle).
   const scriptedOutcomes = generateScriptedOutcomes(challengeType, scriptMode, seed);
 
-  // Generate a Gen 1 virtual opponent for the retro battle format.
-  const opponent = resolveRetroVirtualOpponent(`${participant.id}:${battleSerial}:opponent`);
+  // 1gen 對戰：產 3 隻對手 lineup（取代原本單一 opponent）
+  const opponentLineup = generateRetroOpponentLineup(
+    `${participant.id}:${battleSerial}:lineup`,
+    RETRO_OPPONENT_TEAM_SIZE,
+  );
+  const firstOpponent = opponentLineup[0];
+
+  // 1gen battle_state — 玩家隊伍從 participant.team_pokemon（已 backfill 至少 [partner_pokemon]）
+  const teamSource: string[] =
+    Array.isArray(participant.team_pokemon) && participant.team_pokemon.length > 0
+      ? participant.team_pokemon
+      : [participant.partner_pokemon as string];
+  const playerTeamIds = teamSource.slice(0, RETRO_TEAM_SIZE);
+  const battleState: RetroBattleState = {
+    player: {
+      team: playerTeamIds.map((id) => ({
+        id,
+        type: getRetroPartnerType(id as PartnerPokemonId),
+        hp: RETRO_MAX_HP,
+        maxHp: RETRO_MAX_HP,
+        fainted: false,
+      })),
+      activeIndex: 0,
+      pp: { ...RETRO_MOVE_PP },
+    },
+    opponent: {
+      team: opponentLineup.map((o) => ({
+        id: o.spriteId,
+        type: o.type,
+        hp: RETRO_MAX_HP,
+        maxHp: RETRO_MAX_HP,
+        fainted: false,
+      })),
+      activeIndex: 0,
+    },
+    rngSeed: seed,
+    turn: 0,
+  };
 
   // Calculate battle day (no cap to avoid collisions)
   const battleDay = resolveNarrativeBattleDay(
@@ -217,9 +260,10 @@ export async function POST() {
         challenge_type: challengeType,
         script_mode: scriptMode,
         scripted_outcomes: JSON.stringify(scriptedOutcomes),
-        opponent_name: opponent.name,
-        opponent_pokemon: opponent.pokemon,
-        opponent_sprite_id: opponent.spriteId,
+        // opponent_* 顯示為 lineup 第 1 隻（向後兼容 UI 顯示）
+        opponent_name: firstOpponent.name,
+        opponent_pokemon: firstOpponent.pokemon,
+        opponent_sprite_id: firstOpponent.spriteId,
         status: "pending",
         current_round: 0,
         player_score: 0,
@@ -228,6 +272,7 @@ export async function POST() {
         last_active_at: now,
         template_code: null,
         final_tug_position: 0,
+        battle_state: battleState,
       })
       .select("*")
       .single();
