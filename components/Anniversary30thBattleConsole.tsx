@@ -80,26 +80,66 @@ function HpBar({ label, value }: { label: string; value: number }) {
   );
 }
 
+type MatchPhase = "search-1" | "retry" | "search-2" | "found";
+
+function isTaipeiOffPeakHour(): boolean {
+  // 早上 06:00 - 11:00（台北時間）視為離峰，匹配變慢做出真實感
+  const h = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Taipei",
+      hour: "2-digit",
+      hourCycle: "h23",
+    }).format(new Date()),
+  );
+  return h >= 6 && h < 11;
+}
+
 function MatchmakingOverlay({ onComplete }: { onComplete: () => void }) {
   const [tick, setTick] = useState(0);
-  const [found, setFound] = useState(false);
+  const [phase, setPhase] = useState<MatchPhase>("search-1");
+  const slow = useMemo(() => isTaipeiOffPeakHour(), []);
 
   useEffect(() => {
-    let finishTimer: number | undefined;
-    const spinTimer = window.setInterval(() => setTick((current) => current + 1), 160);
-    const foundTimer = window.setTimeout(() => {
-      setFound(true);
-      finishTimer = window.setTimeout(onComplete, 900);
-    }, 2400);
+    const interval = window.setInterval(() => setTick((current) => current + 1), 160);
+    const timeouts: number[] = [];
+
+    if (slow) {
+      // 早上時段：~21s 含一次假性「未匹配到 → 重新搜尋」
+      timeouts.push(window.setTimeout(() => setPhase("retry"), 7000));
+      timeouts.push(window.setTimeout(() => setPhase("search-2"), 10000));
+      timeouts.push(window.setTimeout(() => setPhase("found"), 18000));
+      timeouts.push(window.setTimeout(onComplete, 21000));
+    } else {
+      timeouts.push(window.setTimeout(() => setPhase("found"), 2400));
+      timeouts.push(window.setTimeout(onComplete, 3300));
+    }
 
     return () => {
-      window.clearInterval(spinTimer);
-      window.clearTimeout(foundTimer);
-      if (finishTimer) window.clearTimeout(finishTimer);
+      window.clearInterval(interval);
+      timeouts.forEach((t) => window.clearTimeout(t));
     };
-  }, [onComplete]);
+  }, [onComplete, slow]);
 
   const opponent = RETRO_VIRTUAL_OPPONENTS[tick % RETRO_VIRTUAL_OPPONENTS.length];
+  const found = phase === "found";
+
+  const headline =
+    phase === "found"
+      ? "對手確認"
+      : phase === "retry"
+        ? "未匹配到對手"
+        : phase === "search-2"
+          ? "擴大搜尋範圍"
+          : "搜尋對手中";
+
+  const subline =
+    phase === "found"
+      ? "建立臨時對戰視窗..."
+      : phase === "retry"
+        ? "目前沒有玩家在線，正在重新搜尋..."
+        : phase === "search-2"
+          ? "已擴大至全平台搜尋..."
+          : "正在連線至隨機配布戰場";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 px-5">
@@ -108,7 +148,9 @@ function MatchmakingOverlay({ onComplete }: { onComplete: () => void }) {
           <p className="text-xs font-black tracking-[0.25em]">MATCHING</p>
           <div className="mt-4 flex items-center justify-between">
             <div>
-              <p className="text-lg font-black">{found ? "對手確認" : "搜尋對手中"}</p>
+              <p className={`text-lg font-black ${phase === "retry" ? "text-red-700" : ""}`}>
+                {headline}
+              </p>
               {found && <p className="mt-2 text-sm">{opponent.name}的{opponent.pokemon}</p>}
             </div>
             <img
@@ -126,8 +168,8 @@ function MatchmakingOverlay({ onComplete }: { onComplete: () => void }) {
               />
             ))}
           </div>
-          <p className="mt-4 text-sm font-bold">
-            {found ? "建立臨時對戰視窗..." : "正在連線至隨機配布戰場"}
+          <p className={`mt-4 text-sm font-bold ${phase === "retry" ? "text-red-700" : ""}`}>
+            {subline}
           </p>
         </div>
       </div>

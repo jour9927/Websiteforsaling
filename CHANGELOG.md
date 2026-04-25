@@ -9,6 +9,13 @@
   - 新增 client component `components/NextResetCountdown.tsx` — 用 Asia/Taipei 時區算到下次 00:00 的剩餘秒數，每秒更新
   - 整合於 `app/anniversary-30th/battle/page.tsx` 的「battlesRemaining <= 0」分支
 
+### Changed
+- 隨機型配布對戰：早上時段匹配速度故意放慢
+  - 台北時間 06:00–11:00 視為「離峰」，匹配動畫從 ~3.3s 拉長為 ~21s
+  - 過程加入假性「未匹配到對手 → 重新搜尋 → 擴大搜尋範圍」階梯（含紅字提示）
+  - 其他時段維持原本快配對流程
+  - 改動位置：`components/Anniversary30thBattleConsole.tsx` 的 `MatchmakingOverlay`
+
 ## [2026-04-15]
 
 ### Added
