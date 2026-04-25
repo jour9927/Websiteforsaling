@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-04-26]
+
+### Added
+- 隨機型配布對戰活動「下次額度刷新倒數」UI
+  - 玩家把當日 2 場對戰打完後，「今日對戰已完成」卡片下方加上即時倒數「距下次額度刷新（台北 00:00）：HH:MM:SS」
+  - 解決原本「跨午夜後就立刻把當日額度打完」的玩家誤以為今天額度沒刷新的問題（蘿生門案例）
+  - 新增 client component `components/NextResetCountdown.tsx` — 用 Asia/Taipei 時區算到下次 00:00 的剩餘秒數，每秒更新
+  - 整合於 `app/anniversary-30th/battle/page.tsx` 的「battlesRemaining <= 0」分支
+
 ## [2026-04-15]
 
 ### Added

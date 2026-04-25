@@ -18,6 +18,7 @@ import {
 } from "@/lib/anniversary30th";
 import { Anniversary30thBattleConsole } from "@/components/Anniversary30thBattleConsole";
 import { Anniversary30thCountdown } from "@/components/Anniversary30thCountdown";
+import { NextResetCountdown } from "@/components/NextResetCountdown";
 
 export const dynamic = "force-dynamic";
 
@@ -255,10 +256,15 @@ export default async function Anniversary30thBattlePage() {
   const battlesRemaining = resolveBattlesRemaining(participant, battlesPerDay);
   if (battlesRemaining <= 0 && !battle) {
     return (
-      <Notice
-        title="今日對戰已完成"
-        body="每天最多可打兩場。明天 00:00 後會重新開放場次。"
-      />
+      <div className="space-y-4">
+        <Notice
+          title="今日對戰已完成"
+          body="每天最多可打兩場。明天 00:00（台北時間）後會重新開放場次。"
+        />
+        <div className="rounded-lg border border-emerald-300/20 bg-black/30 p-4 text-center text-sm text-emerald-200">
+          <NextResetCountdown />
+        </div>
+      </div>
     );
   }
 
