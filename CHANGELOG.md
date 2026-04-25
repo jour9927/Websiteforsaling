@@ -15,6 +15,11 @@
   - 過程加入假性「未匹配到對手 → 重新搜尋 → 擴大搜尋範圍」階梯（含紅字提示）
   - 其他時段維持原本快配對流程
   - 改動位置：`components/Anniversary30thBattleConsole.tsx` 的 `MatchmakingOverlay`
+- 隨機型配布活動「已對戰場次」LiveStats 加密
+  - 原本每 3 小時才 +1，30 小時後也才顯示 ~19 場，對 30 週年級活動感受太薄弱
+  - 改成「開戰 baseline +30 + 每 5 分鐘 +1」：30 小時 ~369 場，9 天 ~2600 場
+  - 同步把 `battleRefresh` 倒數改成 5 分鐘
+  - 改動位置：`components/RandomDistributionLiveStats.tsx`
 
 ## [2026-04-15]
 

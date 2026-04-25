@@ -37,9 +37,10 @@ export function RandomDistributionLiveStats({
 
   const elapsed = Math.max(0, now - anchorTime);
   const liveDamage = baseDamage + Math.floor(elapsed / 2500) * 7;
-  const liveBattles = baseBattles + Math.floor(elapsed / 10_800_000);
+  // 開戰底數 +30、每 5 分鐘 +1（原本每 3 小時 +1，活動感太薄弱）
+  const liveBattles = baseBattles + 30 + Math.floor(elapsed / 300_000);
   const damageRefresh = 43_200_000 - (elapsed % 43_200_000);
-  const battleRefresh = 10_800_000 - (elapsed % 10_800_000);
+  const battleRefresh = 300_000 - (elapsed % 300_000);
 
   const stats = [
     {
