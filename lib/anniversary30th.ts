@@ -762,3 +762,193 @@ export type AnniversaryCuratedRoute = {
 };
 
 export type AnniversaryBattleRoundPayload = Record<string, unknown>;
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase 1 — 1gen 對戰機制（屬性相剋 / PP / HP 公式）
+// 純 append-only 新增，不動現有 export。
+// 後續 phase 才把 battle_play 改造為使用以下 helper。
+// ─────────────────────────────────────────────────────────────────────────
+
+export type RetroType =
+  | "Normal" | "Fire" | "Water" | "Electric" | "Grass" | "Ice"
+  | "Fighting" | "Poison" | "Ground" | "Flying" | "Psychic"
+  | "Bug" | "Rock" | "Ghost" | "Dragon";
+
+export const RETRO_TYPE_LABEL_ZH: Record<RetroType, string> = {
+  Normal: "一般", Fire: "火", Water: "水", Electric: "電", Grass: "草", Ice: "冰",
+  Fighting: "格鬥", Poison: "毒", Ground: "地面", Flying: "飛行", Psychic: "超能",
+  Bug: "蟲", Rock: "岩石", Ghost: "幽靈", Dragon: "龍",
+};
+
+// Gen 1 真實 type chart（攻擊方 → 防禦方倍率，預設 1，只列非 1 的）
+export const RETRO_TYPE_CHART: Partial<Record<RetroType, Partial<Record<RetroType, number>>>> = {
+  Normal: { Rock: 0.5, Ghost: 0 },
+  Fire: { Fire: 0.5, Water: 0.5, Grass: 2, Ice: 2, Bug: 2, Rock: 0.5, Dragon: 0.5 },
+  Water: { Fire: 2, Water: 0.5, Grass: 0.5, Ground: 2, Rock: 2, Dragon: 0.5 },
+  Electric: { Water: 2, Electric: 0.5, Grass: 0.5, Ground: 0, Flying: 2, Dragon: 0.5 },
+  Grass: { Fire: 0.5, Water: 2, Grass: 0.5, Poison: 0.5, Ground: 2, Flying: 0.5, Bug: 0.5, Rock: 2, Dragon: 0.5 },
+  Ice: { Water: 0.5, Grass: 2, Ice: 0.5, Ground: 2, Flying: 2, Dragon: 2 },
+  Fighting: { Normal: 2, Ice: 2, Poison: 0.5, Flying: 0.5, Psychic: 0.5, Bug: 0.5, Rock: 2, Ghost: 0 },
+  Poison: { Grass: 2, Poison: 0.5, Ground: 0.5, Bug: 2, Rock: 0.5, Ghost: 0.5 },
+  Ground: { Fire: 2, Electric: 2, Grass: 0.5, Poison: 2, Flying: 0, Bug: 0.5, Rock: 2 },
+  Flying: { Electric: 0.5, Grass: 2, Fighting: 2, Bug: 2, Rock: 0.5 },
+  Psychic: { Fighting: 2, Poison: 2, Psychic: 0.5 },
+  Bug: { Fire: 0.5, Grass: 2, Fighting: 0.5, Poison: 2, Flying: 0.5, Psychic: 2, Ghost: 0.5 },
+  Rock: { Fire: 2, Ice: 2, Fighting: 0.5, Ground: 0.5, Flying: 2, Bug: 2 },
+  Ghost: { Normal: 0, Psychic: 0 }, // Gen 1 bug: ghost 對 psychic 應該 2x，原版資料是 0
+  Dragon: { Dragon: 2 },
+};
+
+export function calcTypeEffectiveness(moveType: RetroType, defenderType: RetroType): number {
+  const row = RETRO_TYPE_CHART[moveType];
+  if (!row) return 1;
+  const v = row[defenderType];
+  return typeof v === "number" ? v : 1;
+}
+
+// 招式 → type / PP（4 招都是現有 RETRO_BATTLE_MOVES）
+export const RETRO_MOVE_TYPE: Record<RetroMoveId, RetroType> = {
+  tackle: "Normal",
+  "quick-attack": "Normal",
+  swift: "Normal",
+  "sand-attack": "Ground",
+};
+
+// PP 上限（Gen 1 真實值；預期未來改 UI 時讓 PP=0 disable 按鈕）
+export const RETRO_MOVE_PP: Record<RetroMoveId, number> = {
+  tackle: 35,
+  "quick-attack": 30,
+  swift: 20,
+  "sand-attack": 15,
+};
+
+export function getRetroMoveType(moveId: RetroMoveId): RetroType {
+  return RETRO_MOVE_TYPE[moveId] ?? "Normal";
+}
+
+export function getRetroMoveMaxPp(moveId: RetroMoveId): number {
+  return RETRO_MOVE_PP[moveId] ?? 20;
+}
+
+// Partner（玩家可選 6 隻）→ primary type
+export const RETRO_PARTNER_TYPE: Record<PartnerPokemonId, RetroType> = {
+  pikachu: "Electric",
+  eevee: "Normal",
+  charmander: "Fire",
+  squirtle: "Water",
+  bulbasaur: "Grass",
+  jigglypuff: "Normal",
+};
+
+export function getRetroPartnerType(id: PartnerPokemonId): RetroType {
+  return RETRO_PARTNER_TYPE[id] ?? "Normal";
+}
+
+// Opponent（12 隻 RETRO_VIRTUAL_OPPONENTS）spriteId → primary type
+export const RETRO_OPPONENT_TYPE: Record<string, RetroType> = {
+  "25": "Electric",  // 皮卡丘
+  "121": "Water",    // 寶石海星 (Water/Psychic)
+  "95": "Rock",      // 大岩蛇 (Rock/Ground)
+  "149": "Dragon",   // 快龍 (Dragon/Flying)
+  "6": "Fire",       // 噴火龍 (Fire/Flying)
+  "65": "Psychic",   // 胡地
+  "26": "Electric",  // 雷丘
+  "45": "Grass",     // 霸王花 (Grass/Poison)
+  "59": "Fire",      // 風速狗
+  "34": "Poison",    // 尼多王 (Poison/Ground)
+  "131": "Water",    // 拉普拉斯 (Water/Ice)
+  "94": "Ghost",     // 耿鬼 (Ghost/Poison)
+};
+
+export function getRetroOpponentType(spriteId: string): RetroType {
+  return RETRO_OPPONENT_TYPE[spriteId] ?? "Normal";
+}
+
+// HP / 戰鬥常數
+export const RETRO_MAX_HP = 120;       // 所有寶可夢統一 max HP，避免 6×12 個別 stat 平衡負擔
+export const RETRO_LEVEL = 50;         // Gen 1 公式用 Lv
+export const RETRO_BASE_STAT = 80;     // 攻擊 / 防禦數值統一（簡化）
+export const RETRO_CRIT_RATE = 0.0625; // ≈ 1/16，Gen 1 標準爆擊率
+export const RETRO_TEAM_SIZE = 6;      // 玩家隊伍 6 隻
+export const RETRO_OPPONENT_TEAM_SIZE = 3; // 對手 lineup 3 隻（節奏考量；可調）
+
+// 對手「自動使用一個與自己屬性同類的 50 power 攻擊招」
+export const RETRO_OPPONENT_AUTO_MOVE_POWER = 50;
+
+export type RetroDamageInput = {
+  power: number;
+  moveType: RetroType;
+  attackerType: RetroType; // 計算 STAB 用
+  defenderType: RetroType;
+  crit?: boolean;
+  rng: () => number;       // 0..1
+};
+
+export type RetroDamageResult = {
+  damage: number;
+  typeEffectiveness: number; // 0 / 0.5 / 1 / 2
+  isStab: boolean;
+  isCritical: boolean;
+  effectivenessMessage: string; // "效果絕佳！" / "效果不太好..." / "完全沒有效果..." / ""
+};
+
+export function calcRetroDamage(input: RetroDamageInput): RetroDamageResult {
+  const { power, moveType, attackerType, defenderType, rng } = input;
+  const isCritical = input.crit ?? rng() < RETRO_CRIT_RATE;
+  const typeEffectiveness = calcTypeEffectiveness(moveType, defenderType);
+  const isStab = moveType === attackerType;
+
+  // Gen 1 簡化公式（Lv=50, Atk=Def=80）
+  // base = floor((((2*Lv/5+2) * power) / 50) + 2)
+  const base = Math.floor(((2 * RETRO_LEVEL / 5 + 2) * power) / 50) + 2;
+
+  const stabFactor = isStab ? 1.5 : 1;
+  const critFactor = isCritical ? 1.5 : 1;
+  const randomFactor = 0.85 + 0.15 * rng();
+
+  const damage = Math.floor(base * stabFactor * typeEffectiveness * critFactor * randomFactor);
+
+  let effectivenessMessage = "";
+  if (typeEffectiveness === 0) effectivenessMessage = "完全沒有效果...";
+  else if (typeEffectiveness >= 2) effectivenessMessage = "效果絕佳！";
+  else if (typeEffectiveness > 0 && typeEffectiveness < 1) effectivenessMessage = "效果不太好...";
+
+  return { damage, typeEffectiveness, isStab, isCritical, effectivenessMessage };
+}
+
+// 對手 lineup 生成：依 seed 從 RETRO_VIRTUAL_OPPONENTS 不重複抽 N 隻
+export function generateRetroOpponentLineup(seed: string, size = RETRO_OPPONENT_TEAM_SIZE) {
+  const pool = [...RETRO_VIRTUAL_OPPONENTS];
+  const result: { name: string; pokemon: string; spriteId: string; type: RetroType }[] = [];
+  const rng = createSeededRng(hashString(seed));
+
+  for (let i = 0; i < size && pool.length > 0; i += 1) {
+    const idx = Math.floor(rng() * pool.length);
+    const picked = pool.splice(idx, 1)[0];
+    result.push({ ...picked, type: getRetroOpponentType(picked.spriteId) });
+  }
+  return result;
+}
+
+// Phase 3+ 會用的 battle_state 型別（DB 用 JSONB 存）
+export type RetroPokemonState = {
+  id: string;          // partner id 或 opponent spriteId
+  type: RetroType;
+  hp: number;
+  maxHp: number;
+  fainted: boolean;
+};
+
+export type RetroBattleState = {
+  player: {
+    team: RetroPokemonState[];      // 6 隻
+    activeIndex: number;            // 當前出戰
+    pp: Record<RetroMoveId, number>; // 4 招剩餘 PP（共用同一組招式）
+  };
+  opponent: {
+    team: RetroPokemonState[];      // 3 隻
+    activeIndex: number;
+  };
+  rngSeed: string;
+  turn: number;
+};

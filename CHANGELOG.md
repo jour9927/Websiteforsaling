@@ -21,6 +21,20 @@
   - 同步把 `battleRefresh` 倒數改成 5 分鐘
   - 改動位置：`components/RandomDistributionLiveStats.tsx`
 
+### Internal — 1gen 對戰機制復刻 Phase 1（純 lib 加 export，未啟用）
+- `lib/anniversary30th.ts` 新增（append-only，不破現有功能）：
+  - `RetroType` (15 屬性) + `RETRO_TYPE_LABEL_ZH` 中文對照
+  - `RETRO_TYPE_CHART` Gen 1 真實相剋倍率表
+  - `calcTypeEffectiveness(moveType, defenderType)`
+  - `RETRO_MOVE_TYPE` / `RETRO_MOVE_PP`（4 招的屬性與 PP 上限）
+  - `RETRO_PARTNER_TYPE` (6 隻 partner) / `RETRO_OPPONENT_TYPE` (12 隻 opponent) primary type 表
+  - `calcRetroDamage()` Gen 1 簡化傷害公式（Lv=50 / Atk=Def=80 / STAB / 爆擊 / typeEff / random 0.85-1.0）
+  - `generateRetroOpponentLineup()` 對手隊伍 lineup
+  - `RetroBattleState` / `RetroPokemonState` 型別（Phase 3 用 JSONB 存 DB）
+  - 常數：`RETRO_MAX_HP=120` / `RETRO_TEAM_SIZE=6` / `RETRO_OPPONENT_TEAM_SIZE=3` / `RETRO_CRIT_RATE=1/16`
+- 自測 13/13 通過：type chart 對 Bulbapedia Gen 1 真值；傷害公式範例輸出正常
+- 後續 Phase 2 = DB migration（要手動跑 SQL）；Phase 3+ 才把 battle/start + battle/play 改造為使用以上 helper
+
 ## [2026-04-15]
 
 ### Added
