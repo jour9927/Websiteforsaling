@@ -10,12 +10,15 @@ import {
   generateDiceRoll,
   generateRetroBattleRound,
   generateSlotResult,
+  isRetroMoveId,
   isBattleSessionExpired,
   pickTriviaQuestions,
+  resolveRetroBattleTurn,
   type AnniversaryBattle,
   type AnniversaryCampaign,
   type AnniversaryParticipant,
   type ChallengeType,
+  type RetroBattleState,
 } from "@/lib/anniversary30th";
 
 export const dynamic = "force-dynamic";
@@ -100,6 +103,13 @@ export async function POST(request: Request) {
   if (!meta) {
     return NextResponse.json({ error: "不支援的對戰類型。" }, { status: 400 });
   }
+  const battleState = battle.battle_state as RetroBattleState | null;
+  const usesRetroState = challengeType === "retro" && battleState !== null;
+  const retroOpponentCount = Array.isArray(battleState?.opponent.team)
+    ? battleState.opponent.team.length
+    : meta.winsNeeded;
+  const totalRounds = usesRetroState ? Math.max(meta.totalRounds, roundNo) : meta.totalRounds;
+  const winsNeeded = usesRetroState ? Math.max(1, retroOpponentCount) : meta.winsNeeded;
 
   if ((battle.status as string) === "won" || (battle.status as string) === "lost") {
     const completedBattles = await countCompletedBattles(adminSupabase, participant.id);
@@ -113,8 +123,9 @@ export async function POST(request: Request) {
       battleResult: battle.status,
       duplicate: true,
       challengeType,
-      totalRounds: meta.totalRounds,
-      winsNeeded: meta.winsNeeded,
+      totalRounds,
+      winsNeeded,
+      battleState: battle.battle_state ?? null,
       eventPoints: calculateAnniversaryEventPoints(completedBattles, participant.total_wins ?? 0),
       pointsEarned: 0,
       lastActiveAt: battle.last_active_at,
@@ -140,8 +151,9 @@ export async function POST(request: Request) {
       battleResult: (battle.status as string) === "won" || (battle.status as string) === "lost" ? (battle.status as "won" | "lost") : null,
       duplicate: true,
       challengeType,
-      totalRounds: meta.totalRounds,
-      winsNeeded: meta.winsNeeded,
+      totalRounds,
+      winsNeeded,
+      battleState: battle.battle_state ?? null,
       eventPoints: calculateAnniversaryEventPoints(completedBattles, participant.total_wins ?? 0),
       pointsEarned: 0,
       lastActiveAt: battle.last_active_at,
@@ -177,11 +189,20 @@ export async function POST(request: Request) {
       eventPoints,
       pointsEarned: ANNIVERSARY_30TH_LOSS_POINTS,
       partnerJustUnlocked,
+      challengeType,
+      totalRounds,
+      winsNeeded,
+      battleState: battle.battle_state ?? null,
     }, { status: 409 });
   }
 
   let roundPayload: Record<string, unknown>;
   let roundResult: "win" | "lose";
+  let nextBattleState: RetroBattleState | null = battleState;
+  let retroPlayerTeamDefeated = false;
+  let retroOpponentTeamDefeated = false;
+  let playerScoreDelta = 0;
+  let opponentScoreDelta = 0;
 
   if (isForfeit) {
     roundResult = "lose";
@@ -190,71 +211,105 @@ export async function POST(request: Request) {
       reason: submittedAction === "timeout" ? "timeout" : "forfeit",
       message: "倒數結束，這場對戰判定為棄權。",
     };
+    opponentScoreDelta = 1;
   } else {
-    const scriptedOutcomes = parseScriptedOutcomes(battle.scripted_outcomes);
-    if (roundNo > meta.totalRounds || roundNo - 1 >= scriptedOutcomes.length) {
-      return NextResponse.json({ error: "回合超出範圍。" }, { status: 400 });
-    }
-
-    const shouldWin = scriptedOutcomes[roundNo - 1];
     const roundSeed = `${battle.id}:round:${roundNo}`;
-    roundResult = shouldWin ? "win" : "lose";
 
-    if (challengeType === "retro") {
-      roundPayload = generateRetroBattleRound(shouldWin, roundSeed, submittedAction, roundNo);
-    } else if (challengeType === "dice") {
-      const diceResult = generateDiceRoll(shouldWin, roundSeed);
-      roundPayload = {
-        playerDice: diceResult.playerDice,
-        opponentDice: diceResult.opponentDice,
-        playerWins: shouldWin,
-      };
-    } else if (challengeType === "trivia") {
-      const selectedAnswer = typeof body.selectedAnswer === "number" ? body.selectedAnswer : -1;
-      const questions = pickTriviaQuestions(`${battle.id}:trivia`, 10);
-      const question = questions[roundNo - 1];
-
-      if (!question) {
-        return NextResponse.json({ error: "題目載入失敗。" }, { status: 500 });
+    if (usesRetroState && battleState) {
+      if (!isRetroMoveId(submittedAction)) {
+        return NextResponse.json({ error: "請選擇可用的復古招式。" }, { status: 400 });
       }
 
-      roundPayload = {
-        questionId: question.id,
-        question: question.question,
-        options: question.options,
-        correctIndex: question.correctIndex,
-        selectedAnswer,
-        playerCorrect: selectedAnswer === question.correctIndex,
-        opponentCorrect: !shouldWin,
-        scriptedResult: shouldWin,
-      };
+      try {
+        const turn = resolveRetroBattleTurn(battleState, submittedAction, roundSeed);
+        nextBattleState = turn.battleState;
+        retroPlayerTeamDefeated = turn.playerTeamDefeated;
+        retroOpponentTeamDefeated = turn.opponentTeamDefeated;
+        roundPayload = turn.resolution as unknown as Record<string, unknown>;
+        roundResult = turn.resolution.playerWins ? "win" : "lose";
+        playerScoreDelta = turn.resolution.opponentFainted ? 1 : 0;
+        opponentScoreDelta = turn.resolution.playerFainted ? 1 : 0;
+      } catch (error) {
+        return NextResponse.json({
+          error: error instanceof Error ? error.message : "招式無法使用。",
+        }, { status: 400 });
+      }
     } else {
-      const slotResult = generateSlotResult(shouldWin, roundSeed);
-      const opponentResult = generateSlotResult(!shouldWin, `${roundSeed}:opponent`);
-      roundPayload = {
-        playerReels: slotResult,
-        opponentReels: opponentResult,
-        playerWins: shouldWin,
-      };
+      const scriptedOutcomes = parseScriptedOutcomes(battle.scripted_outcomes);
+      if (roundNo > meta.totalRounds || roundNo - 1 >= scriptedOutcomes.length) {
+        return NextResponse.json({ error: "回合超出範圍。" }, { status: 400 });
+      }
+
+      const shouldWin = scriptedOutcomes[roundNo - 1];
+      roundResult = shouldWin ? "win" : "lose";
+
+      if (challengeType === "retro") {
+        roundPayload = generateRetroBattleRound(shouldWin, roundSeed, submittedAction, roundNo);
+      } else if (challengeType === "dice") {
+        const diceResult = generateDiceRoll(shouldWin, roundSeed);
+        roundPayload = {
+          playerDice: diceResult.playerDice,
+          opponentDice: diceResult.opponentDice,
+          playerWins: shouldWin,
+        };
+      } else if (challengeType === "trivia") {
+        const selectedAnswer = typeof body.selectedAnswer === "number" ? body.selectedAnswer : -1;
+        const questions = pickTriviaQuestions(`${battle.id}:trivia`, 10);
+        const question = questions[roundNo - 1];
+
+        if (!question) {
+          return NextResponse.json({ error: "題目載入失敗。" }, { status: 500 });
+        }
+
+        roundPayload = {
+          questionId: question.id,
+          question: question.question,
+          options: question.options,
+          correctIndex: question.correctIndex,
+          selectedAnswer,
+          playerCorrect: selectedAnswer === question.correctIndex,
+          opponentCorrect: !shouldWin,
+          scriptedResult: shouldWin,
+        };
+      } else {
+        const slotResult = generateSlotResult(shouldWin, roundSeed);
+        const opponentResult = generateSlotResult(!shouldWin, `${roundSeed}:opponent`);
+        roundPayload = {
+          playerReels: slotResult,
+          opponentReels: opponentResult,
+          playerWins: shouldWin,
+        };
+      }
+
+      playerScoreDelta = roundResult === "win" ? 1 : 0;
+      opponentScoreDelta = roundResult === "lose" ? 1 : 0;
     }
   }
 
   let newPlayerScore = battle.player_score;
   let newOpponentScore = battle.opponent_score;
   if (isForfeit) {
-    newOpponentScore = Math.max(meta.winsNeeded, battle.opponent_score + 1);
-  } else if (roundResult === "win") {
-    newPlayerScore += 1;
+    newOpponentScore = Math.max(winsNeeded, battle.opponent_score + opponentScoreDelta);
   } else {
-    newOpponentScore += 1;
+    newPlayerScore += playerScoreDelta;
+    newOpponentScore += opponentScoreDelta;
   }
 
-  const isLastRound = roundNo >= meta.totalRounds;
-  const playerReachedWins = newPlayerScore >= meta.winsNeeded;
-  const opponentReachedWins = newOpponentScore >= meta.winsNeeded;
-  const battleFinished = isForfeit || isLastRound || playerReachedWins || opponentReachedWins;
+  const isLastRound = !usesRetroState && roundNo >= meta.totalRounds;
+  const playerReachedWins = !usesRetroState && newPlayerScore >= meta.winsNeeded;
+  const opponentReachedWins = !usesRetroState && newOpponentScore >= meta.winsNeeded;
+  const battleFinished = isForfeit
+    || isLastRound
+    || playerReachedWins
+    || opponentReachedWins
+    || retroPlayerTeamDefeated
+    || retroOpponentTeamDefeated;
   const finalStatus: "in_progress" | "won" | "lost" = battleFinished
-    ? newPlayerScore > newOpponentScore ? "won" : "lost"
+    ? retroOpponentTeamDefeated
+      ? "won"
+      : retroPlayerTeamDefeated
+        ? "lost"
+        : newPlayerScore > newOpponentScore ? "won" : "lost"
     : "in_progress";
 
   const { error: roundInsertError } = await adminSupabase.from("anniversary_battle_rounds").insert({
@@ -280,6 +335,7 @@ export async function POST(request: Request) {
       opponent_score: newOpponentScore,
       last_active_at: now,
       ended_at: battleFinished ? now : null,
+      battle_state: nextBattleState,
     })
     .eq("id", battle.id);
 
@@ -333,8 +389,9 @@ export async function POST(request: Request) {
     masterBallJustUnlocked: false,
     legendaryJustUnlocked: false,
     challengeType,
-    totalRounds: meta.totalRounds,
-    winsNeeded: meta.winsNeeded,
+    totalRounds,
+    winsNeeded,
+    battleState: nextBattleState,
     eventPoints,
     pointsEarned: battleFinished ? finalStatus === "won" ? ANNIVERSARY_30TH_WIN_POINTS : ANNIVERSARY_30TH_LOSS_POINTS : 0,
     lastActiveAt: now,

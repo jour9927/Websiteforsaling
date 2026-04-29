@@ -1,5 +1,14 @@
 # Changelog
 
+## [2026-04-29]
+
+### Changed
+- 隨機型配布對戰活動 UI 重設為一代寶可夢對戰框架
+  - `components/Anniversary30thBattleConsole.tsx` 改成復古掌機戰鬥畫面：雙方狀態欄、HP 條、Lv50、隊伍球點、文字框與 FIGHT/PKMN/ITEM/RUN 命令槽
+  - 招式選單顯示招式 type / PP / power / accuracy，PP 歸零時停用該招式
+  - 每次出招後同步 API 回傳的 `battleState`，即時更新 HP、PP、倒下狀態、目前出戰寶可夢與隊伍剩餘狀態
+  - 回合結果文字框補上屬性克制、命中要害、雙方招式與 KO/剩餘隊伍資訊，讓既有 1gen 復刻機制真正反映到 UI
+
 ## [2026-04-26]
 
 ### Added

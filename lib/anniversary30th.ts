@@ -245,7 +245,40 @@ export type RetroRoundResolution = {
   opponentHp: number;
   playerWins: boolean;
   message: string;
+  playerMaxHp?: number;
+  opponentMaxHp?: number;
+  playerPokemonId?: string;
+  opponentPokemonId?: string;
+  playerPokemonName?: string;
+  opponentPokemonName?: string;
+  playerType?: RetroType;
+  opponentType?: RetroType;
+  playerTypeLabel?: string;
+  opponentTypeLabel?: string;
+  moveType?: RetroType;
+  moveTypeLabel?: string;
+  typeEffectiveness?: number;
+  effectivenessMessage?: string;
+  opponentMoveType?: RetroType;
+  opponentMoveTypeLabel?: string;
+  opponentTypeEffectiveness?: number;
+  opponentEffectivenessMessage?: string;
+  isCritical?: boolean;
+  opponentCritical?: boolean;
+  isStab?: boolean;
+  opponentStab?: boolean;
+  ppRemaining?: number;
+  playerActiveIndex?: number;
+  opponentActiveIndex?: number;
+  playerFainted?: boolean;
+  opponentFainted?: boolean;
+  playerTeamRemaining?: number;
+  opponentTeamRemaining?: number;
 };
+
+export function isRetroMoveId(value: string): value is RetroMoveId {
+  return RETRO_BATTLE_MOVES.some((move) => move.id === value);
+}
 
 export function getRetroBattleMove(moveId: string) {
   return RETRO_BATTLE_MOVES.find((move) => move.id === moveId) ?? RETRO_BATTLE_MOVES[0];
@@ -954,3 +987,258 @@ export type RetroBattleState = {
   rngSeed: string;
   turn: number;
 };
+
+export type RetroBattleTurnResult = {
+  battleState: RetroBattleState;
+  resolution: RetroRoundResolution;
+  playerTeamDefeated: boolean;
+  opponentTeamDefeated: boolean;
+};
+
+function clampRetroHp(value: number, maxHp: number): number {
+  if (!Number.isFinite(value)) return maxHp;
+  return Math.max(0, Math.min(maxHp, Math.round(value)));
+}
+
+function normalizeRetroPokemonState(pokemon: RetroPokemonState): RetroPokemonState {
+  const maxHp = Number.isFinite(pokemon.maxHp) && pokemon.maxHp > 0
+    ? Math.round(pokemon.maxHp)
+    : RETRO_MAX_HP;
+  const hp = clampRetroHp(pokemon.hp, maxHp);
+
+  return {
+    id: pokemon.id,
+    type: pokemon.type,
+    hp,
+    maxHp,
+    fainted: pokemon.fainted || hp <= 0,
+  };
+}
+
+function normalizeRetroPp(pp: Partial<Record<RetroMoveId, number>> | null | undefined): Record<RetroMoveId, number> {
+  return RETRO_BATTLE_MOVES.reduce((acc, move) => {
+    const moveId = move.id;
+    const maxPp = getRetroMoveMaxPp(moveId);
+    const raw = pp?.[moveId];
+    const normalized = typeof raw === "number" && Number.isFinite(raw)
+      ? Math.floor(raw)
+      : maxPp;
+    acc[moveId] = Math.max(0, Math.min(maxPp, normalized));
+    return acc;
+  }, {} as Record<RetroMoveId, number>);
+}
+
+function findNextRetroActiveIndex(team: RetroPokemonState[], preferredIndex: number): number {
+  const preferred = team[preferredIndex];
+  if (preferred && !preferred.fainted && preferred.hp > 0) return preferredIndex;
+  return team.findIndex((pokemon) => !pokemon.fainted && pokemon.hp > 0);
+}
+
+function normalizeRetroBattleState(state: RetroBattleState): RetroBattleState {
+  const playerTeam = Array.isArray(state.player?.team)
+    ? state.player.team.map(normalizeRetroPokemonState)
+    : [];
+  const opponentTeam = Array.isArray(state.opponent?.team)
+    ? state.opponent.team.map(normalizeRetroPokemonState)
+    : [];
+  const playerActiveIndex = findNextRetroActiveIndex(
+    playerTeam,
+    Number.isInteger(state.player?.activeIndex) ? state.player.activeIndex : 0,
+  );
+  const opponentActiveIndex = findNextRetroActiveIndex(
+    opponentTeam,
+    Number.isInteger(state.opponent?.activeIndex) ? state.opponent.activeIndex : 0,
+  );
+
+  return {
+    player: {
+      team: playerTeam,
+      activeIndex: playerActiveIndex,
+      pp: normalizeRetroPp(state.player?.pp),
+    },
+    opponent: {
+      team: opponentTeam,
+      activeIndex: opponentActiveIndex,
+    },
+    rngSeed: state.rngSeed || "retro",
+    turn: Number.isInteger(state.turn) && state.turn >= 0 ? state.turn : 0,
+  };
+}
+
+function countRetroTeamRemaining(team: RetroPokemonState[]): number {
+  return team.filter((pokemon) => !pokemon.fainted && pokemon.hp > 0).length;
+}
+
+function getRetroPartnerDisplayName(id: string): string {
+  return PARTNER_POKEMON_POOL.find((pokemon) => pokemon.id === id)?.name ?? id;
+}
+
+function getRetroOpponentDisplayName(spriteId: string): string {
+  const opponent = RETRO_VIRTUAL_OPPONENTS.find((entry) => entry.spriteId === spriteId);
+  return opponent ? `${opponent.name}的${opponent.pokemon}` : `對手${spriteId}`;
+}
+
+export function resolveRetroBattleTurn(
+  state: RetroBattleState,
+  moveId: RetroMoveId,
+  seed: string,
+): RetroBattleTurnResult {
+  if (!isRetroMoveId(moveId)) {
+    throw new Error("不支援的招式。");
+  }
+
+  const currentState = normalizeRetroBattleState(state);
+  const move = getRetroBattleMove(moveId);
+  const playerActiveIndex = currentState.player.activeIndex;
+  const opponentActiveIndex = currentState.opponent.activeIndex;
+  const playerBefore = currentState.player.team[playerActiveIndex];
+  const opponentBefore = currentState.opponent.team[opponentActiveIndex];
+
+  if (!playerBefore) {
+    throw new Error("我方已沒有可出戰的寶可夢。");
+  }
+  if (!opponentBefore) {
+    throw new Error("對手已沒有可出戰的寶可夢。");
+  }
+
+  const ppBefore = currentState.player.pp[moveId] ?? 0;
+  if (ppBefore <= 0) {
+    throw new Error(`${move.name} 的 PP 已用完。`);
+  }
+
+  const turnSeed = `${seed}:${currentState.rngSeed}:${currentState.turn}:${moveId}`;
+  const playerDamage = calcRetroDamage({
+    power: move.power,
+    moveType: getRetroMoveType(move.id),
+    attackerType: playerBefore.type,
+    defenderType: opponentBefore.type,
+    rng: createSeededRng(hashString(`${turnSeed}:player`)),
+  });
+  const damageToOpponent = Math.min(opponentBefore.hp, playerDamage.damage);
+  const opponentHp = Math.max(0, opponentBefore.hp - damageToOpponent);
+  const opponentFainted = opponentHp <= 0;
+
+  let opponentDamage: RetroDamageResult | null = null;
+  let opponentMoveType: RetroType | undefined;
+  let opponentMoveName = "無法反擊";
+  let damageToPlayer = 0;
+  let playerHp = playerBefore.hp;
+  let playerFainted = playerBefore.fainted;
+
+  if (!opponentFainted) {
+    opponentMoveType = opponentBefore.type;
+    opponentMoveName = `${RETRO_TYPE_LABEL_ZH[opponentMoveType]}系反擊`;
+    opponentDamage = calcRetroDamage({
+      power: RETRO_OPPONENT_AUTO_MOVE_POWER,
+      moveType: opponentMoveType,
+      attackerType: opponentBefore.type,
+      defenderType: playerBefore.type,
+      rng: createSeededRng(hashString(`${turnSeed}:opponent`)),
+    });
+    damageToPlayer = Math.min(playerBefore.hp, opponentDamage.damage);
+    playerHp = Math.max(0, playerBefore.hp - damageToPlayer);
+    playerFainted = playerHp <= 0;
+  }
+
+  const playerTeam = currentState.player.team.map((pokemon, index) => (
+    index === playerActiveIndex
+      ? { ...pokemon, hp: playerHp, fainted: playerFainted }
+      : pokemon
+  ));
+  const opponentTeam = currentState.opponent.team.map((pokemon, index) => (
+    index === opponentActiveIndex
+      ? { ...pokemon, hp: opponentHp, fainted: opponentFainted }
+      : pokemon
+  ));
+  const nextPlayerActiveIndex = findNextRetroActiveIndex(playerTeam, playerActiveIndex);
+  const nextOpponentActiveIndex = findNextRetroActiveIndex(opponentTeam, opponentActiveIndex);
+  const playerTeamDefeated = nextPlayerActiveIndex < 0;
+  const opponentTeamDefeated = nextOpponentActiveIndex < 0;
+  const playerTeamRemaining = countRetroTeamRemaining(playerTeam);
+  const opponentTeamRemaining = countRetroTeamRemaining(opponentTeam);
+  const playerWins = opponentTeamDefeated
+    || (!playerTeamDefeated && (opponentFainted || damageToOpponent >= damageToPlayer));
+
+  const messageParts = [
+    `${getRetroPartnerDisplayName(playerBefore.id)}使用${move.name}，造成${damageToOpponent}傷害。`,
+  ];
+  if (playerDamage.effectivenessMessage) messageParts.push(playerDamage.effectivenessMessage);
+  if (playerDamage.isCritical) messageParts.push("命中要害！");
+  if (opponentFainted) {
+    messageParts.push(`${getRetroOpponentDisplayName(opponentBefore.id)}倒下了。`);
+  } else {
+    messageParts.push(`${getRetroOpponentDisplayName(opponentBefore.id)}用${opponentMoveName}造成${damageToPlayer}傷害。`);
+    if (opponentDamage?.effectivenessMessage) messageParts.push(opponentDamage.effectivenessMessage);
+    if (opponentDamage?.isCritical) messageParts.push("對手命中要害！");
+  }
+  if (playerFainted) messageParts.push(`${getRetroPartnerDisplayName(playerBefore.id)}倒下了。`);
+  if (!opponentTeamDefeated && nextOpponentActiveIndex !== opponentActiveIndex) {
+    messageParts.push(`對手派出${getRetroOpponentDisplayName(opponentTeam[nextOpponentActiveIndex].id)}。`);
+  }
+  if (!playerTeamDefeated && nextPlayerActiveIndex !== playerActiveIndex) {
+    messageParts.push(`我方換上${getRetroPartnerDisplayName(playerTeam[nextPlayerActiveIndex].id)}。`);
+  }
+
+  const nextState: RetroBattleState = {
+    player: {
+      team: playerTeam,
+      activeIndex: playerTeamDefeated ? playerActiveIndex : nextPlayerActiveIndex,
+      pp: {
+        ...currentState.player.pp,
+        [moveId]: Math.max(0, ppBefore - 1),
+      },
+    },
+    opponent: {
+      team: opponentTeam,
+      activeIndex: opponentTeamDefeated ? opponentActiveIndex : nextOpponentActiveIndex,
+    },
+    rngSeed: currentState.rngSeed,
+    turn: currentState.turn + 1,
+  };
+
+  return {
+    battleState: nextState,
+    playerTeamDefeated,
+    opponentTeamDefeated,
+    resolution: {
+      playerMoveId: move.id,
+      playerMoveName: move.name,
+      opponentMoveName,
+      damageToOpponent,
+      damageToPlayer,
+      playerHp,
+      opponentHp,
+      playerWins,
+      message: messageParts.join(" "),
+      playerMaxHp: playerBefore.maxHp,
+      opponentMaxHp: opponentBefore.maxHp,
+      playerPokemonId: playerBefore.id,
+      opponentPokemonId: opponentBefore.id,
+      playerPokemonName: getRetroPartnerDisplayName(playerBefore.id),
+      opponentPokemonName: getRetroOpponentDisplayName(opponentBefore.id),
+      playerType: playerBefore.type,
+      opponentType: opponentBefore.type,
+      playerTypeLabel: RETRO_TYPE_LABEL_ZH[playerBefore.type],
+      opponentTypeLabel: RETRO_TYPE_LABEL_ZH[opponentBefore.type],
+      moveType: getRetroMoveType(move.id),
+      moveTypeLabel: RETRO_TYPE_LABEL_ZH[getRetroMoveType(move.id)],
+      typeEffectiveness: playerDamage.typeEffectiveness,
+      effectivenessMessage: playerDamage.effectivenessMessage,
+      opponentMoveType,
+      opponentMoveTypeLabel: opponentMoveType ? RETRO_TYPE_LABEL_ZH[opponentMoveType] : undefined,
+      opponentTypeEffectiveness: opponentDamage?.typeEffectiveness,
+      opponentEffectivenessMessage: opponentDamage?.effectivenessMessage,
+      isCritical: playerDamage.isCritical,
+      opponentCritical: opponentDamage?.isCritical,
+      isStab: playerDamage.isStab,
+      opponentStab: opponentDamage?.isStab,
+      ppRemaining: Math.max(0, ppBefore - 1),
+      playerActiveIndex: nextState.player.activeIndex,
+      opponentActiveIndex: nextState.opponent.activeIndex,
+      playerFainted,
+      opponentFainted,
+      playerTeamRemaining,
+      opponentTeamRemaining,
+    },
+  };
+}
