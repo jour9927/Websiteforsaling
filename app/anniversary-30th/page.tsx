@@ -38,7 +38,7 @@ type PageStats = {
 const PLAYER_TEAM_SELECTION_SIZE = 3;
 const COMPENSATION_NOTE = "隨機型伊布配布活動對戰積分重整補償";
 
-type CompensationChoice = "blindbox_discount_500" | "shop_rebate_50";
+type CompensationChoice = "blindbox_discount_500" | "shop_rebate_50" | "pokemon_choice_5";
 
 type PageState = {
   campaign: AnniversaryCampaign | null;
@@ -61,6 +61,7 @@ type BackpackCompensationItem = {
 function resolveCompensationChoice(item: BackpackCompensationItem | null): CompensationChoice | null {
   if (!item) return null;
   if (item.item_type === "blindbox_discount_500") return "blindbox_discount_500";
+  if (item.item_type === "pokemon_choice_5") return "pokemon_choice_5";
   if (item.item_name.includes("50%")) return "shop_rebate_50";
   return null;
 }

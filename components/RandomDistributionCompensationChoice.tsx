@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-type CompensationChoice = "blindbox_discount_500" | "shop_rebate_50";
+type CompensationChoice = "blindbox_discount_500" | "shop_rebate_50" | "pokemon_choice_5";
 
 type ChoiceOption = {
   id: CompensationChoice;
@@ -23,6 +23,12 @@ const OPTIONS: ChoiceOption[] = [
     label: "B",
     title: "商店消費報銷券（50%）",
     description: "商店消費可申請整體 50% 報銷。",
+  },
+  {
+    id: "pokemon_choice_5",
+    label: "C",
+    title: "寶可夢五選一",
+    description: "可從指定補償清單中選擇 1 隻寶可夢。",
   },
 ];
 
@@ -76,7 +82,7 @@ export function RandomDistributionCompensationChoice({
           </p>
           <h2 className="mt-2 text-xl font-black text-white">對戰積分重整補償</h2>
           <p className="mt-2 text-sm leading-6 text-white/65">
-            受影響帳號可在下方二選一。選擇送出後會直接發放到背包，且無法重複領取。
+            受影響帳號可在下方三選一。選擇送出後會直接發放到背包，且無法重複領取。
           </p>
         </div>
         {selectedOption ? (
@@ -86,7 +92,7 @@ export function RandomDistributionCompensationChoice({
         ) : null}
       </div>
 
-      <div className="mt-5 grid gap-3 md:grid-cols-2">
+      <div className="mt-5 grid gap-3 lg:grid-cols-3">
         {OPTIONS.map((option) => {
           const isSelected = selectedChoice === option.id;
           const isSubmitting = submittingChoice === option.id;

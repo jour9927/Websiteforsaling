@@ -27,6 +27,13 @@ export const BACKPACK_ITEM_OPTIONS = [
     icon: "💰",
     badgeClass: "bg-rose-500/20 text-rose-200",
   },
+  {
+    type: "pokemon_choice_5",
+    name: "寶可夢五選一補償券",
+    description: "可從指定補償清單中選擇 1 隻寶可夢",
+    icon: "🎁",
+    badgeClass: "bg-emerald-500/20 text-emerald-200",
+  },
 ] as const;
 
 export type BackpackItemType = (typeof BACKPACK_ITEM_OPTIONS)[number]["type"];
