@@ -69,8 +69,8 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
         realHighestBidder: sessionHighestBid?.profiles?.full_name || sessionHighestBid?.profiles?.email?.split('@')[0] || null,
         bidCount: sessionBids.length,
         automationMode: auction.automation_mode === 'global_link_v2' ? 'global_link_v2' as const : 'legacy' as const,
-        automationTargetMin: auction.automation_target_min ?? 35000,
-        automationTargetMax: auction.automation_target_max ?? 40000,
+        automationTargetMin: auction.automation_target_min ?? 39000,
+        automationTargetMax: auction.automation_target_max ?? 45000,
         automationStopSeconds: auction.automation_mode === 'global_link_v2'
             ? 3
             : auction.automation_stop_seconds ?? 30

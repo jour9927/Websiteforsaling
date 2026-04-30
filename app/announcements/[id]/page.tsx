@@ -47,6 +47,15 @@ export default async function AnnouncementDetailPage({ params }: AnnouncementPag
           {getStatusDisplay(announcement.status)}
         </span>
       </div>
+      {announcement.image_url && (
+        <div className="overflow-hidden rounded-xl border border-white/10 bg-slate-900/40">
+          <img
+            src={announcement.image_url}
+            alt={announcement.title}
+            className="h-auto w-full object-cover"
+          />
+        </div>
+      )}
       <div className="space-y-4 whitespace-pre-wrap text-sm leading-relaxed text-white/80">
         {announcement.content.split("\n\n").map((paragraph: string, index: number) => (
           <p key={index}>{paragraph}</p>

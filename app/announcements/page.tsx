@@ -47,6 +47,13 @@ export default async function AnnouncementsPage() {
         <section className="space-y-4">
           {announcements.map((notice) => (
             <article key={notice.id} className="glass-card p-6">
+              {notice.image_url && (
+                <img
+                  src={notice.image_url}
+                  alt={notice.title}
+                  className="mb-5 h-44 w-full rounded-lg border border-white/10 bg-slate-900/40 object-cover"
+                />
+              )}
               <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
                 <div>
                   <p className="text-xs text-white/50">

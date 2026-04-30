@@ -1,0 +1,76 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="160" y1="40" x2="1420" y2="860" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#11304D"/>
+      <stop offset="0.42" stop-color="#28456B"/>
+      <stop offset="1" stop-color="#0E182D"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="252" y1="164" x2="1290" y2="744" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F8E7A1"/>
+      <stop offset="0.5" stop-color="#F2B84B"/>
+      <stop offset="1" stop-color="#D9882A"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="358" y1="144" x2="1246" y2="744" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.34"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.08"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="28" stdDeviation="28" flood-color="#06111F" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <path d="M0 680C190 604 356 608 510 660C680 716 822 747 1018 674C1240 592 1414 604 1600 688V900H0V680Z" fill="#0A1426" fill-opacity="0.72"/>
+  <path d="M0 742C214 684 385 694 556 742C746 796 928 794 1122 724C1328 650 1470 676 1600 730V900H0V742Z" fill="#111F34" fill-opacity="0.82"/>
+
+  <g opacity="0.55">
+    <path d="M194 152H1406" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="2"/>
+    <path d="M214 232H1386" stroke="#FFFFFF" stroke-opacity="0.1" stroke-width="2"/>
+    <path d="M254 744H1346" stroke="#FFFFFF" stroke-opacity="0.12" stroke-width="2"/>
+    <path d="M356 116L230 754" stroke="#FFFFFF" stroke-opacity="0.1" stroke-width="2"/>
+    <path d="M1244 116L1370 754" stroke="#FFFFFF" stroke-opacity="0.1" stroke-width="2"/>
+  </g>
+
+  <g filter="url(#softShadow)">
+    <path d="M294 210C294 172.445 324.445 142 362 142H1238C1275.56 142 1306 172.445 1306 210V686C1306 723.555 1275.56 754 1238 754H362C324.445 754 294 723.555 294 686V210Z" fill="#12233B" fill-opacity="0.76"/>
+    <path d="M318 226C318 191.206 346.206 163 381 163H1219C1253.79 163 1282 191.206 1282 226V670C1282 704.794 1253.79 733 1219 733H381C346.206 733 318 704.794 318 670V226Z" stroke="url(#glass)" stroke-width="3"/>
+  </g>
+
+  <path d="M404 640H1196" stroke="url(#gold)" stroke-width="4" stroke-linecap="round"/>
+  <path d="M468 676H1132" stroke="#FFFFFF" stroke-opacity="0.18" stroke-width="2" stroke-linecap="round"/>
+
+  <g transform="translate(290 208)">
+    <g opacity="0.94">
+      <path d="M510 80L560 150L642 176L590 242L592 326L510 298L428 326L430 242L378 176L460 150L510 80Z" fill="url(#gold)"/>
+      <path d="M510 124L546 174L604 192L566 240L568 300L510 280L452 300L454 240L416 192L474 174L510 124Z" fill="#182B45"/>
+      <path d="M510 154L534 188L574 200L548 232L550 274L510 260L470 274L472 232L446 200L486 188L510 154Z" fill="#F3D784"/>
+    </g>
+
+    <g fill="#FFFFFF" fill-opacity="0.9">
+      <path d="M132 268C155 228 192 206 233 206C274 206 311 228 334 268C298 252 266 252 233 268C200 252 168 252 132 268Z"/>
+      <path d="M726 268C749 228 786 206 827 206C868 206 905 228 928 268C892 252 860 252 827 268C794 252 762 252 726 268Z"/>
+    </g>
+
+    <g>
+      <circle cx="164" cy="394" r="46" fill="#F6C95F"/>
+      <path d="M164 353L184 394H144L164 353Z" fill="#9B5D1C"/>
+      <circle cx="296" cy="394" r="46" fill="#72B7FF"/>
+      <path d="M296 354C330 390 320 418 296 432C272 418 262 390 296 354Z" fill="#124B78"/>
+      <circle cx="428" cy="394" r="46" fill="#FFDD62"/>
+      <path d="M408 394H428L418 430L456 380H434L444 350L408 394Z" fill="#704E00"/>
+      <circle cx="560" cy="394" r="46" fill="#C08BFF"/>
+      <path d="M560 354L586 394L560 434L534 394L560 354Z" fill="#4B2376"/>
+      <circle cx="692" cy="394" r="46" fill="#9CE28C"/>
+      <path d="M660 402C712 340 736 386 682 430C680 404 674 398 660 402Z" fill="#285D24"/>
+      <circle cx="824" cy="394" r="46" fill="#98F0F2"/>
+      <path d="M824 350L848 394L824 438L800 394L824 350Z" fill="#18606A"/>
+      <circle cx="956" cy="394" r="46" fill="#F7A0C7"/>
+      <path d="M956 350C986 382 986 410 956 438C926 410 926 382 956 350Z" fill="#7A2146"/>
+    </g>
+  </g>
+
+  <text x="800" y="298" text-anchor="middle" fill="#FFFFFF" font-family="Arial, 'Noto Sans TC', sans-serif" font-size="78" font-weight="800" letter-spacing="4">GLOBAL LINK</text>
+  <text x="800" y="360" text-anchor="middle" fill="#F7D77C" font-family="Arial, 'Noto Sans TC', sans-serif" font-size="36" font-weight="700" letter-spacing="8">EEVEELUTION LIMITED AUCTION</text>
+  <text x="800" y="596" text-anchor="middle" fill="#FFFFFF" font-family="Arial, 'Noto Sans TC', sans-serif" font-size="42" font-weight="700">限時進化型競標活動</text>
+  <text x="800" y="662" text-anchor="middle" fill="#DDEBFF" fill-opacity="0.86" font-family="Arial, 'Noto Sans TC', sans-serif" font-size="28" font-weight="500">每日限定場次開放，歡迎會員準時參與</text>
+</svg>
