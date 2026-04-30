@@ -27,6 +27,7 @@ type RpcResult = {
 };
 
 const AUTO_FOLLOW_SYSTEM_MAX_BID = 100000;
+const DEFAULT_AUTO_FOLLOW_INCREMENT = 70;
 
 export default function BidButton({
     auctionId,
@@ -55,7 +56,7 @@ export default function BidButton({
     const [autoFollowStateLoaded, setAutoFollowStateLoaded] = useState(false);
     const [showCouponPrompt, setShowCouponPrompt] = useState(false);
     const [couponPromptDismissed, setCouponPromptDismissed] = useState(false);
-    const [followIncrement, setFollowIncrement] = useState(0);
+    const [followIncrement, setFollowIncrement] = useState(DEFAULT_AUTO_FOLLOW_INCREMENT);
     const lastAutoBidAmountRef = useRef(0);
 
     // 當 minBid 變化時更新預設出價金額
@@ -102,7 +103,7 @@ export default function BidButton({
             if (setting) {
                 const autoSetting = setting as AutoFollowSetting;
                 setAutoFollowEnabled(autoSetting.enabled);
-                setFollowIncrement(autoSetting.follow_increment);
+                setFollowIncrement(autoSetting.follow_increment ?? DEFAULT_AUTO_FOLLOW_INCREMENT);
             }
             setAutoFollowStateLoaded(true);
         };

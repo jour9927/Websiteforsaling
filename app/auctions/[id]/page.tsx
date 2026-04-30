@@ -167,7 +167,11 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                     {/* 右側：出價區塊 */}
                     <aside className="glass-card flex flex-col gap-4 p-6 h-fit sticky top-24">
                         {/* 倒數計時器 */}
-                        <CountdownTimer endTime={auction.end_time} isEnded={isEnded} />
+                        <CountdownTimer
+                            endTime={auction.end_time}
+                            isEnded={isEnded}
+                            disableExtension={auction.automation_mode === 'global_link_v2'}
+                        />
 
                         {/* 目前最高價 - 由 Client 控制 */}
                         <div id="highest-price-slot" />

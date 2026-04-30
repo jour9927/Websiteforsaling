@@ -87,7 +87,7 @@ function generateDeterministicBids(
     // legacy 保持結束前 30 秒停止；Global Link v2 結束前 3 秒停止。
     const stopTime = Math.min(currentTime.getTime(), end.getTime() - stopBufferMs);
 
-    while (bidTime < stopTime && bidIndex < (isGlobalLinkV2 ? 360 : 20)) {
+    while (bidTime < stopTime && bidIndex < (isGlobalLinkV2 ? 1500 : 20)) {
         const thisSeed = seed + bidIndex * 1000;
 
         // 選擇出價者（不重複）
@@ -107,10 +107,13 @@ function generateDeterministicBids(
             const easedProgress = 1 - Math.pow(1 - progress, 1.35);
             const plannedPrice = startingPrice + Math.round((targetPrice - startingPrice) * easedProgress);
             const rhythmIncrement = [10, 20, 30, 50, 80, 120, 180, 260][bidIndex % 8];
-            currentPrice = Math.min(
-                targetPrice,
-                Math.max(currentPrice + rhythmIncrement, plannedPrice)
-            );
+            const sustainIncrement = [5, 10, 15, 20, 30][bidIndex % 5];
+            currentPrice = currentPrice >= targetPrice
+                ? currentPrice + sustainIncrement
+                : Math.min(
+                    targetPrice,
+                    Math.max(currentPrice + rhythmIncrement, plannedPrice)
+                );
         } else {
             // 模擬出價使用固定基底增幅（不受 DB min_increment 影響）
             const simBaseIncrement = 100;
@@ -129,18 +132,13 @@ function generateDeterministicBids(
             is_simulated: true
         });
 
-        if (isGlobalLinkV2 && currentPrice >= targetPrice) break;
-
         // 計算下次出價時間
         const remainingTime = end.getTime() - bidTime;
         let interval: number;
 
-        if (isGlobalLinkV2 && remainingTime < 60000) {
-            interval = 550 + seededRandom(thisSeed + 3) * 450;
-        } else if (isGlobalLinkV2 && remainingTime < 300000) {
-            interval = 850 + seededRandom(thisSeed + 3) * 650;
-        } else if (isGlobalLinkV2) {
-            interval = 1400 + seededRandom(thisSeed + 3) * 1200;
+        if (isGlobalLinkV2) {
+            // v2 全程維持快節奏；只讓金額用小幅度控制，不因接近目標價而放慢。
+            interval = 450 + seededRandom(thisSeed + 3) * 450;
         } else if (remainingTime < 120000) {
             // 最後 2 分鐘：8-15 秒
             interval = 8000 + seededRandom(thisSeed + 3) * 7000;

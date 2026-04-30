@@ -5,9 +5,10 @@ import { useState, useEffect } from "react";
 interface CountdownTimerProps {
     endTime: string;
     isEnded: boolean;
+    disableExtension?: boolean;
 }
 
-export default function CountdownTimer({ endTime, isEnded }: CountdownTimerProps) {
+export default function CountdownTimer({ endTime, isEnded, disableExtension = false }: CountdownTimerProps) {
     const [remainingTime, setRemainingTime] = useState("");
     const [isExpired, setIsExpired] = useState(isEnded);
     const [isUrgent, setIsUrgent] = useState(false);
@@ -16,14 +17,14 @@ export default function CountdownTimer({ endTime, isEnded }: CountdownTimerProps
 
     // 偵測 endTime 被延長
     useEffect(() => {
-        if (endTime !== prevEndTime && !isEnded) {
+        if (endTime !== prevEndTime && !isEnded && !disableExtension) {
             setWasExtended(true);
             setPrevEndTime(endTime);
             // 3 秒後隱藏延長提示
             const timeout = setTimeout(() => setWasExtended(false), 5000);
             return () => clearTimeout(timeout);
         }
-    }, [endTime, prevEndTime, isEnded]);
+    }, [endTime, prevEndTime, isEnded, disableExtension]);
 
     useEffect(() => {
         if (isEnded) {
@@ -80,7 +81,7 @@ export default function CountdownTimer({ endTime, isEnded }: CountdownTimerProps
                     ⏰ 有人出價！計時延長 2 分鐘
                 </div>
             )}
-            {isUrgent && !isExpired && !wasExtended && (
+            {isUrgent && !isExpired && !wasExtended && !disableExtension && (
                 <div className="mt-2 text-xs text-red-300/70">
                     最後一分鐘出價將延長時間
                 </div>
