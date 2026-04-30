@@ -15,6 +15,7 @@ import {
   isBattleSessionExpired,
   resolveTaipeiDateKey,
   resolveNarrativeBattleDay,
+  resolveRetroDefaultForcedOutcome,
   resolveRetroForcedOutcome,
   hashString,
   type AnniversaryBattle,
@@ -29,6 +30,7 @@ import {
 export const dynamic = "force-dynamic";
 
 const CHALLENGE_TYPES: ChallengeType[] = ["retro"];
+const PLAYER_TEAM_SELECTION_SIZE = 3;
 
 async function countCompletedBattles(
   adminSupabase: ReturnType<typeof createAdminSupabaseClient>,
@@ -194,7 +196,8 @@ export async function POST() {
     .select("preferred_templates")
     .eq("participant_id", participant.id)
     .maybeSingle();
-  const forcedOutcome = resolveRetroForcedOutcome(curatedRoute?.preferred_templates);
+  const forcedOutcome = resolveRetroForcedOutcome(curatedRoute?.preferred_templates)
+    ?? resolveRetroDefaultForcedOutcome(seed);
 
   // 1gen 對戰：產 3 隻對手 lineup（取代原本單一 opponent）
   const opponentLineup = generateRetroOpponentLineup(
@@ -208,7 +211,16 @@ export async function POST() {
     Array.isArray(participant.team_pokemon) && participant.team_pokemon.length > 0
       ? participant.team_pokemon
       : [participant.partner_pokemon as string];
-  const playerTeamIds = teamSource.slice(0, RETRO_TEAM_SIZE);
+  const playerTeamIds = Array.from(
+    new Set(teamSource.filter((id): id is string => typeof id === "string" && id.length > 0)),
+  ).slice(0, RETRO_TEAM_SIZE);
+
+  if (playerTeamIds.length < PLAYER_TEAM_SELECTION_SIZE) {
+    return NextResponse.json({
+      error: "請先補滿 3 隻出場隊伍，再進入復古對戰。",
+      needsTeamSetup: true,
+    }, { status: 409 });
+  }
   const battleState: RetroBattleState = {
     player: {
       team: playerTeamIds.map((id) => ({

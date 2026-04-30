@@ -48,6 +48,8 @@ type RoundResultData = {
   pointsEarned?: number;
   battleState?: RetroBattleState | null;
   lastActiveAt?: string | null;
+  battleStartedAt?: string | null;
+  switched?: boolean;
 };
 
 function isRetroResolution(value: unknown): value is RetroRoundResolution {
@@ -396,6 +398,7 @@ export function Anniversary30thBattleConsole({
     opponentTeam.length > 0 ? opponentTeam.filter((pokemon) => !pokemon.fainted).length : "--"
   );
   const battleClockActive = Boolean(battle && (phase === "playing" || phase === "round-result"));
+  const needsPlayerSwitch = Boolean(liveBattleState?.pendingPlayerSwitch && phase === "round-result" && !roundResult?.battleFinished);
   const timerPercent = clampPercent((timeLeft / ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS) * 100);
   const timerIsDanger = battleClockActive && timeLeft <= 5;
   const timerExpired = battleClockActive && timeLeft <= 0;
@@ -404,7 +407,7 @@ export function Anniversary30thBattleConsole({
     "relative z-10 grid place-items-center",
     turnAnimationStep === "player-attack" ? "animate-retro-player-attack" : "",
     turnAnimationStep === "player-hit" || turnAnimationStep === "timeout" ? "animate-retro-hit-shake" : "",
-    turnAnimationStep === "faint" && (resolution?.playerFainted || timeoutRound) ? "animate-retro-faint" : "",
+    turnAnimationStep === "faint" && resolution?.playerFainted ? "animate-retro-faint" : "",
   ].filter(Boolean).join(" ");
   const opponentSpriteMotionClass = [
     "relative z-10 grid place-items-center",
@@ -497,6 +500,7 @@ export function Anniversary30thBattleConsole({
             status: result.battleFinished && result.battleResult ? result.battleResult : "in_progress",
             battle_state: result.battleState ?? current.battle_state,
             last_active_at: result.lastActiveAt ?? current.last_active_at,
+            started_at: result.battleStartedAt ?? current.started_at,
           }
         : current);
 
@@ -512,6 +516,67 @@ export function Anniversary30thBattleConsole({
       setSubmittingAction(null);
     }
   }, [battle, currentRound]);
+
+  const switchPokemon = useCallback(async (pokemonIndex: number) => {
+    if (!battle || submittingActionRef.current) return;
+
+    const nextRoundNo = Math.max((roundResult?.roundNo ?? currentRound) + 1, (battle.current_round ?? 0) + 1);
+    const action = `switch:${pokemonIndex}`;
+    submittingActionRef.current = action;
+    setSubmittingAction(action);
+    setError("");
+
+    try {
+      const response = await fetch("/api/anniversary-30th/battle/play", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          battleId: battle.id,
+          roundNo: nextRoundNo,
+          action,
+        }),
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        if (payload.battleExpired) {
+          setPointsEarned(typeof payload.pointsEarned === "number" ? payload.pointsEarned : 0);
+          setLiveBattleState(payload.battleState ?? null);
+          setMessage(payload.error || "換上寶可夢逾時，已判定戰敗。");
+          setPhase("finished");
+          return;
+        }
+
+        throw new Error(payload.error || "無法切換寶可夢");
+      }
+
+      const result = payload as RoundResultData;
+      setLiveBattleState(result.battleState ?? null);
+      setRoundResult(null);
+      setMessage("");
+      setError("");
+      setCurrentRound(nextRoundNo);
+      setTimeLeft(remainingBattleSeconds({
+        ...battle,
+        started_at: result.battleStartedAt ?? battle.started_at,
+      }));
+
+      setBattle((current) => current
+        ? {
+            ...current,
+            battle_state: result.battleState ?? current.battle_state,
+            last_active_at: result.lastActiveAt ?? current.last_active_at,
+            started_at: result.battleStartedAt ?? current.started_at,
+          }
+        : current);
+      setPhase("playing");
+    } catch (switchError) {
+      setError(switchError instanceof Error ? switchError.message : "無法切換寶可夢");
+    } finally {
+      submittingActionRef.current = null;
+      setSubmittingAction(null);
+    }
+  }, [battle, currentRound, roundResult?.roundNo]);
 
   useEffect(() => {
     if (!battle || !battleClockActive) return;
@@ -553,8 +618,7 @@ export function Anniversary30thBattleConsole({
 
     if (timeoutRound) {
       setTurnAnimationStep("timeout");
-      queueStep("player-hit", 260);
-      queueStep("faint", 820);
+      queueStep("idle", 820);
       return () => timers.forEach(window.clearTimeout);
     }
 
@@ -586,6 +650,10 @@ export function Anniversary30thBattleConsole({
 
   const continueBattle = () => {
     if (!battle) return;
+    if (needsPlayerSwitch) {
+      setError("請先從 PKMN 選單換上下一隻寶可夢。");
+      return;
+    }
 
     const nextRoundNo = (roundResult?.roundNo ?? currentRound) + 1;
     if (remainingBattleSeconds(battle) <= 0) {
@@ -619,12 +687,18 @@ export function Anniversary30thBattleConsole({
       ].filter((line): line is string => Boolean(line));
     }
     if (resolution) {
+      if (needsPlayerSwitch) {
+        return [
+          resolution.message,
+          `請在 ${timeLeft} 秒內從 PKMN 選單換上下一隻寶可夢。`,
+        ];
+      }
       if (timeoutRound) {
         if (turnAnimationStep === "timeout") {
           return ["TIME UP!", "你沒有在時限內下達指令。"];
         }
         if (turnAnimationStep === "player-hit") {
-          return [`${opponentMeta.pokemonName} 抓住空檔連續攻擊!`, resolution.message];
+          return [`${opponentMeta.pokemonName} 抓住空檔取得主導!`, resolution.message];
         }
         return [resolution.message];
       }
@@ -676,8 +750,10 @@ export function Anniversary30thBattleConsole({
     playerMeta.name,
     resolution,
     roundResult,
+    needsPlayerSwitch,
     timeoutRound,
     timerIsDanger,
+    timeLeft,
     turnAnimationStep,
   ]);
 
@@ -879,24 +955,58 @@ export function Anniversary30thBattleConsole({
 
                     {phase === "round-result" ? (
                       <div className="grid h-full content-between gap-3">
-                        <div className="grid grid-cols-2 gap-2 text-xs font-black">
-                          <span className="border-2 border-slate-950 px-2 py-2">你擊倒 {playerScore}</span>
-                          <span className="border-2 border-slate-950 px-2 py-2">對手擊倒 {opponentScore}</span>
-                          <span className="border-2 border-slate-950 px-2 py-2">
-                            我方剩 {playerTeamRemaining}
-                          </span>
-                          <span className="border-2 border-slate-950 px-2 py-2">
-                            對手剩 {opponentTeamRemaining}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={continueBattle}
-                          disabled={timerExpired || submittingAction !== null}
-                          className="border-4 border-slate-950 bg-slate-950 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-[#eef4d7] disabled:cursor-not-allowed disabled:bg-slate-500"
-                        >
-                          NEXT TURN
-                        </button>
+                        {needsPlayerSwitch ? (
+                          <>
+                            <div className="grid grid-cols-4 gap-1 text-center text-[11px] font-black">
+                              <span className="border-2 border-slate-950 px-2 py-1 text-slate-400">FIGHT</span>
+                              <span className="border-2 border-slate-950 bg-slate-950 px-2 py-1 text-[#eef4d7]">PKMN</span>
+                              <span className="border-2 border-slate-950 px-2 py-1 text-slate-400">ITEM</span>
+                              <span className="border-2 border-slate-950 px-2 py-1 text-slate-400">RUN</span>
+                            </div>
+                            <div className="grid gap-2">
+                              {playerTeam.map((pokemon, index) => {
+                                const meta = getPartnerMeta(pokemon.id, partnerPokemon);
+                                const canBattle = !pokemon.fainted && pokemon.hp > 0;
+                                const submittingSwitch = submittingAction === `switch:${index}`;
+                                const disabled = submittingAction !== null || timerExpired || !canBattle;
+
+                                return (
+                                  <button
+                                    key={`${pokemon.id}-${index}`}
+                                    type="button"
+                                    onClick={() => void switchPokemon(index)}
+                                    disabled={disabled}
+                                    className="grid min-h-[46px] grid-cols-[1fr_auto] items-center gap-2 border-2 border-slate-950 bg-[#f8f6dc] px-3 py-2 text-left text-xs font-black disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
+                                  >
+                                    <span>{submittingSwitch ? "換上中" : meta.name}</span>
+                                    <span>HP {pokemon.hp}/{pokemon.maxHp}</span>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-2 gap-2 text-xs font-black">
+                              <span className="border-2 border-slate-950 px-2 py-2">你擊倒 {playerScore}</span>
+                              <span className="border-2 border-slate-950 px-2 py-2">對手擊倒 {opponentScore}</span>
+                              <span className="border-2 border-slate-950 px-2 py-2">
+                                我方剩 {playerTeamRemaining}
+                              </span>
+                              <span className="border-2 border-slate-950 px-2 py-2">
+                                對手剩 {opponentTeamRemaining}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={continueBattle}
+                              disabled={timerExpired || submittingAction !== null}
+                              className="border-4 border-slate-950 bg-slate-950 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-[#eef4d7] disabled:cursor-not-allowed disabled:bg-slate-500"
+                            >
+                              NEXT TURN
+                            </button>
+                          </>
+                        )}
                       </div>
                     ) : null}
 

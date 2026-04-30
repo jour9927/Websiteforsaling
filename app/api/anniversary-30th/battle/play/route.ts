@@ -14,17 +14,25 @@ import {
   isRetroMoveId,
   isBattleSessionExpired,
   pickTriviaQuestions,
+  getRetroPartnerType,
+  RETRO_MAX_HP,
   RETRO_TYPE_LABEL_ZH,
+  RETRO_TEAM_SIZE,
   resolveRetroBattleTurn,
   type AnniversaryBattle,
   type AnniversaryCampaign,
   type AnniversaryParticipant,
   type ChallengeType,
+  type PartnerPokemonId,
   type RetroBattleState,
   type RetroPokemonState,
 } from "@/lib/anniversary30th";
 
 export const dynamic = "force-dynamic";
+
+const PLAYER_TEAM_SELECTION_SIZE = 3;
+const PLAYER_SWITCH_BONUS_SECONDS = 15;
+const SWITCH_ACTION_PREFIX = "switch:";
 
 function parseScriptedOutcomes(value: AnniversaryBattle["scripted_outcomes"]): boolean[] {
   try {
@@ -55,12 +63,58 @@ function isBattleClockExpired(startedAt: string | null | undefined, now: Date) {
   return now.getTime() - battleStartedAt > ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS * 1000;
 }
 
+function addSecondsToIso(value: string | null | undefined, seconds: number, fallback: Date) {
+  const baseTime = value ? new Date(value).getTime() : NaN;
+  const base = Number.isFinite(baseTime) ? baseTime : fallback.getTime();
+  return new Date(base + seconds * 1000).toISOString();
+}
+
 function countRemainingPokemon(team: RetroPokemonState[]) {
   return team.filter((pokemon) => !pokemon.fainted && pokemon.hp > 0).length;
 }
 
 function countDefeatedPokemon(team: RetroPokemonState[]) {
   return team.filter((pokemon) => pokemon.fainted || pokemon.hp <= 0).length;
+}
+
+function resolvePlayerTeamPokemonIds(participant: AnniversaryParticipant) {
+  return Array.from(
+    new Set([
+      participant.partner_pokemon,
+      ...(Array.isArray(participant.team_pokemon) ? participant.team_pokemon : []),
+    ].filter((pokemonId): pokemonId is string => typeof pokemonId === "string" && pokemonId.length > 0)),
+  ).slice(0, RETRO_TEAM_SIZE);
+}
+
+function hydrateRetroPlayerTeam(
+  battleState: RetroBattleState | null,
+  participant: AnniversaryParticipant,
+) {
+  if (!battleState) return null;
+
+  const teamPokemonIds = resolvePlayerTeamPokemonIds(participant);
+  if (teamPokemonIds.length < PLAYER_TEAM_SELECTION_SIZE) return battleState;
+
+  const existingIds = new Set(battleState.player.team.map((pokemon) => pokemon.id));
+  const missingPokemon = teamPokemonIds
+    .filter((pokemonId) => !existingIds.has(pokemonId))
+    .map((pokemonId) => ({
+      id: pokemonId,
+      type: getRetroPartnerType(pokemonId as PartnerPokemonId),
+      hp: RETRO_MAX_HP,
+      maxHp: RETRO_MAX_HP,
+      fainted: false,
+    }));
+
+  if (missingPokemon.length === 0) return battleState;
+
+  return {
+    ...battleState,
+    player: {
+      ...battleState.player,
+      team: [...battleState.player.team, ...missingPokemon].slice(0, RETRO_TEAM_SIZE),
+    },
+  };
 }
 
 function resolveRetroTimeout(
@@ -77,7 +131,7 @@ function resolveRetroTimeout(
         playerMoveName: reason === "timeout" ? "未下指令" : "放棄對戰",
         opponentMoveName: "連擊",
         damageToOpponent: 0,
-        damageToPlayer: 999,
+        damageToPlayer: 0,
         playerHp: 0,
         opponentHp: 100,
         playerWins: false,
@@ -94,11 +148,12 @@ function resolveRetroTimeout(
   const opponentActiveIndex = battleState.opponent.activeIndex ?? 0;
   const activePlayer = playerTeam[playerActiveIndex] ?? playerTeam.find((pokemon) => !pokemon.fainted) ?? playerTeam[0];
   const activeOpponent = opponentTeam[opponentActiveIndex] ?? opponentTeam.find((pokemon) => !pokemon.fainted) ?? opponentTeam[0];
-  const nextPlayerTeam = playerTeam.map((pokemon) => ({ ...pokemon, hp: 0, fainted: true }));
   const opponentHp = activeOpponent?.hp ?? activeOpponent?.maxHp ?? 100;
+  const playerHp = activePlayer?.hp ?? activePlayer?.maxHp ?? 100;
   const playerMaxHp = activePlayer?.maxHp ?? 100;
   const opponentMaxHp = activeOpponent?.maxHp ?? 100;
   const opponentType = activeOpponent?.type ?? "normal";
+  const playerTeamRemaining = countRemainingPokemon(playerTeam);
 
   return {
     battleState: {
@@ -106,7 +161,7 @@ function resolveRetroTimeout(
       turn: battleState.turn + 1,
       player: {
         ...battleState.player,
-        team: nextPlayerTeam,
+        team: playerTeam,
         activeIndex: playerActiveIndex,
       },
       opponent: {
@@ -121,13 +176,13 @@ function resolveRetroTimeout(
       playerMoveName: reason === "timeout" ? "未下指令" : "放棄對戰",
       opponentMoveName: `${RETRO_TYPE_LABEL_ZH[opponentType]}系連擊`,
       damageToOpponent: 0,
-      damageToPlayer: Math.max(activePlayer?.hp ?? playerMaxHp, playerMaxHp),
-      playerHp: 0,
+      damageToPlayer: 0,
+      playerHp,
       opponentHp,
       playerMaxHp,
       opponentMaxHp,
       playerWins: false,
-      playerFainted: true,
+      playerFainted: false,
       opponentFainted: false,
       playerPokemonId: activePlayer?.id,
       opponentPokemonId: activeOpponent?.id,
@@ -137,10 +192,10 @@ function resolveRetroTimeout(
       opponentTypeLabel: activeOpponent?.type ? RETRO_TYPE_LABEL_ZH[activeOpponent.type] : undefined,
       playerActiveIndex,
       opponentActiveIndex,
-      playerTeamRemaining: 0,
+      playerTeamRemaining,
       opponentTeamRemaining: countRemainingPokemon(opponentTeam),
       message: reason === "timeout"
-        ? "時間到！對手抓住空檔連續攻擊，你被判定戰敗。"
+        ? "時間到！全局戰鬥時限歸零，這場對戰被判定戰敗。"
         : "你放棄了這場對戰。",
     },
   };
@@ -159,6 +214,9 @@ export async function POST(request: Request) {
   const battleId = typeof body.battleId === "string" ? body.battleId : "";
   const roundNo = Number(body.roundNo);
   const submittedAction = typeof body.action === "string" ? body.action : "";
+  const requestedSwitchIndex = submittedAction.startsWith(SWITCH_ACTION_PREFIX)
+    ? Number(submittedAction.slice(SWITCH_ACTION_PREFIX.length))
+    : null;
   const requestedForfeit = submittedAction === "timeout" || submittedAction === "forfeit";
 
   if (!battleId || !Number.isInteger(roundNo) || roundNo <= 0) {
@@ -205,7 +263,10 @@ export async function POST(request: Request) {
   if (!meta) {
     return NextResponse.json({ error: "不支援的對戰類型。" }, { status: 400 });
   }
-  const battleState = battle.battle_state as RetroBattleState | null;
+  const battleState = hydrateRetroPlayerTeam(
+    battle.battle_state as RetroBattleState | null,
+    participant,
+  );
   const usesRetroState = challengeType === "retro" && battleState !== null;
   const retroOpponentCount = Array.isArray(battleState?.opponent.team)
     ? battleState.opponent.team.length
@@ -227,10 +288,99 @@ export async function POST(request: Request) {
       challengeType,
       totalRounds,
       winsNeeded,
-      battleState: battle.battle_state ?? null,
+      battleState,
       eventPoints: calculateAnniversaryEventPoints(completedBattles, participant.total_wins ?? 0),
       pointsEarned: 0,
       lastActiveAt: battle.last_active_at,
+      battleStartedAt: battle.started_at,
+    });
+  }
+
+  const nowDate = new Date();
+  const now = nowDate.toISOString();
+  const battleClockTimedOut = requestedSwitchIndex === null && !requestedForfeit && isBattleClockExpired(battle.started_at, nowDate);
+
+  if (requestedSwitchIndex !== null) {
+    if (!usesRetroState || !battleState) {
+      return NextResponse.json({ error: "這場對戰不支援切換寶可夢。" }, { status: 400 });
+    }
+    if (isBattleClockExpired(battle.started_at, nowDate)) {
+      await adminSupabase
+        .from("anniversary_battles")
+        .update({
+          status: "lost",
+          last_active_at: now,
+          ended_at: now,
+        })
+        .eq("id", battle.id);
+
+      const completedBattles = await countCompletedBattles(adminSupabase, participant.id);
+      const eventPoints = calculateAnniversaryEventPoints(completedBattles, participant.total_wins ?? 0);
+      const partnerJustUnlocked = !participant.partner_unlocked && eventPoints >= ANNIVERSARY_30TH_EEVEE_POINT_GOAL;
+
+      await adminSupabase
+        .from("anniversary_participants")
+        .update({
+          win_streak: 0,
+          partner_unlocked: participant.partner_unlocked || partnerJustUnlocked,
+        })
+        .eq("id", participant.id);
+
+      return NextResponse.json({
+        error: "換上寶可夢逾時，已判定戰敗。",
+        battleExpired: true,
+        battleState,
+        eventPoints,
+        pointsEarned: ANNIVERSARY_30TH_LOSS_POINTS,
+        partnerJustUnlocked,
+        lastActiveAt: now,
+        battleStartedAt: battle.started_at,
+      }, { status: 409 });
+    }
+    if (!battleState.pendingPlayerSwitch) {
+      return NextResponse.json({ error: "目前不需要切換寶可夢。" }, { status: 400 });
+    }
+
+    const selectedPokemon = battleState.player.team[requestedSwitchIndex];
+    if (!selectedPokemon || selectedPokemon.fainted || selectedPokemon.hp <= 0) {
+      return NextResponse.json({ error: "請選擇還能出戰的寶可夢。" }, { status: 400 });
+    }
+
+    const switchedBattleState: RetroBattleState = {
+      ...battleState,
+      player: {
+        ...battleState.player,
+        activeIndex: requestedSwitchIndex,
+      },
+      pendingPlayerSwitch: null,
+    };
+
+    await adminSupabase
+      .from("anniversary_battles")
+      .update({
+        battle_state: switchedBattleState,
+        last_active_at: now,
+      })
+      .eq("id", battle.id);
+
+    const completedBattles = await countCompletedBattles(adminSupabase, participant.id);
+    return NextResponse.json({
+      roundNo,
+      roundResult: null,
+      roundPayload: null,
+      playerScore: battle.player_score,
+      opponentScore: battle.opponent_score,
+      battleFinished: false,
+      battleResult: null,
+      challengeType,
+      totalRounds,
+      winsNeeded,
+      battleState: switchedBattleState,
+      eventPoints: calculateAnniversaryEventPoints(completedBattles, participant.total_wins ?? 0),
+      pointsEarned: 0,
+      lastActiveAt: now,
+      battleStartedAt: battle.started_at,
+      switched: true,
     });
   }
 
@@ -255,16 +405,14 @@ export async function POST(request: Request) {
       challengeType,
       totalRounds,
       winsNeeded,
-      battleState: battle.battle_state ?? null,
+      battleState,
       eventPoints: calculateAnniversaryEventPoints(completedBattles, participant.total_wins ?? 0),
       pointsEarned: 0,
       lastActiveAt: battle.last_active_at,
+      battleStartedAt: battle.started_at,
     });
   }
 
-  const nowDate = new Date();
-  const now = nowDate.toISOString();
-  const battleClockTimedOut = !requestedForfeit && isBattleClockExpired(battle.started_at, nowDate);
   const effectiveAction = battleClockTimedOut ? "timeout" : submittedAction;
   const isForfeit = requestedForfeit || battleClockTimedOut;
   const forfeitReason: "timeout" | "forfeit" = effectiveAction === "timeout" ? "timeout" : "forfeit";
@@ -299,7 +447,17 @@ export async function POST(request: Request) {
       challengeType,
       totalRounds,
       winsNeeded,
-      battleState: battle.battle_state ?? null,
+      battleState,
+    }, { status: 409 });
+  }
+
+  if (!isForfeit && usesRetroState && battleState?.pendingPlayerSwitch) {
+    return NextResponse.json({
+      error: "請先從 PKMN 選單換上下一隻寶可夢。",
+      needsPokemonSwitch: true,
+      battleState,
+      lastActiveAt: battle.last_active_at,
+      battleStartedAt: battle.started_at,
     }, { status: 409 });
   }
 
@@ -334,6 +492,20 @@ export async function POST(request: Request) {
         retroPlayerTeamDefeated = turn.playerTeamDefeated;
         retroOpponentTeamDefeated = turn.opponentTeamDefeated;
         roundPayload = turn.resolution as unknown as Record<string, unknown>;
+        if (turn.resolution.playerFainted && !turn.playerTeamDefeated) {
+          nextBattleState = {
+            ...turn.battleState,
+            player: {
+              ...turn.battleState.player,
+              activeIndex: battleState.player.activeIndex,
+            },
+            pendingPlayerSwitch: {
+              faintedIndex: battleState.player.activeIndex,
+              bonusSeconds: PLAYER_SWITCH_BONUS_SECONDS,
+              startedAt: now,
+            },
+          };
+        }
         roundResult = turn.opponentTeamDefeated ? "win" : turn.playerTeamDefeated ? "lose" : null;
         scriptedOutcome = turn.resolution.damageToOpponent >= turn.resolution.damageToPlayer ? "win" : "lose";
         playerScoreDelta = turn.resolution.opponentFainted ? 1 : 0;
@@ -419,6 +591,9 @@ export async function POST(request: Request) {
       ? retroOpponentTeamDefeated ? "won" : "lost"
       : newPlayerScore > newOpponentScore ? "won" : "lost"
     : "in_progress";
+  const nextBattleStartedAt = nextBattleState?.pendingPlayerSwitch && !battleFinished
+    ? addSecondsToIso(battle.started_at, PLAYER_SWITCH_BONUS_SECONDS, nowDate)
+    : battle.started_at;
 
   const { error: roundInsertError } = await adminSupabase.from("anniversary_battle_rounds").insert({
     battle_id: battle.id,
@@ -441,6 +616,7 @@ export async function POST(request: Request) {
       current_round: roundNo,
       player_score: newPlayerScore,
       opponent_score: newOpponentScore,
+      started_at: nextBattleStartedAt,
       last_active_at: now,
       ended_at: battleFinished ? now : null,
       battle_state: nextBattleState,
@@ -503,5 +679,6 @@ export async function POST(request: Request) {
     eventPoints,
     pointsEarned: battleFinished ? finalStatus === "won" ? ANNIVERSARY_30TH_WIN_POINTS : ANNIVERSARY_30TH_LOSS_POINTS : 0,
     lastActiveAt: now,
+    battleStartedAt: nextBattleStartedAt,
   });
 }

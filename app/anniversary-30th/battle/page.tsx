@@ -21,6 +21,8 @@ import { NextResetCountdown } from "@/components/NextResetCountdown";
 
 export const dynamic = "force-dynamic";
 
+const PLAYER_TEAM_SELECTION_SIZE = 3;
+
 type BattleState = {
   campaign: AnniversaryCampaign | null;
   participant: AnniversaryParticipant | null;
@@ -34,6 +36,15 @@ type ProfileName = {
   full_name: string | null;
   username: string | null;
 };
+
+function resolvePlayerTeamPokemonIds(participant: AnniversaryParticipant) {
+  return Array.from(
+    new Set([
+      participant.partner_pokemon,
+      ...(Array.isArray(participant.team_pokemon) ? participant.team_pokemon : []),
+    ].filter((pokemonId): pokemonId is string => typeof pokemonId === "string" && pokemonId.length > 0)),
+  ).slice(0, PLAYER_TEAM_SELECTION_SIZE);
+}
 
 async function loadBattleState(userId?: string, fallbackEmail?: string | null): Promise<BattleState> {
   const adminSupabase = createAdminSupabaseClient();
@@ -240,6 +251,17 @@ export default async function Anniversary30thBattlePage() {
 
   if (!participant.partner_pokemon) {
     return <Notice title="隨機對戰視窗" body="請先選擇一隻出場寶可夢。" actionLabel="前往選擇寶可夢" />;
+  }
+
+  const playerTeamPokemonIds = resolvePlayerTeamPokemonIds(participant);
+  if (playerTeamPokemonIds.length < PLAYER_TEAM_SELECTION_SIZE) {
+    return (
+      <Notice
+        title="TEAM SETUP"
+        body="請先補滿 3 隻出場隊伍，再進入復古對戰。"
+        actionLabel="返回隊伍選擇"
+      />
+    );
   }
 
   const startsAt = campaign.starts_at || ANNIVERSARY_30TH_STARTS_AT;

@@ -802,6 +802,7 @@ export type RetroForcedOutcome = "win" | "lose";
 
 export const RETRO_FORCE_WIN_TEMPLATE = "battle:force-win";
 export const RETRO_FORCE_LOSE_TEMPLATE = "battle:force-lose";
+export const RETRO_DEFAULT_LOSS_RATE_PERCENT = 60;
 
 export function resolveRetroForcedOutcome(
   preferredTemplates: string[] | null | undefined,
@@ -810,6 +811,11 @@ export function resolveRetroForcedOutcome(
   if (preferredTemplates.includes(RETRO_FORCE_WIN_TEMPLATE)) return "win";
   if (preferredTemplates.includes(RETRO_FORCE_LOSE_TEMPLATE)) return "lose";
   return null;
+}
+
+export function resolveRetroDefaultForcedOutcome(seed: string): RetroForcedOutcome {
+  const roll = hashString(`${seed}:retro-default-outcome`) % 100;
+  return roll < RETRO_DEFAULT_LOSS_RATE_PERCENT ? "lose" : "win";
 }
 
 export function withRetroForcedOutcomeTemplate(
@@ -1014,6 +1020,11 @@ export type RetroBattleState = {
   rngSeed: string;
   turn: number;
   forcedOutcome?: RetroForcedOutcome | null;
+  pendingPlayerSwitch?: {
+    faintedIndex: number;
+    bonusSeconds: number;
+    startedAt: string;
+  } | null;
 };
 
 export type RetroBattleTurnResult = {
@@ -1093,6 +1104,7 @@ function normalizeRetroBattleState(state: RetroBattleState): RetroBattleState {
     forcedOutcome: state.forcedOutcome === "win" || state.forcedOutcome === "lose"
       ? state.forcedOutcome
       : null,
+    pendingPlayerSwitch: state.pendingPlayerSwitch ?? null,
   };
 }
 
@@ -1216,9 +1228,7 @@ export function resolveRetroBattleTurn(
   if (!opponentTeamDefeated && nextOpponentActiveIndex !== opponentActiveIndex) {
     messageParts.push(`對手派出${getRetroOpponentDisplayName(opponentTeam[nextOpponentActiveIndex].id)}。`);
   }
-  if (!playerTeamDefeated && nextPlayerActiveIndex !== playerActiveIndex) {
-    messageParts.push(`我方換上${getRetroPartnerDisplayName(playerTeam[nextPlayerActiveIndex].id)}。`);
-  }
+  if (playerFainted && !playerTeamDefeated) messageParts.push("請選擇下一隻寶可夢。");
 
   const nextState: RetroBattleState = {
     player: {
