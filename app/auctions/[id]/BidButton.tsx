@@ -11,6 +11,7 @@ type BidButtonProps = {
     minIncrement: number;
     currentPrice: number;      // 真實最高價（從資料庫）
     startingPrice: number;     // 起標價
+    endTime: string;
     simulatedHighest?: number; // 模擬最高價（從 Client 傳入）
     automationMode?: AuctionAutomationMode;
 };
@@ -24,6 +25,8 @@ type RpcResult = {
     success?: boolean;
     error?: string;
     message?: string;
+    placed?: boolean;
+    amount?: number;
 };
 
 const AUTO_FOLLOW_SYSTEM_MAX_BID = 100000;
@@ -44,6 +47,7 @@ export default function BidButton({
     minIncrement,
     currentPrice,
     startingPrice,
+    endTime,
     simulatedHighest = 0,
     automationMode = "legacy"
 }: BidButtonProps) {
@@ -68,6 +72,8 @@ export default function BidButton({
     const [couponPromptDismissed, setCouponPromptDismissed] = useState(false);
     const [followIncrement, setFollowIncrement] = useState(DEFAULT_AUTO_FOLLOW_INCREMENT);
     const lastAutoBidAmountRef = useRef(0);
+    const finalAutoFollowInFlightRef = useRef(false);
+    const finalAutoFollowLastKeyRef = useRef("");
 
     // 當 minBid 變化時更新預設出價金額
     useEffect(() => {
@@ -225,6 +231,89 @@ export default function BidButton({
         simulatedHighest,
         submitBid,
         startingPrice
+    ]);
+
+    const finalizeAutoFollow = useCallback(async () => {
+        if (!isGlobalLinkV2 || !autoFollowEnabled || finalAutoFollowInFlightRef.current) return;
+
+        const virtualHighest = Math.max(simulatedHighest, startingPrice);
+        const normalizedFollowIncrement = normalizeAutoFollowIncrement(followIncrement);
+        const expectedAmount = virtualHighest + normalizedFollowIncrement;
+        const attemptKey = `${auctionId}:${virtualHighest}:${expectedAmount}:${currentPrice}`;
+
+        if (
+            expectedAmount <= currentPrice ||
+            expectedAmount > AUTO_FOLLOW_SYSTEM_MAX_BID ||
+            attemptKey === finalAutoFollowLastKeyRef.current
+        ) {
+            return;
+        }
+
+        finalAutoFollowInFlightRef.current = true;
+        finalAutoFollowLastKeyRef.current = attemptKey;
+
+        try {
+            const { data, error: rpcError } = await supabase.rpc("finalize_global_link_auto_follow", {
+                p_auction_id: auctionId,
+                p_virtual_highest: virtualHighest
+            });
+
+            if (rpcError) throw rpcError;
+
+            const result = data as RpcResult | null;
+            if (result && result.success === false) {
+                if (result.error && result.error !== "尚未進入最終跟標時間") {
+                    setError(result.error);
+                }
+                return;
+            }
+
+            if (result?.placed) {
+                const placedAmount = Number(result.amount ?? expectedAmount);
+                setSuccess(`已於最後一刻自動跟標 $${placedAmount.toLocaleString()}`);
+                window.dispatchEvent(new CustomEvent("bidPlaced", { detail: { auctionId } }));
+                router.refresh();
+            }
+        } catch (err) {
+            console.error("Final auto-follow error:", err);
+        } finally {
+            finalAutoFollowInFlightRef.current = false;
+        }
+    }, [
+        auctionId,
+        autoFollowEnabled,
+        currentPrice,
+        followIncrement,
+        isGlobalLinkV2,
+        router,
+        simulatedHighest,
+        startingPrice
+    ]);
+
+    useEffect(() => {
+        if (!isGlobalLinkV2 || !autoFollowEnabled || autoFollowLoading || loading) return;
+
+        const endMs = new Date(endTime).getTime();
+        if (!Number.isFinite(endMs)) return;
+
+        const finalWindowOffsets = [2600, 1400, 400];
+        const timers = finalWindowOffsets.map((offsetMs) => {
+            const delay = Math.max(0, endMs - Date.now() - offsetMs);
+            return window.setTimeout(() => {
+                void finalizeAutoFollow();
+            }, delay);
+        });
+
+        return () => {
+            timers.forEach((timer) => window.clearTimeout(timer));
+        };
+    }, [
+        autoFollowEnabled,
+        autoFollowLoading,
+        endTime,
+        finalizeAutoFollow,
+        isGlobalLinkV2,
+        loading
     ]);
 
     const handleQuickBid = (extra: number) => {

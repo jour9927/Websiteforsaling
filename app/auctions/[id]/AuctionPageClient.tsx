@@ -235,6 +235,7 @@ export function AuctionPageClient({
                     minIncrement={minIncrement}
                     currentPrice={realCurrentPrice}
                     startingPrice={startingPrice}
+                    endTime={endTime}
                     simulatedHighest={simulatedHighest}
                     automationMode={automationMode}
                 />,
