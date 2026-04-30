@@ -39,24 +39,18 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
         userProfile = data;
     }
 
-    // 取得出價紀錄
+    // 取得本場次出價紀錄。同一個競標重開時，用 start_time 切開舊場資料。
     const { data: bids } = await supabase
         .from('bids')
         .select('*, profiles(full_name, email)')
         .eq('auction_id', params.id)
+        .gte('created_at', auction.start_time)
         .order('amount', { ascending: false })
         .limit(20);
 
-    // 取得最高出價者資訊
-    let highestBidder = null;
-    if (auction.current_bidder_id) {
-        const { data } = await supabase
-            .from('profiles')
-            .select('full_name, email')
-            .eq('id', auction.current_bidder_id)
-            .single();
-        highestBidder = data;
-    }
+    const sessionBids = bids || [];
+    const sessionHighestBid = sessionBids[0] || null;
+    const sessionCurrentPrice = sessionHighestBid?.amount ?? 0;
 
     const imageUrl = auction.image_url || auction.distributions?.pokemon_sprite_url;
     const isEnded = new Date(auction.end_time) < new Date() || auction.status === 'ended';
@@ -65,15 +59,19 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
     const clientProps = {
         auctionId: params.id,
         title: auction.title,  // 新增：用於判斷是否為蒂安希
-        realBids: bids || [],
+        realBids: sessionBids,
         startTime: auction.start_time,
         startingPrice: auction.starting_price,
         minIncrement: auction.min_increment,
         endTime: auction.end_time,
         isActive: !isEnded && auction.status === 'active',
-        realCurrentPrice: auction.current_price,
-        realHighestBidder: highestBidder?.full_name || highestBidder?.email?.split('@')[0] || null,
-        bidCount: auction.bid_count
+        realCurrentPrice: sessionCurrentPrice,
+        realHighestBidder: sessionHighestBid?.profiles?.full_name || sessionHighestBid?.profiles?.email?.split('@')[0] || null,
+        bidCount: sessionBids.length,
+        automationMode: auction.automation_mode === 'global_link_v2' ? 'global_link_v2' as const : 'legacy' as const,
+        automationTargetMin: auction.automation_target_min ?? 35000,
+        automationTargetMax: auction.automation_target_max ?? 40000,
+        automationStopSeconds: auction.automation_stop_seconds ?? (auction.automation_mode === 'global_link_v2' ? 3 : 30)
     };
 
     return (

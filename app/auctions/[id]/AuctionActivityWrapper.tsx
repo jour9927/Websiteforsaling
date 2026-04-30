@@ -3,6 +3,7 @@
 import { SimulatedViewers, SimulatedViewerJoinToast } from "@/components/SimulatedActivity";
 import AuctionComments from "@/components/AuctionComments";
 import { useViewerCount } from "./BidHistoryWithSimulation";
+import type { AuctionAutomationMode } from "@/hooks/useSimulatedAuction";
 
 type AuctionActivityWrapperProps = {
     isActive: boolean;
@@ -43,9 +44,10 @@ interface AuctionSidebarActivityProps {
     currentUserName?: string;
     currentPrice?: number;
     endTime?: string | null;
+    automationMode?: AuctionAutomationMode;
 }
 
-export function AuctionSidebarActivity({ auctionId, auctionTitle, isActive, currentUserName, currentPrice, endTime }: AuctionSidebarActivityProps) {
+export function AuctionSidebarActivity({ auctionId, auctionTitle, isActive, currentUserName, currentPrice, endTime, automationMode }: AuctionSidebarActivityProps) {
     if (!auctionId) {
         return null;
     }
@@ -58,6 +60,7 @@ export function AuctionSidebarActivity({ auctionId, auctionTitle, isActive, curr
             currentUserName={currentUserName}
             currentPrice={currentPrice}
             endTime={endTime}
+            automationMode={automationMode}
         />
     );
 }

@@ -12,6 +12,7 @@ import { AuctionSidebarActivity } from "./AuctionActivityWrapper";
 import { SimulatedViewers, SimulatedViewerJoinToast } from "@/components/SimulatedActivity";
 import BidButton from "./BidButton";
 import BidOutbidAlert from "./BidOutbidAlert";
+import type { AuctionAutomationMode } from "@/hooks/useSimulatedAuction";
 
 // 浮動在線人數元件（使用統一的 ViewerContext）
 function FloatingViewerCount() {
@@ -48,6 +49,10 @@ interface AuctionPageClientProps {
     realCurrentPrice: number;
     realHighestBidder: string | null;
     bidCount: number;
+    automationMode: AuctionAutomationMode;
+    automationTargetMin: number;
+    automationTargetMax: number;
+    automationStopSeconds: number;
 }
 
 export function AuctionPageClient({
@@ -62,7 +67,11 @@ export function AuctionPageClient({
     isActive,
     realCurrentPrice,
     realHighestBidder,
-    bidCount
+    bidCount,
+    automationMode,
+    automationTargetMin,
+    automationTargetMax,
+    automationStopSeconds
 }: AuctionPageClientProps) {
     const [mounted, setMounted] = useState(false);
     const [displayHighest, setDisplayHighest] = useState(realCurrentPrice > 0 ? realCurrentPrice : startingPrice);
@@ -142,14 +151,16 @@ export function AuctionPageClient({
 
     return (
         <ViewerProvider
+            auctionId={auctionId}
             isActive={isActiveState}
             endTime={endTime}
             bidActivity={(realBids.length || 0) + bidCount}
+            automationMode={automationMode}
         >
             {children}
 
             {/* 浮動在線人數（使用統一的 ViewerContext） */}
-            {isActiveState && <FloatingViewerCount />}
+            {mounted && isActiveState && <FloatingViewerCount />}
 
             {/* 被超價即時通知 */}
             {isActiveState && <BidOutbidAlert auctionId={auctionId} isActive={isActiveState} />}
@@ -176,6 +187,10 @@ export function AuctionPageClient({
                         minIncrement={minIncrement}
                         endTime={endTime}
                         isActive={isActiveState}
+                        automationMode={automationMode}
+                        automationTargetMin={automationTargetMin}
+                        automationTargetMax={automationTargetMax}
+                        automationStopSeconds={automationStopSeconds}
                         onHighestChange={handleHighestChange}
                     />
                 </article>,
@@ -206,6 +221,7 @@ export function AuctionPageClient({
                     isActive={isActiveState}
                     currentPrice={displayHighest}
                     endTime={endTime}
+                    automationMode={automationMode}
                 />,
                 sidebarSlot
             )}
@@ -218,6 +234,7 @@ export function AuctionPageClient({
                     currentPrice={realCurrentPrice}
                     startingPrice={startingPrice}
                     simulatedHighest={displayHighest}
+                    automationMode={automationMode}
                 />,
                 bidButtonSlot
             )}

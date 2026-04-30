@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { loadVirtualProfiles, VirtualProfile } from '@/lib/virtualProfiles';
 import { FallbackPoolManager } from '@/lib/auctionFallbackPool';
 import Link from 'next/link';
+import type { AuctionAutomationMode } from '@/hooks/useSimulatedAuction';
 
 interface Comment {
     id: string;
@@ -22,7 +23,46 @@ interface AuctionCommentsProps {
     auctionTitle?: string;
     isActive: boolean;
     currentUserName?: string | null;
+    automationMode?: AuctionAutomationMode;
 }
+
+const GLOBAL_LINK_V2_RAPID_COMMENTS = [
+    "這場好多人",
+    "價格跳好快",
+    "剛進來就這麼熱",
+    "水伊布真的漂亮",
+    "最後應該會很刺激",
+    "這節奏太快了吧",
+    "有券的人很有優勢",
+    "盯著倒數中",
+    "這隻收藏感很強",
+    "感覺還會往上",
+    "先卡一個位置",
+    "大家都在等最後吧",
+    "這場不像會便宜結束",
+    "好多人在看",
+    "我也想跟一下",
+    "剛剛那口很關鍵",
+    "這價格還能接受",
+    "Global Link 系列真的香",
+    "水伊布人氣太高",
+    "節奏有夠緊"
+];
+
+const getGlobalLinkV2RapidComment = (targetName?: string) => {
+    if (targetName && Math.random() < 0.45) {
+        const replies = [
+            `@${targetName} 我也覺得還會跳`,
+            `@${targetName} 這場真的很難預測`,
+            `@${targetName} 最後幾秒才是重點`,
+            `@${targetName} 水伊布人氣一直都高`,
+            `@${targetName} 有券應該會直接跟到底`
+        ];
+        return replies[Math.floor(Math.random() * replies.length)];
+    }
+
+    return GLOBAL_LINK_V2_RAPID_COMMENTS[Math.floor(Math.random() * GLOBAL_LINK_V2_RAPID_COMMENTS.length)];
+};
 
 export default function AuctionComments({
     auctionId,
@@ -30,7 +70,8 @@ export default function AuctionComments({
     isActive,
     currentUserName,
     currentPrice = 0,
-    endTime = ''
+    endTime = '',
+    automationMode = 'legacy'
 }: AuctionCommentsProps & { currentPrice?: number, endTime?: string | null }) {
     const [comments, setComments] = useState<Comment[]>([]);
     const [simulatedComments, setSimulatedComments] = useState<Comment[]>([]);
@@ -38,6 +79,7 @@ export default function AuctionComments({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [user, setUser] = useState<{ id: string; name: string } | null>(null);
     const commentsEndRef = useRef<HTMLDivElement>(null);
+    const isGlobalLinkV2 = automationMode === 'global_link_v2';
 
     // 追蹤已回覆的真實用戶（每人回覆次數限制）
     const repliedUsersRef = useRef<Map<string, number>>(new Map());
@@ -152,36 +194,33 @@ export default function AuctionComments({
 
             if (profiles.length === 0) return;
 
-            // 隨機選兩位虛擬用戶作為初始發言者
+            // v2 觀看人數較高，開場留言也要更有熱度。
             const shuffled = [...profiles].sort(() => Math.random() - 0.5);
-            const user1 = shuffled[0];
-            const user2 = shuffled[1] || shuffled[0];
-
-            activeSimUsersRef.current = [user1, user2];
+            const initialCount = isGlobalLinkV2 ? Math.min(16, shuffled.length) : Math.min(2, shuffled.length);
+            const initialUsers = shuffled.slice(0, initialCount);
 
             // 初始留言（從 pool 取，用過即消耗）
-            const c1 = pool.getComment();
-            const c2 = pool.getComment();
-            if (!c1 || !c2) return; // 池已空
+            const initialSimulated = initialUsers
+                .map((profile, index): Comment | null => {
+                    const content = pool.getComment() || (isGlobalLinkV2 ? getGlobalLinkV2RapidComment() : null);
+                    if (!content) return null;
 
-            const initialSimulated: Comment[] = [
-                {
-                    id: 'sim-1',
-                    user_name: user1.display_name,
-                    virtual_user_id: user1.id,
-                    content: c1,
-                    created_at: new Date(Date.now() - 120000).toISOString(),
-                    is_simulated: true
-                },
-                {
-                    id: 'sim-2',
-                    user_name: user2.display_name,
-                    virtual_user_id: user2.id,
-                    content: c2,
-                    created_at: new Date(Date.now() - 60000).toISOString(),
-                    is_simulated: true
-                }
-            ];
+                    return {
+                        id: `sim-${index + 1}`,
+                        user_name: profile.display_name,
+                        virtual_user_id: profile.id,
+                        content,
+                        created_at: new Date(Date.now() - (initialCount - index) * (isGlobalLinkV2 ? 3500 : 60000)).toISOString(),
+                        is_simulated: true
+                    };
+                })
+                .filter((comment): comment is Comment => comment !== null);
+
+            activeSimUsersRef.current = initialSimulated
+                .map(comment => profiles.find(profile => profile.id === comment.virtual_user_id))
+                .filter((profile): profile is VirtualProfile => Boolean(profile));
+
+            if (initialSimulated.length === 0) return; // 池已空
             setSimulatedComments(initialSimulated);
         };
 
@@ -201,10 +240,14 @@ export default function AuctionComments({
             return profile;
         };
 
-        // 每 15-35 秒新增一個模擬留言
+        // v2 用數百人觀看感，留言節奏需要同步加快；legacy 保持原本慢速。
+        const commentIntervalMs = isGlobalLinkV2
+            ? 350 + Math.random() * 450
+            : 15000 + Math.random() * 20000;
+
         const interval = setInterval(async () => {
-            // 先檢查 fallback 池是否枯竭（LLM 失敗時無法降級 → 停止）
-            if (pool.isExhausted) {
+            // legacy 維持原本池用完即停；v2 需要支撐整場高速聊天室。
+            if (pool.isExhausted && !isGlobalLinkV2) {
                 clearInterval(interval);
                 return;
             }
@@ -218,8 +261,11 @@ export default function AuctionComments({
             let simulatedName = virtualUser.display_name;
 
             try {
-                if (rand < 0.2 && user) {
-                    // 20% 機率且「有真實登入的觀看者在場」：透過 LLM 生成情境發言
+                const llmThreshold = isGlobalLinkV2 ? 0 : 0.2;
+                const interactionThreshold = isGlobalLinkV2 ? 0.55 : 0.45;
+
+                if (rand < llmThreshold && user) {
+                    // 有真實登入的觀看者在場時，少量透過 LLM 生成情境發言。
                     let timeState = "熱烈進行中";
                     if (endTime) {
                         const remainingMs = new Date(endTime).getTime() - new Date().getTime();
@@ -253,18 +299,19 @@ export default function AuctionComments({
                     } else {
                         throw new Error('Spontaneous API failed');
                     }
-                } else if (rand < 0.45 && activeSimUsersRef.current.length > 1) {
-                    // 25% 機率：兩個模擬帳號互相 @（從 pool 取，用完即停）
+                } else if (rand < interactionThreshold && activeSimUsersRef.current.length > 1) {
+                    // 兩個模擬帳號互相 @（從 pool 取，用完即停）
                     const otherUsers = activeSimUsersRef.current.filter(u => u.id !== virtualUser.id);
                     const targetUser = otherUsers[Math.floor(Math.random() * otherUsers.length)];
-                    content = pool.getInteraction(targetUser.display_name);
+                    content = pool.getInteraction(targetUser.display_name)
+                        || (isGlobalLinkV2 ? getGlobalLinkV2RapidComment(targetUser.display_name) : null);
                 } else {
                     // 55% 機率：從 fallback 池取一條（用過即消耗）
-                    content = pool.getComment();
+                    content = pool.getComment() || (isGlobalLinkV2 ? getGlobalLinkV2RapidComment() : null);
                 }
             } catch {
                 // LLM 失敗 → 降級到 fallback 池
-                content = pool.getComment();
+                content = pool.getComment() || (isGlobalLinkV2 ? getGlobalLinkV2RapidComment() : null);
             }
 
             if (!content) return; // 池空了，這輪跳過
@@ -277,12 +324,15 @@ export default function AuctionComments({
                 created_at: new Date().toISOString(),
                 is_simulated: true
             };
-            setSimulatedComments(prev => [...prev, newSimComment].slice(-25));
-        }, 15000 + Math.random() * 20000);
+            setSimulatedComments(prev => [...prev, newSimComment].slice(isGlobalLinkV2 ? -90 : -25));
+        }, commentIntervalMs);
 
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            simulationInitializedRef.current = false;
+        };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isActive, auctionId]);
+    }, [isActive, auctionId, isGlobalLinkV2]);
 
     // 觸發模擬 @回覆（延遲 8-15 秒，每個用戶最多回覆 3 次，使用 LLM 生成）
     const triggerSimulatedReply = useCallback((userName: string, userComment: string) => {
@@ -478,7 +528,7 @@ export default function AuctionComments({
     const uniqueSimulated = simulatedComments.filter(c => !dbCommentIds.has(c.id));
     const allComments = [...comments, ...uniqueSimulated]
         .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-        .slice(-30); // 只顯示最新 30 條
+        .slice(isGlobalLinkV2 ? -60 : -30); // v2 顯示更多近期熱度
 
     // 自動捲動到最新
     useEffect(() => {

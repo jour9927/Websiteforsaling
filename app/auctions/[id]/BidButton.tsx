@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import type { AuctionAutomationMode } from "@/hooks/useSimulatedAuction";
 
 type BidButtonProps = {
     auctionId: string;
@@ -10,16 +12,32 @@ type BidButtonProps = {
     currentPrice: number;      // 真實最高價（從資料庫）
     startingPrice: number;     // 起標價
     simulatedHighest?: number; // 模擬最高價（從 Client 傳入）
+    automationMode?: AuctionAutomationMode;
 };
+
+type AutoFollowSetting = {
+    enabled: boolean;
+    follow_increment: number;
+};
+
+type RpcResult = {
+    success?: boolean;
+    error?: string;
+    message?: string;
+};
+
+const AUTO_FOLLOW_SYSTEM_MAX_BID = 100000;
 
 export default function BidButton({
     auctionId,
     minIncrement,
     currentPrice,
     startingPrice,
-    simulatedHighest = 0
+    simulatedHighest = 0,
+    automationMode = "legacy"
 }: BidButtonProps) {
     const router = useRouter();
+    const isGlobalLinkV2 = automationMode === "global_link_v2";
 
     // 計算有效最高價（真實 vs 模擬取大者）
     const effectiveHighest = Math.max(currentPrice, simulatedHighest, startingPrice);
@@ -29,25 +47,104 @@ export default function BidButton({
 
     const [bidAmount, setBidAmount] = useState(minBid);
     const [loading, setLoading] = useState(false);
+    const [autoFollowLoading, setAutoFollowLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const [hasAuctionCoupon, setHasAuctionCoupon] = useState(false);
+    const [autoFollowEnabled, setAutoFollowEnabled] = useState(false);
+    const [autoFollowStateLoaded, setAutoFollowStateLoaded] = useState(false);
+    const [showCouponPrompt, setShowCouponPrompt] = useState(false);
+    const [couponPromptDismissed, setCouponPromptDismissed] = useState(false);
+    const [followIncrement, setFollowIncrement] = useState(0);
+    const lastAutoBidAmountRef = useRef(0);
 
     // 當 minBid 變化時更新預設出價金額
     useEffect(() => {
         setBidAmount(minBid);
     }, [minBid]);
 
-    const handleQuickBid = (extra: number) => {
-        setBidAmount(minBid + extra);
-    };
+    useEffect(() => {
+        if (!isGlobalLinkV2) return;
 
-    const handleBid = async () => {
-        if (bidAmount < minBid) {
-            setError(`出價金額需 ≥ $${minBid.toLocaleString()}`);
+        let cancelled = false;
+        setAutoFollowStateLoaded(false);
+        setShowCouponPrompt(false);
+        setCouponPromptDismissed(false);
+
+        const loadAutoFollowState = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user || cancelled) {
+                if (!cancelled) setAutoFollowStateLoaded(true);
+                return;
+            }
+
+            const [{ data: coupon }, { data: setting }] = await Promise.all([
+                supabase
+                    .from("backpack_items")
+                    .select("id")
+                    .eq("user_id", user.id)
+                    .eq("item_type", "auction_fee_rebate_30")
+                    .eq("is_active", true)
+                    .or("expires_at.is.null,expires_at.gt.now()")
+                    .limit(1)
+                    .maybeSingle(),
+                supabase
+                    .from("auction_auto_follow_settings")
+                    .select("enabled, follow_increment")
+                    .eq("auction_id", auctionId)
+                    .eq("user_id", user.id)
+                    .maybeSingle()
+            ]);
+
+            if (cancelled) return;
+
+            setHasAuctionCoupon(Boolean(coupon));
+            if (setting) {
+                const autoSetting = setting as AutoFollowSetting;
+                setAutoFollowEnabled(autoSetting.enabled);
+                setFollowIncrement(autoSetting.follow_increment);
+            }
+            setAutoFollowStateLoaded(true);
+        };
+
+        loadAutoFollowState();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [auctionId, isGlobalLinkV2]);
+
+    useEffect(() => {
+        if (
+            !isGlobalLinkV2 ||
+            !autoFollowStateLoaded ||
+            !hasAuctionCoupon ||
+            autoFollowEnabled ||
+            couponPromptDismissed
+        ) {
             return;
         }
 
-        setLoading(true);
+        setShowCouponPrompt(true);
+    }, [
+        autoFollowEnabled,
+        autoFollowStateLoaded,
+        couponPromptDismissed,
+        hasAuctionCoupon,
+        isGlobalLinkV2
+    ]);
+
+    const submitBid = useCallback(async (amount: number, source: "manual" | "auto" = "manual") => {
+        if (source === "manual" && amount < minBid) {
+            setError(`出價金額需 ≥ $${minBid.toLocaleString()}`);
+            return false;
+        }
+
+        if (source === "auto" && amount <= currentPrice) {
+            return false;
+        }
+
+        setLoading(source === "manual");
         setError("");
         setSuccess("");
 
@@ -55,48 +152,176 @@ export default function BidButton({
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
                 setError("請先登入");
-                return;
+                return false;
             }
 
             // 使用 RPC 函數出價
             const { data, error: rpcError } = await supabase
-                .rpc('place_bid', {
+                .rpc("place_bid", {
                     p_auction_id: auctionId,
                     p_user_id: user.id,
-                    p_amount: bidAmount
+                    p_amount: amount
                 });
 
             if (rpcError) throw rpcError;
 
-            const result = data as { success: boolean; error?: string; bid_id?: string };
-
-            if (!result.success) {
+            const result = data as RpcResult | null;
+            if (result && result.success === false) {
                 setError(result.error || "出價失敗");
+                return false;
+            }
+
+            setSuccess(source === "auto" ? `已自動跟標 $${amount.toLocaleString()}` : `成功出價 $${amount.toLocaleString()}！`);
+            window.dispatchEvent(new CustomEvent("bidPlaced", { detail: { auctionId } }));
+            router.refresh();
+            return true;
+        } catch (err) {
+            console.error("Bid error:", err);
+            setError("出價失敗，請稍後再試");
+            return false;
+        } finally {
+            if (source === "manual") setLoading(false);
+        }
+    }, [auctionId, currentPrice, minBid, router]);
+
+    useEffect(() => {
+        if (!isGlobalLinkV2 || !autoFollowEnabled || autoFollowLoading || loading) return;
+
+        const targetAmount = Math.max(simulatedHighest + followIncrement, startingPrice);
+        if (
+            targetAmount <= currentPrice ||
+            targetAmount > AUTO_FOLLOW_SYSTEM_MAX_BID ||
+            targetAmount <= lastAutoBidAmountRef.current
+        ) {
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            lastAutoBidAmountRef.current = targetAmount;
+            const ok = await submitBid(targetAmount, "auto");
+            if (!ok) lastAutoBidAmountRef.current = Math.max(lastAutoBidAmountRef.current, currentPrice);
+        }, 0);
+
+        return () => clearTimeout(timer);
+    }, [
+        autoFollowEnabled,
+        autoFollowLoading,
+        currentPrice,
+        followIncrement,
+        isGlobalLinkV2,
+        loading,
+        simulatedHighest,
+        submitBid,
+        startingPrice
+    ]);
+
+    const handleQuickBid = (extra: number) => {
+        setBidAmount(minBid + extra);
+    };
+
+    const handleBid = async () => {
+        await submitBid(bidAmount, "manual");
+    };
+
+    const handleEnableAutoFollow = async () => {
+        setAutoFollowLoading(true);
+        setError("");
+        setSuccess("");
+
+        try {
+            const { data, error: rpcError } = await supabase.rpc("configure_auction_auto_follow", {
+                p_auction_id: auctionId,
+                p_follow_increment: followIncrement,
+                p_max_bid: AUTO_FOLLOW_SYSTEM_MAX_BID
+            });
+
+            if (rpcError) throw rpcError;
+
+            const result = data as RpcResult | null;
+            if (result && result.success === false) {
+                setError(result.error || "自動跟標啟用失敗");
                 return;
             }
 
-            setSuccess("出價成功！");
-            // 通知 BidOutbidAlert 追蹤出價狀態
-            window.dispatchEvent(new CustomEvent('bid-success'));
-            router.refresh();
-
-            // 更新為下一個最低出價金額
-            setBidAmount(bidAmount + minIncrement);
+            setAutoFollowEnabled(true);
+            setHasAuctionCoupon(false);
+            setShowCouponPrompt(false);
+            setCouponPromptDismissed(true);
+            setSuccess(autoFollowEnabled ? "自動跟標設定已更新" : result?.message || "自動跟標已啟用");
         } catch (err) {
-            setError(err instanceof Error ? err.message : "出價失敗");
+            console.error("Auto follow error:", err);
+            setError("自動跟標啟用失敗，請稍後再試");
         } finally {
-            setLoading(false);
+            setAutoFollowLoading(false);
         }
     };
 
+    const couponPrompt = showCouponPrompt && typeof document !== "undefined"
+        ? createPortal(
+            <div
+                className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70 px-4 backdrop-blur-sm"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="auction-coupon-prompt-title"
+            >
+                <div className="w-full max-w-md rounded-2xl border border-cyan-300/40 bg-slate-950 p-5 shadow-2xl shadow-cyan-950/40">
+                    <div className="space-y-2">
+                        <p id="auction-coupon-prompt-title" className="text-lg font-bold text-cyan-50">
+                            是否使用 30% 抵用券？
+                        </p>
+                        <p className="text-sm leading-relaxed text-cyan-100/75">
+                            使用後會立即啟用自動跟標，自動跟標會依據您的設定盡可能跟標，但不保證一定得標；加價數字越高，越有機會跟上競標節奏。
+                        </p>
+                    </div>
+
+                    <label className="mt-4 block text-xs font-medium text-cyan-100/80">
+                        跟標加價
+                        <input
+                            type="number"
+                            min={0}
+                            max={10000}
+                            value={followIncrement}
+                            onChange={(e) => setFollowIncrement(Math.max(0, parseInt(e.target.value) || 0))}
+                            disabled={autoFollowLoading}
+                            className="mt-1 w-full rounded-lg border border-cyan-100/20 bg-black/30 px-3 py-2 text-sm text-white focus:border-cyan-100/50 focus:outline-none"
+                        />
+                    </label>
+
+                    <div className="mt-5 grid grid-cols-2 gap-2">
+                        <button
+                            onClick={() => {
+                                setCouponPromptDismissed(true);
+                                setShowCouponPrompt(false);
+                            }}
+                            disabled={autoFollowLoading}
+                            className="rounded-lg border border-white/15 bg-white/10 px-3 py-2 text-sm font-semibold text-white/80 transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            暫不使用
+                        </button>
+                        <button
+                            onClick={handleEnableAutoFollow}
+                            disabled={autoFollowLoading}
+                            className="rounded-lg bg-cyan-400 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {autoFollowLoading ? "處理中..." : "使用並啟用"}
+                        </button>
+                    </div>
+                </div>
+            </div>,
+            document.body
+        )
+        : null;
+
     return (
-        <div className="space-y-4">
+        <div className="space-y-3">
+            {couponPrompt}
+
+            {/* 錯誤/成功訊息 */}
             {error && (
                 <div className="rounded-lg bg-red-500/20 border border-red-500/50 px-3 py-2 text-sm text-red-100">
                     {error}
                 </div>
             )}
-
             {success && (
                 <div className="rounded-lg bg-green-500/20 border border-green-500/50 px-3 py-2 text-sm text-green-100">
                     {success}
@@ -146,6 +371,58 @@ export default function BidButton({
             >
                 {loading ? "處理中..." : `出價 $${bidAmount.toLocaleString()}`}
             </button>
+
+            {isGlobalLinkV2 && (
+                <div className="rounded-xl border border-cyan-400/30 bg-cyan-400/10 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <p className="text-sm font-semibold text-cyan-100">30% 抵用券自動跟標</p>
+                            <p className="mt-1 text-xs text-cyan-100/70">
+                                使用後會立即啟用自動跟標，自動跟標會依據您的設定盡可能跟標，但不保證一定得標；加價數字越高，越有機會跟上競標節奏。
+                            </p>
+                        </div>
+                        <span className={`rounded-full px-2 py-1 text-xs ${autoFollowEnabled ? "bg-green-500/20 text-green-100" : "bg-white/10 text-white/60"}`}>
+                            {autoFollowEnabled ? "已啟用" : "未啟用"}
+                        </span>
+                    </div>
+
+                    <div className="mt-3">
+                        <label className="text-xs text-cyan-100/80">
+                            跟標加價
+                            <input
+                                type="number"
+                                min={0}
+                                max={10000}
+                                value={followIncrement}
+                                onChange={(e) => setFollowIncrement(Math.max(0, parseInt(e.target.value) || 0))}
+                                disabled={autoFollowLoading}
+                                className="mt-1 w-full rounded-lg border border-cyan-100/20 bg-black/20 px-3 py-2 text-sm text-white focus:border-cyan-100/50 focus:outline-none"
+                            />
+                        </label>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                        <button
+                            onClick={handleEnableAutoFollow}
+                            disabled={autoFollowLoading || (!autoFollowEnabled && !hasAuctionCoupon)}
+                            className="w-full rounded-lg bg-cyan-400 px-3 py-2 text-sm font-semibold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {autoFollowLoading
+                                ? "處理中..."
+                                : autoFollowEnabled
+                                    ? "更新跟標設定"
+                                    : hasAuctionCoupon
+                                        ? "使用抵用券並啟用"
+                                        : "未持有可用抵用券"}
+                        </button>
+                        {autoFollowEnabled && (
+                            <p className="text-xs leading-relaxed text-cyan-100/70">
+                                自動跟標已啟用。本場啟用後不可停用，可調整跟標金額。
+                            </p>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

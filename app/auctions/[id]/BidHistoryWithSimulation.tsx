@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, createContext, useContext, ReactNode } from 'react';
-import { useSimulatedBids, useSimulatedViewers } from '@/hooks/useSimulatedAuction';
+import { useSimulatedBids, useSimulatedViewers, type AuctionAutomationMode } from '@/hooks/useSimulatedAuction';
 
 interface RealBid {
     id: string;
@@ -27,19 +27,25 @@ const ViewerContext = createContext<ViewerContextType>({
 // 在線人數 Provider
 export function ViewerProvider({
     children,
+    auctionId,
     isActive,
     endTime,
-    bidActivity
+    bidActivity,
+    automationMode
 }: {
     children: ReactNode;
+    auctionId: string;
     isActive: boolean;
     endTime: string;
     bidActivity: number;
+    automationMode?: AuctionAutomationMode;
 }) {
     const { viewerCount, stayDuration } = useSimulatedViewers({
+        auctionId,
         isActive,
         endTime,
-        bidActivity
+        bidActivity,
+        automationMode
     });
 
     return (
@@ -63,6 +69,10 @@ interface BidHistoryWithSimulationProps {
     endTime: string;
     isActive: boolean;
     auctionTitle?: string;  // 新增：競標標題
+    automationMode?: AuctionAutomationMode;
+    automationTargetMin?: number;
+    automationTargetMax?: number;
+    automationStopSeconds?: number;
     onHighestChange?: (amount: number, bidderName: string | null) => void;
 }
 
@@ -75,6 +85,10 @@ export function BidHistoryWithSimulation({
     endTime,
     isActive,
     auctionTitle,
+    automationMode,
+    automationTargetMin,
+    automationTargetMax,
+    automationStopSeconds,
     onHighestChange
 }: BidHistoryWithSimulationProps) {
     const { simulatedBids } = useSimulatedBids({
@@ -85,6 +99,10 @@ export function BidHistoryWithSimulation({
         endTime,
         isActive,
         auctionTitle,
+        automationMode,
+        automationTargetMin,
+        automationTargetMax,
+        automationStopSeconds,
         realBids: realBids.map(b => ({ id: b.id, amount: b.amount, created_at: b.created_at }))
     });
 
