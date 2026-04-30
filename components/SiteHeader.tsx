@@ -96,6 +96,10 @@ function AccountDropdown({
 export function SiteHeader({ displayName, isAuthenticated, isAdmin }: SiteHeaderProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const isTemporaryBattleRoute =
+    pathname === "/random-distribution/battle" || pathname === "/anniversary-30th/battle";
+
+  if (isTemporaryBattleRoute) return null;
 
   const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 

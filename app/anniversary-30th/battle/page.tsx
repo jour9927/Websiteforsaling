@@ -1,12 +1,11 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 import {
   ANNIVERSARY_30TH_BATTLES_PER_DAY,
-  ANNIVERSARY_30TH_EEVEE_POINT_GOAL,
   ANNIVERSARY_30TH_EVENT_ID,
   ANNIVERSARY_30TH_SLUG,
   ANNIVERSARY_30TH_STARTS_AT,
-  calculateAnniversaryEventPoints,
   getPartnerPokemon,
   getPokemonSpriteUrl,
   isBattleSessionExpired,
@@ -26,7 +25,6 @@ type BattleState = {
   campaign: AnniversaryCampaign | null;
   participant: AnniversaryParticipant | null;
   battle: AnniversaryBattle | null;
-  completedBattleCount: number;
   displayName: string;
 };
 
@@ -36,17 +34,6 @@ type ProfileName = {
   full_name: string | null;
   username: string | null;
 };
-
-async function countCompletedBattles(participantId: string) {
-  const adminSupabase = createAdminSupabaseClient();
-  const { count } = await adminSupabase
-    .from("anniversary_battles")
-    .select("id", { count: "exact", head: true })
-    .eq("participant_id", participantId)
-    .in("status", ["won", "lost"]);
-
-  return count ?? 0;
-}
 
 async function loadBattleState(userId?: string, fallbackEmail?: string | null): Promise<BattleState> {
   const adminSupabase = createAdminSupabaseClient();
@@ -63,7 +50,6 @@ async function loadBattleState(userId?: string, fallbackEmail?: string | null): 
       campaign,
       participant: null,
       battle: null,
-      completedBattleCount: 0,
       displayName: fallbackEmail?.split("@")[0] || "你",
     };
   }
@@ -126,7 +112,7 @@ async function loadBattleState(userId?: string, fallbackEmail?: string | null): 
   }
 
   if (!participant) {
-    return { campaign, participant: null, battle: null, completedBattleCount: 0, displayName };
+    return { campaign, participant: null, battle: null, displayName };
   }
 
   const { data: battleData } = await adminSupabase
@@ -141,7 +127,7 @@ async function loadBattleState(userId?: string, fallbackEmail?: string | null): 
   let battle = (battleData || null) as AnniversaryBattle | null;
   const now = new Date().toISOString();
 
-  if (battle && isBattleSessionExpired(battle.last_active_at || battle.started_at)) {
+  if (battle && isBattleSessionExpired(battle.started_at || battle.last_active_at)) {
     await adminSupabase
       .from("anniversary_battles")
       .update({
@@ -151,14 +137,10 @@ async function loadBattleState(userId?: string, fallbackEmail?: string | null): 
       })
       .eq("id", battle.id);
 
-    const completedAfterLoss = await countCompletedBattles(participant.id);
-    const pointsAfterLoss = calculateAnniversaryEventPoints(completedAfterLoss, participant.total_wins ?? 0);
-
     const { data: refreshedParticipant } = await adminSupabase
       .from("anniversary_participants")
       .update({
         win_streak: 0,
-        partner_unlocked: participant.partner_unlocked || pointsAfterLoss >= ANNIVERSARY_30TH_EEVEE_POINT_GOAL,
       })
       .eq("id", participant.id)
       .select("*")
@@ -177,9 +159,7 @@ async function loadBattleState(userId?: string, fallbackEmail?: string | null): 
     battle = (refreshedBattle || battle) as AnniversaryBattle;
   }
 
-  const completedBattleCount = await countCompletedBattles(participant.id);
-
-  return { campaign, participant, battle, completedBattleCount, displayName };
+  return { campaign, participant, battle, displayName };
 }
 
 function Notice({
@@ -187,23 +167,44 @@ function Notice({
   body,
   actionLabel = "返回活動頁",
   actionHref = "/random-distribution",
+  status = "LINK CLOSED",
+  children,
 }: {
   title: string;
   body: string;
   actionLabel?: string;
   actionHref?: NoticeActionHref;
+  status?: string;
+  children?: ReactNode;
 }) {
   return (
-    <div className="rounded-lg border border-white/12 bg-black/30 p-8 text-center text-white">
-      <h1 className="text-3xl font-black">{title}</h1>
-      <p className="mt-4 text-sm leading-6 text-white/65">{body}</p>
-      <Link
-        href={actionHref}
-        className="mt-6 inline-flex rounded bg-emerald-300 px-6 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-200"
-      >
-        {actionLabel}
-      </Link>
-    </div>
+    <section className="relative left-1/2 -my-10 -ml-[50vw] flex min-h-screen w-screen items-center justify-center overflow-hidden bg-[#050806] px-4 py-8 font-mono text-[#d7f7bf] md:-my-12">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(215,247,191,0.08)_1px,transparent_1px)] bg-[length:100%_5px] opacity-40" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(160,220,120,0.16),transparent_42%)]" />
+      <div className="relative w-full max-w-2xl border-4 border-[#d7f7bf] bg-[#e6ffd1] p-2 text-[#172610] shadow-[0_0_0_6px_#172610,0_24px_80px_rgba(0,0,0,0.55)]">
+        <div className="border-2 border-[#172610] bg-[#f7ffe9] p-4 sm:p-6">
+          <div className="mb-4 flex items-center justify-between border-b-2 border-[#172610] pb-3 text-[10px] font-black uppercase tracking-[0.28em]">
+            <span>CABLE CLUB</span>
+            <span>{status}</span>
+          </div>
+
+          <div className="border-2 border-[#172610] bg-[#172610] p-4 text-[#d7f7bf] shadow-inner sm:p-6">
+            <p className="mb-3 text-[10px] font-black uppercase tracking-[0.36em]">LINK BATTLE</p>
+            <h1 className="text-2xl font-black uppercase leading-tight sm:text-4xl">{title}</h1>
+            <p className="mt-5 border-y border-[#d7f7bf]/45 py-4 text-sm font-bold leading-7 sm:text-base">
+              {body}
+            </p>
+            {children ? <div className="mt-5 text-sm font-black">{children}</div> : null}
+            <Link
+              href={actionHref}
+              className="mt-6 inline-flex border-2 border-[#d7f7bf] bg-[#d7f7bf] px-5 py-3 text-xs font-black uppercase tracking-[0.22em] text-[#172610] transition hover:bg-[#f7ffe9]"
+            >
+              {actionLabel}
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -224,7 +225,7 @@ export default async function Anniversary30thBattlePage() {
     );
   }
 
-  const { campaign, participant, battle, completedBattleCount, displayName } = await loadBattleState(
+  const { campaign, participant, battle, displayName } = await loadBattleState(
     user.id,
     user.email,
   );
@@ -245,10 +246,9 @@ export default async function Anniversary30thBattlePage() {
   const started = isEventStarted(startsAt);
   if (!started) {
     return (
-      <div className="space-y-5 text-white">
-        <Notice title="隨機對戰視窗" body="活動尚未正式開戰。" />
+      <Notice title="BATTLE LOCKED" body="活動尚未正式開戰。" status="STANDBY">
         <Anniversary30thCountdown startsAt={startsAt} />
-      </div>
+      </Notice>
     );
   }
 
@@ -256,20 +256,17 @@ export default async function Anniversary30thBattlePage() {
   const battlesRemaining = resolveBattlesRemaining(participant, battlesPerDay);
   if (battlesRemaining <= 0 && !battle) {
     return (
-      <div className="space-y-4">
-        <Notice
-          title="今日對戰已完成"
-          body="每天最多可打兩場。明天 00:00（台北時間）後會重新開放場次。"
-        />
-        <div className="rounded-lg border border-emerald-300/20 bg-black/30 p-4 text-center text-sm text-emerald-200">
-          <NextResetCountdown />
-        </div>
-      </div>
+      <Notice
+        title="NO BATTLE LEFT"
+        body="今日連線對戰已結束。下一次台北時間 00:00 重置後，才能重新進入匹配。"
+        status="DAILY LIMIT"
+      >
+        <NextResetCountdown />
+      </Notice>
     );
   }
 
   const partner = getPartnerPokemon(participant.partner_pokemon);
-  const eventPoints = calculateAnniversaryEventPoints(completedBattleCount, participant.total_wins ?? 0);
 
   return (
     <Anniversary30thBattleConsole
@@ -277,10 +274,7 @@ export default async function Anniversary30thBattlePage() {
       partnerSpriteUrl={getPokemonSpriteUrl(partner.sprite)}
       playerDisplayName={displayName}
       battlesRemaining={battlesRemaining}
-      totalWins={participant.total_wins ?? 0}
-      winStreak={participant.win_streak ?? 0}
       initialBattle={battle}
-      initialEventPoints={eventPoints}
     />
   );
 }

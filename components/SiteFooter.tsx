@@ -1,6 +1,15 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export function SiteFooter() {
+  const pathname = usePathname();
+  const isTemporaryBattleRoute =
+    pathname === "/random-distribution/battle" || pathname === "/anniversary-30th/battle";
+
+  if (isTemporaryBattleRoute) return null;
+
   const year = new Date().getFullYear();
 
   return (

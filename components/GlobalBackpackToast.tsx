@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 interface GlobalBackpackToastProps {
@@ -11,12 +12,15 @@ interface GlobalBackpackToastProps {
 export function GlobalBackpackToast({
   isAuthenticated,
 }: GlobalBackpackToastProps) {
+  const pathname = usePathname();
   const [unreadCount, setUnreadCount] = useState(0);
   const [dismissed, setDismissed] = useState(false);
   const [prevCount, setPrevCount] = useState(0);
+  const isTemporaryBattleRoute =
+    pathname === "/random-distribution/battle" || pathname === "/anniversary-30th/battle";
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || isTemporaryBattleRoute) return;
 
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
@@ -75,7 +79,7 @@ export function GlobalBackpackToast({
     return () => {
       if (channel) void supabase.removeChannel(channel);
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isTemporaryBattleRoute]);
 
   void prevCount;
 
@@ -95,7 +99,7 @@ export function GlobalBackpackToast({
     setDismissed(true);
   }
 
-  if (!isAuthenticated || unreadCount === 0 || dismissed) return null;
+  if (isTemporaryBattleRoute || !isAuthenticated || unreadCount === 0 || dismissed) return null;
 
   return (
     <div className="fixed bottom-40 right-4 z-50 animate-fadeIn">

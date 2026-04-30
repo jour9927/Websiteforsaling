@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 type Announcement = {
@@ -12,13 +13,17 @@ type Announcement = {
 };
 
 export default function GlobalAnnouncementOverlay() {
+    const pathname = usePathname();
     const [announcement, setAnnouncement] = useState<Announcement | null>(null);
     const [visible, setVisible] = useState(false);
     const [fadeOut, setFadeOut] = useState(false);
+    const isTemporaryBattleRoute =
+        pathname === "/random-distribution/battle" || pathname === "/anniversary-30th/battle";
 
     useEffect(() => {
+        if (isTemporaryBattleRoute) return;
         loadLatestAnnouncement();
-    }, []);
+    }, [isTemporaryBattleRoute]);
 
     const loadLatestAnnouncement = async () => {
         try {
@@ -69,7 +74,7 @@ export default function GlobalAnnouncementOverlay() {
         }, 300);
     };
 
-    if (!announcement || !visible) return null;
+    if (isTemporaryBattleRoute || !announcement || !visible) return null;
 
     return (
         <div

@@ -1,11 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 
 export function MaintenanceBanner() {
+  const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(true);
+  const isTemporaryBattleRoute =
+    pathname === "/random-distribution/battle" || pathname === "/anniversary-30th/battle";
 
-  if (!isVisible) return null;
+  if (isTemporaryBattleRoute || !isVisible) return null;
 
   return (
     <div className="relative bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 text-white">

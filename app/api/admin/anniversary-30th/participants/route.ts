@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
-import { ANNIVERSARY_30TH_SLUG } from "@/lib/anniversary30th";
+import { ANNIVERSARY_30TH_SLUG, resolveRetroForcedOutcome } from "@/lib/anniversary30th";
 
 export const dynamic = "force-dynamic";
 
@@ -52,12 +52,23 @@ export async function GET() {
     .select("id, full_name, email")
     .in("id", userIds);
 
+  const participantIds = participants.map((participant) => participant.id);
+  const { data: routes } = await adminSupabase
+    .from("anniversary_curated_routes")
+    .select("participant_id, preferred_templates")
+    .in("participant_id", participantIds);
+
   const profileMap = new Map((profiles || []).map((entry) => [entry.id, entry]));
+  const routeMap = new Map((routes || []).map((entry) => [entry.participant_id, entry]));
 
   const normalizedParticipants = participants.map((participant) => {
+    const route = routeMap.get(participant.id);
     return {
       participant,
       profile: profileMap.get(participant.user_id) || null,
+      route: {
+        forceBattleOutcome: resolveRetroForcedOutcome(route?.preferred_templates),
+      },
     };
   });
 

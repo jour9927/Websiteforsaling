@@ -15,6 +15,7 @@ import {
   isBattleSessionExpired,
   resolveTaipeiDateKey,
   resolveNarrativeBattleDay,
+  resolveRetroForcedOutcome,
   hashString,
   type AnniversaryBattle,
   type AnniversaryCampaign,
@@ -120,7 +121,7 @@ export async function POST() {
   const existingBattle = (existingBattleData || null) as AnniversaryBattle | null;
   const now = new Date().toISOString();
 
-  if (existingBattle && isBattleSessionExpired(existingBattle.last_active_at || existingBattle.started_at)) {
+  if (existingBattle && isBattleSessionExpired(existingBattle.started_at || existingBattle.last_active_at)) {
     expiredPreviousBattle = true;
     await adminSupabase
       .from("anniversary_battles")
@@ -188,6 +189,13 @@ export async function POST() {
   // Generate deterministic round outcomes (legacy scripted path; 1gen path 不讀但保留供舊 battle).
   const scriptedOutcomes = generateScriptedOutcomes(challengeType, scriptMode, seed);
 
+  const { data: curatedRoute } = await adminSupabase
+    .from("anniversary_curated_routes")
+    .select("preferred_templates")
+    .eq("participant_id", participant.id)
+    .maybeSingle();
+  const forcedOutcome = resolveRetroForcedOutcome(curatedRoute?.preferred_templates);
+
   // 1gen 對戰：產 3 隻對手 lineup（取代原本單一 opponent）
   const opponentLineup = generateRetroOpponentLineup(
     `${participant.id}:${battleSerial}:lineup`,
@@ -225,6 +233,7 @@ export async function POST() {
     },
     rngSeed: seed,
     turn: 0,
+    forcedOutcome,
   };
 
   // Calculate battle day (no cap to avoid collisions)

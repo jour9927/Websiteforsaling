@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS,
-  ANNIVERSARY_30TH_EEVEE_POINT_GOAL,
   CHALLENGE_META,
   PARTNER_POKEMON_POOL,
   RETRO_BATTLE_MOVES,
@@ -27,13 +26,12 @@ type BattleConsoleProps = {
   partnerSpriteUrl: string;
   playerDisplayName: string;
   battlesRemaining: number;
-  totalWins: number;
-  winStreak: number;
   initialBattle: AnniversaryBattle | null;
-  initialEventPoints: number;
 };
 
-type Phase = "idle" | "matchmaking" | "rules" | "playing" | "round-result" | "finished";
+type Phase = "idle" | "matchmaking" | "playing" | "round-result" | "finished";
+
+type TurnAnimationStep = "idle" | "player-attack" | "opponent-hit" | "opponent-attack" | "player-hit" | "faint" | "timeout";
 
 type RoundResultData = {
   roundNo: number;
@@ -47,7 +45,6 @@ type RoundResultData = {
   challengeType?: string;
   totalRounds: number;
   winsNeeded: number;
-  eventPoints?: number;
   pointsEarned?: number;
   battleState?: RetroBattleState | null;
   lastActiveAt?: string | null;
@@ -67,13 +64,26 @@ function isRetroResolution(value: unknown): value is RetroRoundResolution {
   );
 }
 
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("zh-TW").format(Math.max(0, Math.floor(value)));
+function isTimeoutRoundPayload(value: unknown) {
+  if (!value || typeof value !== "object") return false;
+  const payload = value as { timeout?: unknown; reason?: unknown };
+  return payload.timeout === true || payload.reason === "timeout";
 }
 
 function clampPercent(value: number) {
   if (!Number.isFinite(value)) return 0;
   return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function remainingBattleSeconds(battle: AnniversaryBattle | null) {
+  const anchor = battle?.started_at;
+  if (!anchor) return ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS;
+
+  const startedAt = new Date(anchor).getTime();
+  if (!Number.isFinite(startedAt)) return ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS;
+
+  const elapsed = Math.floor((Date.now() - startedAt) / 1000);
+  return Math.max(0, ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS - elapsed);
 }
 
 function hpPercent(current: number, max: number) {
@@ -225,65 +235,26 @@ function StatusBox({
   );
 }
 
-function PartyRoster({
-  title,
-  team,
-  activeIndex,
-  slots,
-  getName,
+function MatchmakingOverlay({
+  partnerName,
+  partnerSpriteUrl,
+  playerDisplayName,
+  onComplete,
 }: {
-  title: string;
-  team: RetroPokemonState[];
-  activeIndex: number;
-  slots: number;
-  getName: (pokemon: RetroPokemonState) => string;
+  partnerName: string;
+  partnerSpriteUrl: string;
+  playerDisplayName: string;
+  onComplete: () => void;
 }) {
-  return (
-    <div className="rounded-lg border border-white/12 bg-black/35 p-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200/70">{title}</p>
-      <div className="mt-3 space-y-2">
-        {Array.from({ length: slots }).map((_, index) => {
-          const pokemon = team[index];
-          const percent = pokemon ? hpPercent(pokemon.hp, pokemon.maxHp) : 0;
-
-          return (
-            <div
-              key={`${pokemon?.id ?? "empty"}-${index}`}
-              className={`border px-3 py-2 text-sm ${
-                index === activeIndex && pokemon && !pokemon.fainted
-                  ? "border-emerald-300 bg-emerald-300/12 text-white"
-                  : "border-white/10 bg-white/[0.03] text-white/75"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <span className="truncate font-semibold">{pokemon ? getName(pokemon) : "EMPTY"}</span>
-                <span className="font-mono text-xs tabular-nums">
-                  {pokemon ? `${Math.max(0, pokemon.hp)}/${pokemon.maxHp}` : "--"}
-                </span>
-              </div>
-              <div className="mt-2 h-1.5 bg-white/10">
-                <div
-                  className={pokemon ? hpTone(percent) : "bg-transparent"}
-                  style={{ width: `${percent}%`, height: "100%" }}
-                />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
-function MatchmakingOverlay({ partnerName, onComplete }: { partnerName: string; onComplete: () => void }) {
   const slowQueue = isTaipeiOffPeak();
   const [step, setStep] = useState(0);
   const steps = useMemo(
     () => slowQueue
-      ? ["SEARCHING", "LINKING CABLE", "WAITING TRAINER", "BATTLE READY"]
+      ? ["SEARCHING", "LINK CABLE", "TRAINER FOUND", "BATTLE READY"]
       : ["SEARCHING", "TRAINER FOUND", "BATTLE READY"],
     [slowQueue],
   );
+  const activeStep = steps[Math.min(step, steps.length - 1)];
 
   useEffect(() => {
     const timers = steps.map((_, index) => (
@@ -298,15 +269,59 @@ function MatchmakingOverlay({ partnerName, onComplete }: { partnerName: string; 
   }, [onComplete, slowQueue, steps]);
 
   return (
-    <div className="absolute inset-0 z-20 grid place-items-center bg-black/75 p-4">
-      <div className="w-full max-w-md border-4 border-[#f5f8df] bg-[#151b13] p-5 font-mono text-[#f5f8df] shadow-[10px_10px_0_rgba(0,0,0,0.45)]">
-        <p className="text-xs font-black uppercase tracking-[0.28em] text-emerald-200">CABLE CLUB</p>
-        <div className="mt-5 border-4 border-[#f5f8df] p-4">
-          <p className="text-lg font-black">{steps[step]}</p>
-          <p className="mt-3 text-sm font-black leading-6">
-            {partnerName} 已進入對戰端子。{slowQueue ? "清晨佇列較慢，正在等待對手回應。" : "正在配對隨機訓練家。"}
+    <div className="absolute inset-0 z-20 grid place-items-center bg-black/80 p-4">
+      <div className="relative w-full max-w-2xl overflow-hidden border-4 border-[#f5f8df] bg-[#151b13] p-4 font-mono text-[#f5f8df] shadow-[10px_10px_0_rgba(0,0,0,0.45)] sm:p-5">
+        <div
+          className="pointer-events-none absolute inset-0 opacity-20 animate-retro-scanline-roll"
+          style={{
+            backgroundImage: "linear-gradient(rgba(245,248,223,0.4) 1px, transparent 1px)",
+            backgroundSize: "100% 8px",
+          }}
+        />
+        <div className="relative z-10">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b-4 border-[#f5f8df] pb-3">
+            <p className="text-xs font-black uppercase tracking-[0.28em] text-emerald-200">CABLE CLUB</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em]">{activeStep}</p>
+          </div>
+
+          <div className="mt-5 grid min-h-[230px] grid-cols-[minmax(0,1fr)_74px_minmax(0,1fr)] items-center gap-3 border-4 border-[#f5f8df] p-3 sm:grid-cols-[minmax(0,1fr)_96px_minmax(0,1fr)] sm:p-4">
+            <div className="grid place-items-center gap-2 border-2 border-[#f5f8df] bg-[#263522] p-3">
+              <p className="w-full truncate text-center text-xs font-black uppercase tracking-[0.14em]">
+                {playerDisplayName}
+              </p>
+              <img
+                src={partnerSpriteUrl}
+                alt={partnerName}
+                className="h-24 w-24 object-contain sm:h-32 sm:w-32"
+                style={{ imageRendering: "pixelated", transform: "scaleX(-1)" }}
+              />
+              <p className="w-full truncate text-center text-sm font-black">{partnerName}</p>
+            </div>
+
+            <div className="grid place-items-center gap-3">
+              <span className="text-3xl font-black animate-retro-match-vs sm:text-5xl">VS</span>
+              <div className="h-24 w-3 border-2 border-[#f5f8df] bg-[#f5f8df]/10">
+                <div className="h-full w-full bg-emerald-300 animate-retro-link-pulse" />
+              </div>
+            </div>
+
+            <div className="grid place-items-center gap-2 border-2 border-[#f5f8df] bg-[#263522] p-3">
+              <p className="w-full truncate text-center text-xs font-black uppercase tracking-[0.14em]">
+                LINK TRAINER
+              </p>
+              <div className="grid h-24 w-24 place-items-center border-2 border-[#f5f8df] bg-[#f5f8df]/10 sm:h-32 sm:w-32">
+                <div className="h-16 w-12 border-4 border-[#f5f8df] bg-[#f5f8df]/20 animate-danger-pulse sm:h-20 sm:w-14" />
+              </div>
+              <p className="w-full truncate text-center text-sm font-black">
+                {activeStep === "SEARCHING" ? "???" : "MATCH FOUND"}
+              </p>
+            </div>
+          </div>
+
+          <p className="mt-4 text-sm font-black leading-6">
+            {slowQueue ? "正在接上復古對戰線路，匹配完成後會立刻開始倒數。" : "匹配到訓練家後，指令倒數會直接啟動。"}
           </p>
-          <div className="mt-5 grid grid-cols-12 gap-1">
+          <div className="mt-4 grid grid-cols-12 gap-1">
             {Array.from({ length: 12 }).map((_, index) => (
               <span
                 key={index}
@@ -325,16 +340,13 @@ export function Anniversary30thBattleConsole({
   partnerSpriteUrl,
   playerDisplayName,
   battlesRemaining,
-  totalWins,
-  winStreak,
   initialBattle,
-  initialEventPoints,
 }: BattleConsoleProps) {
-  const activeInitialBattle = initialBattle && !isBattleSessionExpired(initialBattle.last_active_at || initialBattle.started_at)
+  const activeInitialBattle = initialBattle && !isBattleSessionExpired(initialBattle.started_at || initialBattle.last_active_at)
     ? initialBattle
     : null;
   const meta = CHALLENGE_META.retro;
-  const [phase, setPhase] = useState<Phase>(activeInitialBattle ? "rules" : "idle");
+  const [phase, setPhase] = useState<Phase>(activeInitialBattle ? "playing" : "idle");
   const [battle, setBattle] = useState<AnniversaryBattle | null>(activeInitialBattle);
   const [liveBattleState, setLiveBattleState] = useState<RetroBattleState | null>(
     activeInitialBattle?.battle_state ?? null,
@@ -342,20 +354,22 @@ export function Anniversary30thBattleConsole({
   const [currentRound, setCurrentRound] = useState(() => (activeInitialBattle?.current_round ?? 0) + 1);
   const [playerScore, setPlayerScore] = useState(activeInitialBattle?.player_score ?? 0);
   const [opponentScore, setOpponentScore] = useState(activeInitialBattle?.opponent_score ?? 0);
-  const [timeLeft, setTimeLeft] = useState(ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS);
+  const [timeLeft, setTimeLeft] = useState(() => remainingBattleSeconds(activeInitialBattle));
   const [roundResult, setRoundResult] = useState<RoundResultData | null>(null);
-  const [eventPoints, setEventPoints] = useState(initialEventPoints);
   const [pointsEarned, setPointsEarned] = useState(0);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isStarting, setIsStarting] = useState(false);
   const [submittingAction, setSubmittingAction] = useState<string | null>(null);
+  const [turnAnimationStep, setTurnAnimationStep] = useState<TurnAnimationStep>("idle");
+  const submittingActionRef = useRef<string | null>(null);
   const autoSubmittedRef = useRef(false);
 
   const resolution = useMemo(() => {
     if (!roundResult?.roundPayload) return null;
     return isRetroResolution(roundResult.roundPayload) ? roundResult.roundPayload : null;
   }, [roundResult]);
+  const timeoutRound = useMemo(() => isTimeoutRoundPayload(roundResult?.roundPayload), [roundResult]);
 
   const playerTeam = liveBattleState?.player.team ?? [];
   const opponentTeam = liveBattleState?.opponent.team ?? [];
@@ -363,10 +377,6 @@ export function Anniversary30thBattleConsole({
   const activeOpponent = getActivePokemon(opponentTeam, liveBattleState?.opponent.activeIndex);
   const playerMeta = getPartnerMeta(activePlayer?.id, partnerPokemon);
   const opponentMeta = getOpponentMeta(activeOpponent?.id, battle);
-  const playerBattleName = `${playerDisplayName}的${playerMeta.name}`;
-  const opponentBattleName = battle
-    ? `${opponentMeta.trainerName}的${opponentMeta.pokemonName}`
-    : "隨機對手";
   const playerSprite = getPokemonSpriteUrl(playerMeta.sprite);
   const opponentSprite = getPokemonSpriteUrl(opponentMeta.spriteId);
   const playerHp = activePlayer?.hp ?? resolution?.playerHp ?? 100;
@@ -375,7 +385,6 @@ export function Anniversary30thBattleConsole({
   const opponentMaxHp = activeOpponent?.maxHp ?? resolution?.opponentMaxHp ?? 100;
   const playerTypeName = typeLabel(activePlayer?.type ?? resolution?.playerType ?? null);
   const opponentTypeName = typeLabel(activeOpponent?.type ?? resolution?.opponentType ?? null);
-  const progressPct = Math.min(100, Math.round((eventPoints / ANNIVERSARY_30TH_EEVEE_POINT_GOAL) * 100));
   const playerActiveIndex = liveBattleState?.player.activeIndex ?? 0;
   const opponentActiveIndex = liveBattleState?.opponent.activeIndex ?? 0;
   const opponentSlots = Math.max(meta.winsNeeded, opponentTeam.length || 3);
@@ -386,6 +395,23 @@ export function Anniversary30thBattleConsole({
   const opponentTeamRemaining = resolution?.opponentTeamRemaining ?? (
     opponentTeam.length > 0 ? opponentTeam.filter((pokemon) => !pokemon.fainted).length : "--"
   );
+  const battleClockActive = Boolean(battle && (phase === "playing" || phase === "round-result"));
+  const timerPercent = clampPercent((timeLeft / ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS) * 100);
+  const timerIsDanger = battleClockActive && timeLeft <= 5;
+  const timerExpired = battleClockActive && timeLeft <= 0;
+  const showTurnResolution = Boolean(resolution && (phase === "round-result" || phase === "finished"));
+  const playerSpriteMotionClass = [
+    "relative z-10 grid place-items-center",
+    turnAnimationStep === "player-attack" ? "animate-retro-player-attack" : "",
+    turnAnimationStep === "player-hit" || turnAnimationStep === "timeout" ? "animate-retro-hit-shake" : "",
+    turnAnimationStep === "faint" && (resolution?.playerFainted || timeoutRound) ? "animate-retro-faint" : "",
+  ].filter(Boolean).join(" ");
+  const opponentSpriteMotionClass = [
+    "relative z-10 grid place-items-center",
+    turnAnimationStep === "opponent-attack" ? "animate-retro-opponent-attack" : "",
+    turnAnimationStep === "opponent-hit" ? "animate-retro-hit-shake" : "",
+    turnAnimationStep === "faint" && resolution?.opponentFainted ? "animate-retro-faint" : "",
+  ].filter(Boolean).join(" ");
 
   const startBattle = useCallback(async () => {
     setIsStarting(true);
@@ -411,7 +437,10 @@ export function Anniversary30thBattleConsole({
       setCurrentRound((nextBattle.current_round ?? 0) + 1);
       setRoundResult(null);
       setPointsEarned(0);
-      setPhase("rules");
+      setTimeLeft(remainingBattleSeconds(nextBattle));
+      setTurnAnimationStep("idle");
+      autoSubmittedRef.current = false;
+      setPhase("playing");
     } catch (startError) {
       setError(startError instanceof Error ? startError.message : "無法建立對戰");
       setPhase("idle");
@@ -420,10 +449,12 @@ export function Anniversary30thBattleConsole({
     }
   }, []);
 
-  const submitRound = useCallback(async (action: RetroMoveId | "forfeit") => {
-    if (!battle || submittingAction) return;
+  const submitRound = useCallback(async (action: RetroMoveId | "forfeit" | "timeout", roundNoOverride?: number) => {
+    if (!battle || submittingActionRef.current) return;
 
-    setSubmittingAction(action);
+    const submittedRound = roundNoOverride ?? currentRound;
+    submittingActionRef.current = `${action}:${submittedRound}`;
+    setSubmittingAction(`${action}:${submittedRound}`);
     setError("");
 
     try {
@@ -432,7 +463,7 @@ export function Anniversary30thBattleConsole({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           battleId: battle.id,
-          roundNo: currentRound,
+          roundNo: submittedRound,
           action,
         }),
       });
@@ -440,7 +471,6 @@ export function Anniversary30thBattleConsole({
 
       if (!response.ok) {
         if (payload.battleExpired) {
-          setEventPoints(typeof payload.eventPoints === "number" ? payload.eventPoints : eventPoints);
           setPointsEarned(typeof payload.pointsEarned === "number" ? payload.pointsEarned : 0);
           setLiveBattleState(payload.battleState ?? null);
           setMessage(payload.error || "這場對戰已逾時。");
@@ -453,6 +483,7 @@ export function Anniversary30thBattleConsole({
 
       const result = payload as RoundResultData;
       setRoundResult(result);
+      setCurrentRound(result.roundNo);
       setPlayerScore(result.playerScore);
       setOpponentScore(result.opponentScore);
       setLiveBattleState(result.battleState ?? null);
@@ -469,9 +500,6 @@ export function Anniversary30thBattleConsole({
           }
         : current);
 
-      if (typeof result.eventPoints === "number") {
-        setEventPoints(result.eventPoints);
-      }
       if (typeof result.pointsEarned === "number") {
         setPointsEarned(result.pointsEarned);
       }
@@ -480,65 +508,148 @@ export function Anniversary30thBattleConsole({
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "無法送出指令");
     } finally {
+      submittingActionRef.current = null;
       setSubmittingAction(null);
     }
-  }, [battle, currentRound, eventPoints, submittingAction]);
+  }, [battle, currentRound]);
 
   useEffect(() => {
-    if (phase !== "playing") return;
+    if (!battle || !battleClockActive) return;
 
-    setTimeLeft(ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS);
-    autoSubmittedRef.current = false;
-    const startedAt = Date.now();
-    const timer = window.setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startedAt) / 1000);
-      const nextTime = Math.max(0, ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS - elapsed);
+    const submitTimeout = () => {
+      const nextRoundNo = phase === "round-result"
+        ? Math.max((roundResult?.roundNo ?? currentRound) + 1, (battle.current_round ?? 0) + 1)
+        : currentRound;
+
+      void submitRound("timeout", nextRoundNo);
+    };
+
+    const tick = () => {
+      const nextTime = remainingBattleSeconds(battle);
       setTimeLeft(nextTime);
 
       if (nextTime <= 0 && !autoSubmittedRef.current) {
         autoSubmittedRef.current = true;
-        void submitRound("forfeit");
+        submitTimeout();
       }
-    }, 250);
+    };
+
+    tick();
+    const timer = window.setInterval(tick, 250);
 
     return () => window.clearInterval(timer);
-  }, [currentRound, phase, submitRound]);
+  }, [battle, battleClockActive, currentRound, phase, roundResult?.roundNo, submitRound]);
+
+  useEffect(() => {
+    if (!resolution || (phase !== "round-result" && phase !== "finished")) {
+      setTurnAnimationStep("idle");
+      return;
+    }
+
+    const timers: number[] = [];
+    const queueStep = (nextStep: TurnAnimationStep, delay: number) => {
+      timers.push(window.setTimeout(() => setTurnAnimationStep(nextStep), delay));
+    };
+
+    if (timeoutRound) {
+      setTurnAnimationStep("timeout");
+      queueStep("player-hit", 260);
+      queueStep("faint", 820);
+      return () => timers.forEach(window.clearTimeout);
+    }
+
+    setTurnAnimationStep("player-attack");
+    queueStep("opponent-hit", 360);
+
+    if (resolution.damageToPlayer > 0) {
+      queueStep("opponent-attack", 840);
+      queueStep("player-hit", 1180);
+    }
+
+    if (resolution.playerFainted || resolution.opponentFainted) {
+      queueStep("faint", resolution.damageToPlayer > 0 ? 1560 : 820);
+    } else {
+      queueStep("idle", resolution.damageToPlayer > 0 ? 1640 : 920);
+    }
+
+    return () => timers.forEach(window.clearTimeout);
+  }, [phase, resolution, roundResult?.roundNo, timeoutRound]);
 
   const beginMatchmaking = () => {
     if (battlesRemaining <= 0 || isStarting) return;
+    setRoundResult(null);
+    setTurnAnimationStep("idle");
+    setTimeLeft(ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS);
+    autoSubmittedRef.current = false;
     setPhase("matchmaking");
   };
 
-  const beginPlaying = () => {
+  const continueBattle = () => {
+    if (!battle) return;
+
+    const nextRoundNo = (roundResult?.roundNo ?? currentRound) + 1;
+    if (remainingBattleSeconds(battle) <= 0) {
+      autoSubmittedRef.current = true;
+      void submitRound("timeout", nextRoundNo);
+      return;
+    }
+
+    setRoundResult(null);
+    setTurnAnimationStep("idle");
+    setTimeLeft(remainingBattleSeconds(battle));
     setMessage("");
     setError("");
+    setCurrentRound(nextRoundNo);
     setPhase("playing");
-  };
-
-  const continueBattle = () => {
-    setRoundResult(null);
-    setCurrentRound((round) => round + 1);
-    beginPlaying();
   };
 
   const battleLines = useMemo(() => {
     if (message) return [message];
     if (!battle) {
       return [
-        "連線到隨機配布對戰中心。",
-        "選好夥伴後即可進入復古掌機對戰。",
-      ];
-    }
-    if (phase === "rules") {
-      return [
-        `TRAINER ${opponentMeta.trainerName} 派出了 ${opponentMeta.pokemonName}!`,
-        `上吧！${playerMeta.name}!`,
+        "LINK BATTLE 待機中。",
+        "按下 START 後會先進入匹配畫面。",
       ];
     }
     if (phase === "playing") {
-      return [`要讓 ${playerMeta.name} 做什麼？`];
+      return [
+        currentRound === 1 ? `TRAINER ${opponentMeta.trainerName} 派出了 ${opponentMeta.pokemonName}!` : null,
+        currentRound === 1 ? `上吧！${playerMeta.name}!` : null,
+        timerIsDanger ? "全局戰鬥時間即將歸零，時間到會直接判負。" : `BATTLE CLOCK 正在倒數，要讓 ${playerMeta.name} 做什麼？`,
+      ].filter((line): line is string => Boolean(line));
     }
     if (resolution) {
+      if (timeoutRound) {
+        if (turnAnimationStep === "timeout") {
+          return ["TIME UP!", "你沒有在時限內下達指令。"];
+        }
+        if (turnAnimationStep === "player-hit") {
+          return [`${opponentMeta.pokemonName} 抓住空檔連續攻擊!`, resolution.message];
+        }
+        return [resolution.message];
+      }
+
+      if (turnAnimationStep === "player-attack") {
+        return [`${playerMeta.name} 使用了 ${resolution.playerMoveName}!`];
+      }
+      if (turnAnimationStep === "opponent-hit") {
+        return [
+          `${opponentMeta.pokemonName} 受到了 ${resolution.damageToOpponent} 傷害!`,
+          resolution.effectivenessMessage || null,
+          resolution.isCritical ? "命中要害！" : null,
+        ].filter((line): line is string => Boolean(line));
+      }
+      if (turnAnimationStep === "opponent-attack") {
+        return [`${opponentMeta.pokemonName} 使用了 ${resolution.opponentMoveName}!`];
+      }
+      if (turnAnimationStep === "player-hit") {
+        return [
+          `${playerMeta.name} 受到了 ${resolution.damageToPlayer} 傷害!`,
+          resolution.opponentEffectivenessMessage || null,
+          resolution.opponentCritical ? "命中要害！" : null,
+        ].filter((line): line is string => Boolean(line));
+      }
+
       return [
         `${playerMeta.name} 使用了 ${resolution.playerMoveName}!`,
         resolution.effectivenessMessage || null,
@@ -552,38 +663,74 @@ export function Anniversary30thBattleConsole({
     if (phase === "finished") {
       return [
         roundResult?.battleResult === "won" ? "你贏得了這場復古對戰！" : "你輸掉了這場復古對戰。",
-        roundResult?.partnerJustUnlocked ? "連勝條件達成，夥伴永久解鎖！" : null,
       ].filter((line): line is string => Boolean(line));
     }
     return ["等待下一個指令。"];
-  }, [battle, message, opponentMeta.pokemonName, opponentMeta.trainerName, phase, playerMeta.name, resolution, roundResult]);
+  }, [
+    battle,
+    currentRound,
+    message,
+    opponentMeta.pokemonName,
+    opponentMeta.trainerName,
+    phase,
+    playerMeta.name,
+    resolution,
+    roundResult,
+    timeoutRound,
+    timerIsDanger,
+    turnAnimationStep,
+  ]);
 
   return (
-    <section className="relative overflow-hidden rounded-lg border border-emerald-300/20 bg-[#0d130e] p-3 text-white shadow-2xl md:p-5">
-      {phase === "matchmaking" ? (
-        <MatchmakingOverlay partnerName={partnerPokemon.name} onComplete={startBattle} />
-      ) : null}
+    <section className="relative left-1/2 right-1/2 -my-10 -ml-[50vw] -mr-[50vw] min-h-[calc(100vh+5rem)] w-screen overflow-hidden bg-[#0b100b] px-2 py-3 text-white md:-my-12 md:min-h-[calc(100vh+6rem)] md:px-6 md:py-5">
+      <div
+        className="pointer-events-none absolute inset-0 opacity-20 animate-retro-scanline-roll"
+        style={{
+          backgroundImage: "linear-gradient(rgba(245,248,223,0.18) 1px, transparent 1px)",
+          backgroundSize: "100% 8px",
+        }}
+      />
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="border-4 border-[#d9e5bd] bg-[#50654e] p-2 shadow-[0_14px_0_rgba(0,0,0,0.35)]">
+      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-1.5rem)] w-full max-w-[1080px] items-center">
+        <div className="relative w-full border-4 border-[#d9e5bd] bg-[#50654e] p-2 shadow-[0_14px_0_rgba(0,0,0,0.55)] animate-retro-battle-pop">
+          {phase === "matchmaking" ? (
+            <MatchmakingOverlay
+              partnerName={partnerPokemon.name}
+              partnerSpriteUrl={partnerSpriteUrl}
+              playerDisplayName={playerDisplayName}
+              onComplete={startBattle}
+            />
+          ) : null}
+
           <div className="border-4 border-slate-950 bg-[#e7efd0] p-2 font-mono text-slate-950 md:p-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b-4 border-slate-950 pb-3 text-xs font-black uppercase tracking-[0.18em]">
-              <span>RANDOM EEVEE LINK</span>
-              <span className={phase === "playing" && timeLeft <= 5 ? "text-rose-700" : ""}>
-                TURN {String(currentRound).padStart(2, "0")} / TIME {String(timeLeft).padStart(2, "0")}
-              </span>
+            <div className="border-b-4 border-slate-950 pb-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-black uppercase tracking-[0.18em]">
+                <span>GEN 1 LINK BATTLE</span>
+                <span className={timerIsDanger ? "text-rose-700 animate-danger-pulse" : ""}>
+                  TURN {String(currentRound).padStart(2, "0")} / BATTLE CLOCK {String(timeLeft).padStart(2, "0")}
+                </span>
+              </div>
+              <div className="mt-3 h-3 border-2 border-slate-950 bg-slate-200">
+                <div
+                  className={`h-full transition-[width] duration-200 ${timerIsDanger ? "bg-rose-600 stripe-bar" : "bg-slate-950"}`}
+                  style={{ width: `${battleClockActive ? timerPercent : phase === "finished" ? 0 : 100}%` }}
+                />
+              </div>
             </div>
 
             {phase === "idle" ? (
-              <div className="grid min-h-[520px] content-center gap-6 p-3 md:grid-cols-[minmax(0,1fr)_220px] md:p-6">
+              <div className="grid min-h-[520px] content-center gap-6 p-3 md:grid-cols-[minmax(0,1fr)_240px] md:p-6">
                 <div>
-                  <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-700">POKEMON CENTER</p>
+                  <p className="text-xs font-black uppercase tracking-[0.24em] text-slate-700">LINK BATTLE</p>
                   <h2 className="mt-4 text-3xl font-black leading-tight md:text-5xl">
-                    隨機型伊布配布對戰
+                    LINK TRAINER
                   </h2>
-                  <p className="mt-5 max-w-xl text-base font-black leading-8">
-                    以一代對戰框重建指令節奏：HP、PP、屬性、隊伍倒下狀態都會在同一個戰鬥畫面內更新。
-                  </p>
+                  <div className="mt-6 max-w-xl border-4 border-slate-950 bg-[#f8f6dc] p-4 text-sm font-black uppercase leading-7 tracking-[0.08em]">
+                    <p>&gt; WAITING FOR TRAINER</p>
+                    <p>&gt; MATCHING BEFORE BATTLE</p>
+                    <p>&gt; BATTLE CLOCK / {ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS} SEC</p>
+                    <p>&gt; TIME UP = LOSE</p>
+                  </div>
                   <button
                     type="button"
                     onClick={beginMatchmaking}
@@ -605,14 +752,24 @@ export function Anniversary30thBattleConsole({
               </div>
             ) : (
               <div className="space-y-3 pt-3">
-                <div className="relative min-h-[390px] overflow-hidden border-4 border-slate-950 bg-[#edf3d5] p-3 sm:min-h-[430px] sm:p-5">
+                <div className={`relative min-h-[390px] overflow-hidden border-4 border-slate-950 bg-[#edf3d5] p-3 sm:min-h-[430px] sm:p-5 ${
+                  turnAnimationStep === "timeout" || turnAnimationStep === "player-hit" || turnAnimationStep === "opponent-hit"
+                    ? "animate-retro-screen-jolt"
+                    : ""
+                }`}>
                   <div
-                    className="pointer-events-none absolute inset-0 opacity-20"
+                    className="pointer-events-none absolute inset-0 opacity-20 animate-retro-scanline-roll"
                     style={{
                       backgroundImage: "linear-gradient(rgba(15,23,42,0.18) 1px, transparent 1px)",
                       backgroundSize: "100% 6px",
                     }}
                   />
+                  {battleClockActive ? (
+                    <div className={`absolute right-3 top-3 z-20 border-4 border-slate-950 bg-[#f8f6dc] px-3 py-2 text-right font-mono font-black ${timerIsDanger ? "text-rose-700 animate-danger-pulse" : "text-slate-950"}`}>
+                      <p className="text-[10px] uppercase tracking-[0.16em]">BATTLE CLOCK</p>
+                      <p className="text-2xl tabular-nums">{String(timeLeft).padStart(2, "0")}</p>
+                    </div>
+                  ) : null}
                   <div className="relative z-10 grid h-full min-h-[350px] grid-rows-[auto_1fr]">
                     <div className="grid grid-cols-[minmax(0,1fr)_130px] gap-4 sm:grid-cols-[minmax(0,1fr)_190px]">
                       <StatusBox
@@ -625,24 +782,38 @@ export function Anniversary30thBattleConsole({
                         slots={opponentSlots}
                       />
                       <div className="grid place-items-center">
-                        <img
-                          src={opponentSprite}
-                          alt={opponentMeta.pokemonName}
-                          className="h-28 w-28 object-contain drop-shadow-[7px_10px_0_rgba(15,23,42,0.28)] sm:h-40 sm:w-40"
-                          style={{ imageRendering: "pixelated" }}
-                        />
+                        <div className={opponentSpriteMotionClass}>
+                          {showTurnResolution && turnAnimationStep === "opponent-hit" && resolution && resolution.damageToOpponent > 0 ? (
+                            <span className="absolute -left-5 top-4 z-20 border-2 border-slate-950 bg-[#f8f6dc] px-2 py-1 text-sm font-black text-rose-700 animate-pop-in">
+                              -{resolution.damageToOpponent}
+                            </span>
+                          ) : null}
+                          <img
+                            src={opponentSprite}
+                            alt={opponentMeta.pokemonName}
+                            className="h-28 w-28 object-contain drop-shadow-[7px_10px_0_rgba(15,23,42,0.28)] sm:h-40 sm:w-40"
+                            style={{ imageRendering: "pixelated" }}
+                          />
+                        </div>
                       </div>
                     </div>
 
                     <div className="mt-8 grid grid-cols-[130px_minmax(0,1fr)] items-end gap-4 sm:grid-cols-[190px_minmax(0,1fr)]">
                       <div className="relative grid min-h-[160px] place-items-end sm:min-h-[210px]">
                         <div className="absolute bottom-5 h-9 w-32 border-4 border-slate-950 bg-[#c8d6a4] sm:w-44" />
-                        <img
-                          src={playerSprite}
-                          alt={playerMeta.name}
-                          className="relative z-10 h-32 w-32 object-contain drop-shadow-[7px_10px_0_rgba(15,23,42,0.28)] sm:h-48 sm:w-48"
-                          style={{ imageRendering: "pixelated", transform: "scaleX(-1)" }}
-                        />
+                        <div className={playerSpriteMotionClass}>
+                          {showTurnResolution && (turnAnimationStep === "player-hit" || turnAnimationStep === "timeout") && resolution && resolution.damageToPlayer > 0 ? (
+                            <span className="absolute -right-3 top-2 z-20 border-2 border-slate-950 bg-[#f8f6dc] px-2 py-1 text-sm font-black text-rose-700 animate-pop-in">
+                              -{resolution.damageToPlayer}
+                            </span>
+                          ) : null}
+                          <img
+                            src={playerSprite}
+                            alt={playerMeta.name}
+                            className="h-32 w-32 object-contain drop-shadow-[7px_10px_0_rgba(15,23,42,0.28)] sm:h-48 sm:w-48"
+                            style={{ imageRendering: "pixelated", transform: "scaleX(-1)" }}
+                          />
+                        </div>
                       </div>
                       <div className="flex justify-end">
                         <StatusBox
@@ -669,24 +840,6 @@ export function Anniversary30thBattleConsole({
                   </div>
 
                   <div className="min-h-[164px] border-4 border-slate-950 bg-[#f8f6dc] p-3 text-slate-950">
-                    {phase === "rules" ? (
-                      <div className="grid h-full content-between gap-3">
-                        <div className="grid grid-cols-2 gap-2 text-sm font-black">
-                          <span className="border-2 border-slate-950 px-3 py-2">FIGHT</span>
-                          <span className="border-2 border-slate-950 px-3 py-2 text-slate-400">PKMN</span>
-                          <span className="border-2 border-slate-950 px-3 py-2 text-slate-400">ITEM</span>
-                          <span className="border-2 border-slate-950 px-3 py-2 text-slate-400">RUN</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={beginPlaying}
-                          className="border-4 border-slate-950 bg-slate-950 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-[#eef4d7]"
-                        >
-                          SELECT FIGHT
-                        </button>
-                      </div>
-                    ) : null}
-
                     {phase === "playing" ? (
                       <div className="space-y-3">
                         <div className="grid grid-cols-4 gap-1 text-center text-[11px] font-black">
@@ -698,7 +851,8 @@ export function Anniversary30thBattleConsole({
                         <div className="grid gap-2 sm:grid-cols-2">
                           {RETRO_BATTLE_MOVES.map((move) => {
                             const ppRemaining = liveBattleState?.player.pp[move.id] ?? RETRO_MOVE_PP[move.id];
-                            const disabled = submittingAction !== null || ppRemaining <= 0;
+                            const submittingMove = submittingAction?.startsWith(`${move.id}:`) ?? false;
+                            const disabled = submittingAction !== null || ppRemaining <= 0 || timerExpired;
 
                             return (
                               <button
@@ -708,7 +862,7 @@ export function Anniversary30thBattleConsole({
                                 disabled={disabled}
                                 className="min-h-[74px] border-2 border-slate-950 bg-[#f8f6dc] p-2 text-left font-black disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
                               >
-                                <span className="block text-sm">{submittingAction === move.id ? "處理中" : move.name}</span>
+                                <span className="block text-sm">{submittingMove ? "處理中" : move.name}</span>
                                 <span className="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-700">
                                   <span>TYPE/{move.type}</span>
                                   <span>PP {ppRemaining}/{RETRO_MOVE_PP[move.id]}</span>
@@ -726,8 +880,8 @@ export function Anniversary30thBattleConsole({
                     {phase === "round-result" ? (
                       <div className="grid h-full content-between gap-3">
                         <div className="grid grid-cols-2 gap-2 text-xs font-black">
-                          <span className="border-2 border-slate-950 px-2 py-2">你的KO {playerScore}</span>
-                          <span className="border-2 border-slate-950 px-2 py-2">對手KO {opponentScore}</span>
+                          <span className="border-2 border-slate-950 px-2 py-2">你擊倒 {playerScore}</span>
+                          <span className="border-2 border-slate-950 px-2 py-2">對手擊倒 {opponentScore}</span>
                           <span className="border-2 border-slate-950 px-2 py-2">
                             我方剩 {playerTeamRemaining}
                           </span>
@@ -738,7 +892,8 @@ export function Anniversary30thBattleConsole({
                         <button
                           type="button"
                           onClick={continueBattle}
-                          className="border-4 border-slate-950 bg-slate-950 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-[#eef4d7]"
+                          disabled={timerExpired || submittingAction !== null}
+                          className="border-4 border-slate-950 bg-slate-950 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-[#eef4d7] disabled:cursor-not-allowed disabled:bg-slate-500"
                         >
                           NEXT TURN
                         </button>
@@ -748,16 +903,16 @@ export function Anniversary30thBattleConsole({
                     {phase === "finished" ? (
                       <div className="grid h-full content-between gap-3">
                         <div className="grid grid-cols-2 gap-2 text-xs font-black">
-                          <span className="border-2 border-slate-950 px-2 py-2">結果 {roundResult?.battleResult === "won" ? "WIN" : "LOSE"}</span>
-                          <span className="border-2 border-slate-950 px-2 py-2">本場 +{pointsEarned}</span>
-                          <span className="border-2 border-slate-950 px-2 py-2">你的KO {playerScore}</span>
-                          <span className="border-2 border-slate-950 px-2 py-2">對手KO {opponentScore}</span>
+                          <span className="border-2 border-slate-950 px-2 py-2">BATTLE RESULT {roundResult?.battleResult === "won" ? "WIN" : "LOSE"}</span>
+                          <span className="border-2 border-slate-950 px-2 py-2">PAYOUT +{pointsEarned}</span>
+                          <span className="border-2 border-slate-950 px-2 py-2">PLAYER K.O. {playerScore}</span>
+                          <span className="border-2 border-slate-950 px-2 py-2">ENEMY K.O. {opponentScore}</span>
                         </div>
                         <Link
                           href="/random-distribution"
                           className="block border-4 border-slate-950 bg-slate-950 px-4 py-3 text-center text-sm font-black uppercase tracking-[0.18em] text-[#eef4d7]"
                         >
-                          BACK EVENT
+                          EXIT LINK
                         </Link>
                       </div>
                     ) : null}
@@ -767,58 +922,6 @@ export function Anniversary30thBattleConsole({
             )}
           </div>
         </div>
-
-        <aside className="space-y-3">
-          <div className="rounded-lg border border-white/12 bg-black/35 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200/70">活動點數</p>
-            <p className="mt-3 font-mono text-4xl font-black tabular-nums">
-              {formatNumber(eventPoints)}
-              <span className="text-base text-white/45"> / {ANNIVERSARY_30TH_EEVEE_POINT_GOAL}</span>
-            </p>
-            <div className="mt-3 h-3 overflow-hidden bg-white/10">
-              <div className="h-full bg-emerald-300" style={{ width: `${progressPct}%` }} />
-            </div>
-            {pointsEarned > 0 ? <p className="mt-2 text-sm text-emerald-200">本場 +{pointsEarned} 分</p> : null}
-          </div>
-
-          <div className="rounded-lg border border-white/12 bg-black/35 p-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200/70">對戰紀錄</p>
-            <div className="mt-3 space-y-2 border border-white/10 bg-white/[0.03] p-3 text-sm">
-              <p className="truncate font-semibold text-white">{playerBattleName}</p>
-              <p className="truncate text-white/65">VS {opponentBattleName}</p>
-            </div>
-            <div className="mt-3 grid grid-cols-3 gap-2 text-center">
-              <div className="border border-white/10 bg-white/[0.03] p-3">
-                <p className="font-mono text-2xl font-black">{totalWins}</p>
-                <p className="mt-1 text-[11px] text-white/50">TOTAL</p>
-              </div>
-              <div className="border border-white/10 bg-white/[0.03] p-3">
-                <p className="font-mono text-2xl font-black">{winStreak}</p>
-                <p className="mt-1 text-[11px] text-white/50">STREAK</p>
-              </div>
-              <div className="border border-white/10 bg-white/[0.03] p-3">
-                <p className="font-mono text-2xl font-black">{Math.max(0, battlesRemaining)}</p>
-                <p className="mt-1 text-[11px] text-white/50">LEFT</p>
-              </div>
-            </div>
-          </div>
-
-          <PartyRoster
-            title="PLAYER PARTY"
-            team={playerTeam}
-            activeIndex={playerActiveIndex}
-            slots={playerSlots}
-            getName={(pokemon) => getPartnerMeta(pokemon.id, partnerPokemon).name}
-          />
-
-          <PartyRoster
-            title="OPPONENT PARTY"
-            team={opponentTeam}
-            activeIndex={opponentActiveIndex}
-            slots={opponentSlots}
-            getName={(pokemon) => getOpponentMeta(pokemon.id, battle).pokemonName}
-          />
-        </aside>
       </div>
     </section>
   );

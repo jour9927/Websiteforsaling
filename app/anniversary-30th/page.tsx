@@ -34,6 +34,8 @@ type PageStats = {
   baseDamage: number;
 };
 
+const PLAYER_TEAM_SELECTION_SIZE = 3;
+
 type PageState = {
   campaign: AnniversaryCampaign | null;
   participant: AnniversaryParticipant | null;
@@ -198,6 +200,14 @@ export default async function Anniversary30thPage() {
   const battlesPerDay = campaign?.battles_per_day || ANNIVERSARY_30TH_BATTLES_PER_DAY;
   const started = isEventStarted(startsAt);
   const partner = participant?.partner_pokemon ? getPartnerPokemon(participant.partner_pokemon) : null;
+  const teamPokemonIds = participant?.partner_pokemon
+    ? Array.from(
+        new Set([
+          participant.partner_pokemon,
+          ...(Array.isArray(participant.team_pokemon) ? participant.team_pokemon : []),
+        ]),
+      ).slice(0, PLAYER_TEAM_SELECTION_SIZE)
+    : [];
   const battlesRemaining = resolveBattlesRemaining(participant, battlesPerDay);
   const eventPoints = calculateAnniversaryEventPoints(
     completedBattleCount,
@@ -317,6 +327,13 @@ export default async function Anniversary30thPage() {
               </div>
             </div>
 
+            {teamPokemonIds.length < PLAYER_TEAM_SELECTION_SIZE ? (
+              <Anniversary30thPartnerSelect
+                existingPartnerId={participant.partner_pokemon}
+                initialTeamPokemon={teamPokemonIds}
+              />
+            ) : null}
+
             {!started ? (
               <Anniversary30thCountdown startsAt={startsAt} />
             ) : battlesRemaining > 0 ? (
@@ -335,21 +352,48 @@ export default async function Anniversary30thPage() {
 
           <aside className="rounded-lg border border-white/12 bg-black/30 p-5">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-200/70">
-              出場寶可夢
+              出場隊伍
             </p>
-            <div className="mt-5 flex items-center gap-4">
-              <img
-                src={getPokemonSpriteUrl(partner.sprite)}
-                alt={partner.name}
-                className="h-24 w-24 rounded bg-white/5 object-contain p-2"
-              />
-              <div>
-                <p className="text-2xl font-black">{partner.name}</p>
-                <p className="mt-1 text-sm text-white/50">你的復古對戰搭檔</p>
-              </div>
+            <div className="mt-5 grid gap-3">
+              {teamPokemonIds.map((pokemonId, index) => {
+                const teamPokemon = getPartnerPokemon(pokemonId);
+                return (
+                  <div
+                    key={`${pokemonId}-${index}`}
+                    className="flex items-center gap-4 rounded border border-white/10 bg-white/[0.03] p-3"
+                  >
+                    <img
+                      src={getPokemonSpriteUrl(teamPokemon.sprite)}
+                      alt={teamPokemon.name}
+                      className="h-16 w-16 rounded bg-white/5 object-contain p-2"
+                    />
+                    <div>
+                      <p className="text-lg font-black">{teamPokemon.name}</p>
+                      <p className="mt-1 text-xs text-white/45">
+                        {index === 0 ? "第一順位" : `第 ${index + 1} 順位`}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+              {Array.from({
+                length: Math.max(0, PLAYER_TEAM_SELECTION_SIZE - teamPokemonIds.length),
+              }).map((_, index) => (
+                <div
+                  key={`empty-slot-${index}`}
+                  className="flex h-[92px] items-center rounded border border-dashed border-white/12 px-4 text-sm font-bold text-white/35"
+                >
+                  待補選
+                </div>
+              ))}
             </div>
             <div className="mt-5 border-t border-white/10 pt-5 text-sm leading-6 text-white/60">
-              <p>戰鬥會以「你的稱呼的{partner.name}」出場。</p>
+              <p>
+                已選 {teamPokemonIds.length} / {PLAYER_TEAM_SELECTION_SIZE} 隻。
+              </p>
+              <p className="mt-2">
+                戰鬥會先以「你的稱呼的{partner.name}」出場，倒下後依隊伍順位接替。
+              </p>
               <p className="mt-2">倒數內未選招式會直接以棄權敗場記錄。</p>
             </div>
           </aside>

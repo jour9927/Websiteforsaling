@@ -12,7 +12,7 @@ export const ANNIVERSARY_30TH_MIN_DAILY = 1;
 export const ANNIVERSARY_30TH_TOTAL_BATTLES = ANNIVERSARY_30TH_TOTAL_DAYS * ANNIVERSARY_30TH_BATTLES_PER_DAY;
 export const ANNIVERSARY_30TH_STARTS_AT = "2026-04-25T00:00:00+08:00";
 export const ANNIVERSARY_30TH_ENDS_AT = "2026-05-03T23:59:59+08:00";
-export const ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS = 15;
+export const ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS = 30;
 export const ANNIVERSARY_30TH_BATTLE_ABANDONED_TIMEOUT_SECONDS = 90;
 export const ANNIVERSARY_30TH_WIN_POINTS = 2;
 export const ANNIVERSARY_30TH_LOSS_POINTS = 1;
@@ -194,11 +194,11 @@ export const CHALLENGE_META: Record<ChallengeType, {
   description: string;
   totalRounds: number;
   winsNeeded: number;
-  timeLimit: number; // seconds per round
+  timeLimit: number; // seconds for the active battle clock
 }> = {
   retro: {
     label: "復古掌機對戰",
-    description: "選擇招式，在 15 秒內完成指令。3 回合 2 勝，未出招視為棄權。",
+    description: "匹配成功後 30 秒內完成整場對戰，時間到會被對手擊倒。",
     totalRounds: 3,
     winsNeeded: 2,
     timeLimit: ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS,
@@ -798,6 +798,33 @@ export type AnniversaryCuratedRoute = {
 
 export type AnniversaryBattleRoundPayload = Record<string, unknown>;
 
+export type RetroForcedOutcome = "win" | "lose";
+
+export const RETRO_FORCE_WIN_TEMPLATE = "battle:force-win";
+export const RETRO_FORCE_LOSE_TEMPLATE = "battle:force-lose";
+
+export function resolveRetroForcedOutcome(
+  preferredTemplates: string[] | null | undefined,
+): RetroForcedOutcome | null {
+  if (!Array.isArray(preferredTemplates)) return null;
+  if (preferredTemplates.includes(RETRO_FORCE_WIN_TEMPLATE)) return "win";
+  if (preferredTemplates.includes(RETRO_FORCE_LOSE_TEMPLATE)) return "lose";
+  return null;
+}
+
+export function withRetroForcedOutcomeTemplate(
+  preferredTemplates: string[] | null | undefined,
+  forcedOutcome: RetroForcedOutcome | null,
+) {
+  const preservedTemplates = (preferredTemplates || []).filter((template) => (
+    template !== RETRO_FORCE_WIN_TEMPLATE && template !== RETRO_FORCE_LOSE_TEMPLATE
+  ));
+
+  if (forcedOutcome === "win") return [...preservedTemplates, RETRO_FORCE_WIN_TEMPLATE];
+  if (forcedOutcome === "lose") return [...preservedTemplates, RETRO_FORCE_LOSE_TEMPLATE];
+  return preservedTemplates;
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 // Phase 1 — 1gen 對戰機制（屬性相剋 / PP / HP 公式）
 // 純 append-only 新增，不動現有 export。
@@ -986,6 +1013,7 @@ export type RetroBattleState = {
   };
   rngSeed: string;
   turn: number;
+  forcedOutcome?: RetroForcedOutcome | null;
 };
 
 export type RetroBattleTurnResult = {
@@ -1062,6 +1090,9 @@ function normalizeRetroBattleState(state: RetroBattleState): RetroBattleState {
     },
     rngSeed: state.rngSeed || "retro",
     turn: Number.isInteger(state.turn) && state.turn >= 0 ? state.turn : 0,
+    forcedOutcome: state.forcedOutcome === "win" || state.forcedOutcome === "lose"
+      ? state.forcedOutcome
+      : null,
   };
 }
 
@@ -1114,7 +1145,13 @@ export function resolveRetroBattleTurn(
     defenderType: opponentBefore.type,
     rng: createSeededRng(hashString(`${turnSeed}:player`)),
   });
-  const damageToOpponent = Math.min(opponentBefore.hp, playerDamage.damage);
+  const forcedOutcome = currentState.forcedOutcome ?? null;
+  const pressuredPlayerDamage = forcedOutcome === "win"
+    ? Math.max(playerDamage.damage, 60)
+    : forcedOutcome === "lose"
+      ? Math.min(playerDamage.damage, 10)
+      : playerDamage.damage;
+  const damageToOpponent = Math.min(opponentBefore.hp, pressuredPlayerDamage);
   const opponentHp = Math.max(0, opponentBefore.hp - damageToOpponent);
   const opponentFainted = opponentHp <= 0;
 
@@ -1135,7 +1172,12 @@ export function resolveRetroBattleTurn(
       defenderType: playerBefore.type,
       rng: createSeededRng(hashString(`${turnSeed}:opponent`)),
     });
-    damageToPlayer = Math.min(playerBefore.hp, opponentDamage.damage);
+    const pressuredOpponentDamage = forcedOutcome === "win"
+      ? Math.min(opponentDamage.damage, 8)
+      : forcedOutcome === "lose"
+        ? Math.max(opponentDamage.damage, 60)
+        : opponentDamage.damage;
+    damageToPlayer = Math.min(playerBefore.hp, pressuredOpponentDamage);
     playerHp = Math.max(0, playerBefore.hp - damageToPlayer);
     playerFainted = playerHp <= 0;
   }
@@ -1156,8 +1198,7 @@ export function resolveRetroBattleTurn(
   const opponentTeamDefeated = nextOpponentActiveIndex < 0;
   const playerTeamRemaining = countRetroTeamRemaining(playerTeam);
   const opponentTeamRemaining = countRetroTeamRemaining(opponentTeam);
-  const playerWins = opponentTeamDefeated
-    || (!playerTeamDefeated && (opponentFainted || damageToOpponent >= damageToPlayer));
+  const playerWins = opponentTeamDefeated;
 
   const messageParts = [
     `${getRetroPartnerDisplayName(playerBefore.id)}使用${move.name}，造成${damageToOpponent}傷害。`,
@@ -1194,6 +1235,7 @@ export function resolveRetroBattleTurn(
     },
     rngSeed: currentState.rngSeed,
     turn: currentState.turn + 1,
+    forcedOutcome: currentState.forcedOutcome ?? null,
   };
 
   return {

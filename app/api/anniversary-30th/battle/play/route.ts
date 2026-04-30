@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 import {
+  ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS,
   ANNIVERSARY_30TH_EEVEE_POINT_GOAL,
   ANNIVERSARY_30TH_LOSS_POINTS,
   ANNIVERSARY_30TH_SLUG,
@@ -13,12 +14,14 @@ import {
   isRetroMoveId,
   isBattleSessionExpired,
   pickTriviaQuestions,
+  RETRO_TYPE_LABEL_ZH,
   resolveRetroBattleTurn,
   type AnniversaryBattle,
   type AnniversaryCampaign,
   type AnniversaryParticipant,
   type ChallengeType,
   type RetroBattleState,
+  type RetroPokemonState,
 } from "@/lib/anniversary30th";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +47,105 @@ async function countCompletedBattles(
   return count ?? 0;
 }
 
+function isBattleClockExpired(startedAt: string | null | undefined, now: Date) {
+  if (!startedAt) return false;
+  const battleStartedAt = new Date(startedAt).getTime();
+  if (!Number.isFinite(battleStartedAt)) return false;
+
+  return now.getTime() - battleStartedAt > ANNIVERSARY_30TH_BATTLE_SESSION_TIMEOUT_SECONDS * 1000;
+}
+
+function countRemainingPokemon(team: RetroPokemonState[]) {
+  return team.filter((pokemon) => !pokemon.fainted && pokemon.hp > 0).length;
+}
+
+function countDefeatedPokemon(team: RetroPokemonState[]) {
+  return team.filter((pokemon) => pokemon.fainted || pokemon.hp <= 0).length;
+}
+
+function resolveRetroTimeout(
+  battleState: RetroBattleState | null,
+  reason: "timeout" | "forfeit",
+): { battleState: RetroBattleState | null; payload: Record<string, unknown> } {
+  if (!battleState) {
+    return {
+      battleState: null,
+      payload: {
+        forfeit: true,
+        timeout: reason === "timeout",
+        reason,
+        playerMoveName: reason === "timeout" ? "未下指令" : "放棄對戰",
+        opponentMoveName: "連擊",
+        damageToOpponent: 0,
+        damageToPlayer: 999,
+        playerHp: 0,
+        opponentHp: 100,
+        playerWins: false,
+        message: reason === "timeout"
+          ? "時間到！對手抓住空檔連續攻擊，你被判定戰敗。"
+          : "你放棄了這場對戰。",
+      },
+    };
+  }
+
+  const playerTeam = battleState.player.team;
+  const opponentTeam = battleState.opponent.team;
+  const playerActiveIndex = battleState.player.activeIndex ?? 0;
+  const opponentActiveIndex = battleState.opponent.activeIndex ?? 0;
+  const activePlayer = playerTeam[playerActiveIndex] ?? playerTeam.find((pokemon) => !pokemon.fainted) ?? playerTeam[0];
+  const activeOpponent = opponentTeam[opponentActiveIndex] ?? opponentTeam.find((pokemon) => !pokemon.fainted) ?? opponentTeam[0];
+  const nextPlayerTeam = playerTeam.map((pokemon) => ({ ...pokemon, hp: 0, fainted: true }));
+  const opponentHp = activeOpponent?.hp ?? activeOpponent?.maxHp ?? 100;
+  const playerMaxHp = activePlayer?.maxHp ?? 100;
+  const opponentMaxHp = activeOpponent?.maxHp ?? 100;
+  const opponentType = activeOpponent?.type ?? "normal";
+
+  return {
+    battleState: {
+      ...battleState,
+      turn: battleState.turn + 1,
+      player: {
+        ...battleState.player,
+        team: nextPlayerTeam,
+        activeIndex: playerActiveIndex,
+      },
+      opponent: {
+        ...battleState.opponent,
+        activeIndex: opponentActiveIndex,
+      },
+    },
+    payload: {
+      forfeit: true,
+      timeout: reason === "timeout",
+      reason,
+      playerMoveName: reason === "timeout" ? "未下指令" : "放棄對戰",
+      opponentMoveName: `${RETRO_TYPE_LABEL_ZH[opponentType]}系連擊`,
+      damageToOpponent: 0,
+      damageToPlayer: Math.max(activePlayer?.hp ?? playerMaxHp, playerMaxHp),
+      playerHp: 0,
+      opponentHp,
+      playerMaxHp,
+      opponentMaxHp,
+      playerWins: false,
+      playerFainted: true,
+      opponentFainted: false,
+      playerPokemonId: activePlayer?.id,
+      opponentPokemonId: activeOpponent?.id,
+      playerType: activePlayer?.type,
+      opponentType: activeOpponent?.type,
+      playerTypeLabel: activePlayer?.type ? RETRO_TYPE_LABEL_ZH[activePlayer.type] : undefined,
+      opponentTypeLabel: activeOpponent?.type ? RETRO_TYPE_LABEL_ZH[activeOpponent.type] : undefined,
+      playerActiveIndex,
+      opponentActiveIndex,
+      playerTeamRemaining: 0,
+      opponentTeamRemaining: countRemainingPokemon(opponentTeam),
+      message: reason === "timeout"
+        ? "時間到！對手抓住空檔連續攻擊，你被判定戰敗。"
+        : "你放棄了這場對戰。",
+    },
+  };
+}
+
 export async function POST(request: Request) {
   const supabase = createServerSupabaseClient();
   const adminSupabase = createAdminSupabaseClient();
@@ -57,7 +159,7 @@ export async function POST(request: Request) {
   const battleId = typeof body.battleId === "string" ? body.battleId : "";
   const roundNo = Number(body.roundNo);
   const submittedAction = typeof body.action === "string" ? body.action : "";
-  const isForfeit = submittedAction === "timeout" || submittedAction === "forfeit";
+  const requestedForfeit = submittedAction === "timeout" || submittedAction === "forfeit";
 
   if (!battleId || !Number.isInteger(roundNo) || roundNo <= 0) {
     return NextResponse.json({ error: "battleId 和 roundNo 必填。" }, { status: 400 });
@@ -160,9 +262,14 @@ export async function POST(request: Request) {
     });
   }
 
-  const now = new Date().toISOString();
+  const nowDate = new Date();
+  const now = nowDate.toISOString();
+  const battleClockTimedOut = !requestedForfeit && isBattleClockExpired(battle.started_at, nowDate);
+  const effectiveAction = battleClockTimedOut ? "timeout" : submittedAction;
+  const isForfeit = requestedForfeit || battleClockTimedOut;
+  const forfeitReason: "timeout" | "forfeit" = effectiveAction === "timeout" ? "timeout" : "forfeit";
 
-  if (!isForfeit && isBattleSessionExpired(battle.last_active_at || battle.started_at)) {
+  if (!isForfeit && isBattleSessionExpired(battle.started_at || battle.last_active_at)) {
     await adminSupabase
       .from("anniversary_battles")
       .update({
@@ -197,7 +304,8 @@ export async function POST(request: Request) {
   }
 
   let roundPayload: Record<string, unknown>;
-  let roundResult: "win" | "lose";
+  let roundResult: "win" | "lose" | null;
+  let scriptedOutcome: "win" | "lose";
   let nextBattleState: RetroBattleState | null = battleState;
   let retroPlayerTeamDefeated = false;
   let retroOpponentTeamDefeated = false;
@@ -206,27 +314,28 @@ export async function POST(request: Request) {
 
   if (isForfeit) {
     roundResult = "lose";
-    roundPayload = {
-      forfeit: true,
-      reason: submittedAction === "timeout" ? "timeout" : "forfeit",
-      message: "倒數結束，這場對戰判定為棄權。",
-    };
-    opponentScoreDelta = 1;
+    scriptedOutcome = "lose";
+    const timeout = resolveRetroTimeout(usesRetroState ? battleState : null, forfeitReason);
+    nextBattleState = timeout.battleState ?? nextBattleState;
+    roundPayload = timeout.payload;
+    retroPlayerTeamDefeated = Boolean(usesRetroState && timeout.battleState);
+    opponentScoreDelta = Math.max(0, winsNeeded - battle.opponent_score);
   } else {
     const roundSeed = `${battle.id}:round:${roundNo}`;
 
     if (usesRetroState && battleState) {
-      if (!isRetroMoveId(submittedAction)) {
+      if (!isRetroMoveId(effectiveAction)) {
         return NextResponse.json({ error: "請選擇可用的復古招式。" }, { status: 400 });
       }
 
       try {
-        const turn = resolveRetroBattleTurn(battleState, submittedAction, roundSeed);
+        const turn = resolveRetroBattleTurn(battleState, effectiveAction, roundSeed);
         nextBattleState = turn.battleState;
         retroPlayerTeamDefeated = turn.playerTeamDefeated;
         retroOpponentTeamDefeated = turn.opponentTeamDefeated;
         roundPayload = turn.resolution as unknown as Record<string, unknown>;
-        roundResult = turn.resolution.playerWins ? "win" : "lose";
+        roundResult = turn.opponentTeamDefeated ? "win" : turn.playerTeamDefeated ? "lose" : null;
+        scriptedOutcome = turn.resolution.damageToOpponent >= turn.resolution.damageToPlayer ? "win" : "lose";
         playerScoreDelta = turn.resolution.opponentFainted ? 1 : 0;
         opponentScoreDelta = turn.resolution.playerFainted ? 1 : 0;
       } catch (error) {
@@ -244,7 +353,7 @@ export async function POST(request: Request) {
       roundResult = shouldWin ? "win" : "lose";
 
       if (challengeType === "retro") {
-        roundPayload = generateRetroBattleRound(shouldWin, roundSeed, submittedAction, roundNo);
+        roundPayload = generateRetroBattleRound(shouldWin, roundSeed, effectiveAction, roundNo);
       } else if (challengeType === "dice") {
         const diceResult = generateDiceRoll(shouldWin, roundSeed);
         roundPayload = {
@@ -283,12 +392,16 @@ export async function POST(request: Request) {
 
       playerScoreDelta = roundResult === "win" ? 1 : 0;
       opponentScoreDelta = roundResult === "lose" ? 1 : 0;
+      scriptedOutcome = roundResult;
     }
   }
 
   let newPlayerScore = battle.player_score;
   let newOpponentScore = battle.opponent_score;
-  if (isForfeit) {
+  if (usesRetroState && nextBattleState) {
+    newPlayerScore = countDefeatedPokemon(nextBattleState.opponent.team);
+    newOpponentScore = countDefeatedPokemon(nextBattleState.player.team);
+  } else if (isForfeit) {
     newOpponentScore = Math.max(winsNeeded, battle.opponent_score + opponentScoreDelta);
   } else {
     newPlayerScore += playerScoreDelta;
@@ -298,18 +411,13 @@ export async function POST(request: Request) {
   const isLastRound = !usesRetroState && roundNo >= meta.totalRounds;
   const playerReachedWins = !usesRetroState && newPlayerScore >= meta.winsNeeded;
   const opponentReachedWins = !usesRetroState && newOpponentScore >= meta.winsNeeded;
-  const battleFinished = isForfeit
-    || isLastRound
-    || playerReachedWins
-    || opponentReachedWins
-    || retroPlayerTeamDefeated
-    || retroOpponentTeamDefeated;
+  const battleFinished = usesRetroState
+    ? isForfeit || retroPlayerTeamDefeated || retroOpponentTeamDefeated
+    : isForfeit || isLastRound || playerReachedWins || opponentReachedWins;
   const finalStatus: "in_progress" | "won" | "lost" = battleFinished
-    ? retroOpponentTeamDefeated
-      ? "won"
-      : retroPlayerTeamDefeated
-        ? "lost"
-        : newPlayerScore > newOpponentScore ? "won" : "lost"
+    ? usesRetroState
+      ? retroOpponentTeamDefeated ? "won" : "lost"
+      : newPlayerScore > newOpponentScore ? "won" : "lost"
     : "in_progress";
 
   const { error: roundInsertError } = await adminSupabase.from("anniversary_battle_rounds").insert({
@@ -317,8 +425,8 @@ export async function POST(request: Request) {
     round_no: roundNo,
     round_result: roundResult,
     game_type: challengeType,
-    scripted_outcome: roundResult,
-    tug_delta: roundResult === "win" ? 1 : -1,
+    scripted_outcome: scriptedOutcome,
+    tug_delta: scriptedOutcome === "win" ? 1 : -1,
     payload: roundPayload,
   });
 

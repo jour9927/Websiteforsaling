@@ -64,7 +64,7 @@ export async function POST(request: Request) {
 
   const now = new Date().toISOString();
 
-  if (isBattleSessionExpired(battle.last_active_at || battle.started_at)) {
+  if (isBattleSessionExpired(battle.started_at || battle.last_active_at)) {
     await adminSupabase
       .from("anniversary_battles")
       .update({

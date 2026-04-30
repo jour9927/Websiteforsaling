@@ -22,6 +22,9 @@ type ParticipantRow = {
     full_name: string | null;
     email: string | null;
   } | null;
+  route?: {
+    forceBattleOutcome: "win" | "lose" | null;
+  };
 };
 
 type CampaignSummary = {
@@ -35,6 +38,7 @@ export function Anniversary30thAdminPanel() {
   const [campaign, setCampaign] = useState<CampaignSummary | null>(null);
   const [participants, setParticipants] = useState<ParticipantRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [savingParticipantId, setSavingParticipantId] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   async function loadParticipants() {
@@ -73,6 +77,46 @@ export function Anniversary30thAdminPanel() {
       secondUnlocked: participants.filter((row) => row.participant.second_pokemon_unlocked).length,
     };
   }, [participants]);
+
+  async function setBattleOutcomeRoute(
+    participantId: string,
+    forceBattleOutcome: "win" | "lose" | null,
+  ) {
+    setSavingParticipantId(participantId);
+    setError("");
+
+    try {
+      const response = await fetch("/api/admin/anniversary-30th/route", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          participantId,
+          forceBattleOutcome,
+        }),
+      });
+      const payload = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        throw new Error(payload.error || "無法更新對戰路線");
+      }
+
+      setParticipants((current) => current.map((row) => (
+        row.participant.id === participantId
+          ? {
+              ...row,
+              route: {
+                ...row.route,
+                forceBattleOutcome,
+              },
+            }
+          : row
+      )));
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "無法更新對戰路線");
+    } finally {
+      setSavingParticipantId(null);
+    }
+  }
 
 
   return (
@@ -165,6 +209,36 @@ export function Anniversary30thAdminPanel() {
                   <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                     <p className="text-xs uppercase tracking-[0.25em] text-white/40">最高連勝</p>
                     <p className="mt-2 text-xl font-semibold text-rose-400">{row.participant.max_win_streak}</p>
+                  </div>
+                  <div className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 sm:col-span-2 lg:col-span-4">
+                    <p className="text-xs uppercase tracking-[0.25em] text-white/40">虛擬對手路線</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {[
+                        { label: "自動", value: null },
+                        { label: "指定勝", value: "win" as const },
+                        { label: "指定敗", value: "lose" as const },
+                      ].map((option) => {
+                        const active = (row.route?.forceBattleOutcome ?? null) === option.value;
+                        return (
+                          <button
+                            key={option.label}
+                            type="button"
+                            disabled={savingParticipantId === row.participant.id}
+                            onClick={() => setBattleOutcomeRoute(row.participant.id, option.value)}
+                            className={`rounded-xl border px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                              active
+                                ? "border-amber-300 bg-amber-300 text-slate-950"
+                                : "border-white/10 bg-white/5 text-white/70 hover:border-amber-300/50 hover:text-amber-100"
+                            }`}
+                          >
+                            {option.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="mt-2 text-xs text-white/45">
+                      只影響下一場新開的復刻戰鬥；已進行中的戰鬥不會被中途改寫。
+                    </p>
                   </div>
                 </div>
               </div>
