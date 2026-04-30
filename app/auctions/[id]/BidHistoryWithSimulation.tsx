@@ -74,6 +74,7 @@ interface BidHistoryWithSimulationProps {
     automationTargetMax?: number;
     automationStopSeconds?: number;
     onHighestChange?: (amount: number, bidderName: string | null) => void;
+    onSimulatedHighestChange?: (amount: number) => void;
 }
 
 export function BidHistoryWithSimulation({
@@ -89,7 +90,8 @@ export function BidHistoryWithSimulation({
     automationTargetMin,
     automationTargetMax,
     automationStopSeconds,
-    onHighestChange
+    onHighestChange,
+    onSimulatedHighestChange
 }: BidHistoryWithSimulationProps) {
     const { simulatedBids } = useSimulatedBids({
         auctionId,
@@ -138,6 +140,16 @@ export function BidHistoryWithSimulation({
             onHighestChange(highest.amount, highest.bidder_name);
         }
     }, [allBids, onHighestChange]);
+
+    useEffect(() => {
+        if (!onSimulatedHighestChange) return;
+
+        const simulatedHighest = simulatedBids.reduce(
+            (highest, bid) => Math.max(highest, bid.amount),
+            0
+        );
+        onSimulatedHighestChange(simulatedHighest);
+    }, [onSimulatedHighestChange, simulatedBids]);
 
     if (allBids.length === 0) {
         return (

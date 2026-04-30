@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS public.auction_auto_follow_settings (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   backpack_item_id UUID REFERENCES public.backpack_items(id) ON DELETE SET NULL,
   enabled BOOLEAN NOT NULL DEFAULT true,
-  follow_increment INTEGER NOT NULL DEFAULT 0 CHECK (follow_increment >= 0 AND follow_increment <= 10000),
+  follow_increment INTEGER NOT NULL DEFAULT 70 CHECK (follow_increment >= 1 AND follow_increment <= 10000),
   max_bid INTEGER NOT NULL CHECK (max_bid > 0),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -121,7 +121,7 @@ BEGIN
     RETURN json_build_object('success', false, 'error', '請先登入');
   END IF;
 
-  IF p_follow_increment < 0 OR p_follow_increment > 10000 THEN
+  IF p_follow_increment < 1 OR p_follow_increment > 10000 THEN
     RETURN json_build_object('success', false, 'error', '跟標加價設定不正確');
   END IF;
 

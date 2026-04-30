@@ -76,6 +76,7 @@ export function AuctionPageClient({
     const [mounted, setMounted] = useState(false);
     const [displayHighest, setDisplayHighest] = useState(realCurrentPrice > 0 ? realCurrentPrice : startingPrice);
     const [displayHighestBidder, setDisplayHighestBidder] = useState<string | null>(realHighestBidder);
+    const [simulatedHighest, setSimulatedHighest] = useState(0);
 
     // 動態追蹤是否活躍（可被倒數計時或資料庫更新改變）
     const [isActiveState, setIsActiveState] = useState(isActive);
@@ -192,6 +193,7 @@ export function AuctionPageClient({
                         automationTargetMax={automationTargetMax}
                         automationStopSeconds={automationStopSeconds}
                         onHighestChange={handleHighestChange}
+                        onSimulatedHighestChange={setSimulatedHighest}
                     />
                 </article>,
                 bidHistorySlot
@@ -233,7 +235,7 @@ export function AuctionPageClient({
                     minIncrement={minIncrement}
                     currentPrice={realCurrentPrice}
                     startingPrice={startingPrice}
-                    simulatedHighest={displayHighest}
+                    simulatedHighest={simulatedHighest}
                     automationMode={automationMode}
                 />,
                 bidButtonSlot

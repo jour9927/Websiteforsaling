@@ -27,7 +27,17 @@ type RpcResult = {
 };
 
 const AUTO_FOLLOW_SYSTEM_MAX_BID = 100000;
+const MIN_AUTO_FOLLOW_INCREMENT = 1;
+const MAX_AUTO_FOLLOW_INCREMENT = 10000;
 const DEFAULT_AUTO_FOLLOW_INCREMENT = 70;
+
+function normalizeAutoFollowIncrement(value: number) {
+    if (!Number.isFinite(value)) return DEFAULT_AUTO_FOLLOW_INCREMENT;
+    return Math.min(
+        MAX_AUTO_FOLLOW_INCREMENT,
+        Math.max(MIN_AUTO_FOLLOW_INCREMENT, Math.trunc(value))
+    );
+}
 
 export default function BidButton({
     auctionId,
@@ -103,7 +113,7 @@ export default function BidButton({
             if (setting) {
                 const autoSetting = setting as AutoFollowSetting;
                 setAutoFollowEnabled(autoSetting.enabled);
-                setFollowIncrement(autoSetting.follow_increment ?? DEFAULT_AUTO_FOLLOW_INCREMENT);
+                setFollowIncrement(normalizeAutoFollowIncrement(autoSetting.follow_increment ?? DEFAULT_AUTO_FOLLOW_INCREMENT));
             }
             setAutoFollowStateLoaded(true);
         };
@@ -188,7 +198,8 @@ export default function BidButton({
     useEffect(() => {
         if (!isGlobalLinkV2 || !autoFollowEnabled || autoFollowLoading || loading) return;
 
-        const targetAmount = Math.max(simulatedHighest + followIncrement, startingPrice);
+        const normalizedFollowIncrement = normalizeAutoFollowIncrement(followIncrement);
+        const targetAmount = Math.max(simulatedHighest + normalizedFollowIncrement, startingPrice);
         if (
             targetAmount <= currentPrice ||
             targetAmount > AUTO_FOLLOW_SYSTEM_MAX_BID ||
@@ -228,11 +239,13 @@ export default function BidButton({
         setAutoFollowLoading(true);
         setError("");
         setSuccess("");
+        const normalizedFollowIncrement = normalizeAutoFollowIncrement(followIncrement);
+        setFollowIncrement(normalizedFollowIncrement);
 
         try {
             const { data, error: rpcError } = await supabase.rpc("configure_auction_auto_follow", {
                 p_auction_id: auctionId,
-                p_follow_increment: followIncrement,
+                p_follow_increment: normalizedFollowIncrement,
                 p_max_bid: AUTO_FOLLOW_SYSTEM_MAX_BID
             });
 
@@ -387,13 +400,13 @@ export default function BidButton({
 
                     <div className="mt-3">
                         <label className="text-xs text-cyan-100/80">
-                            跟標加價
+                            跟標加價（最低 1 元）
                             <input
                                 type="number"
-                                min={0}
-                                max={10000}
+                                min={MIN_AUTO_FOLLOW_INCREMENT}
+                                max={MAX_AUTO_FOLLOW_INCREMENT}
                                 value={followIncrement}
-                                onChange={(e) => setFollowIncrement(Math.max(0, parseInt(e.target.value) || 0))}
+                                onChange={(e) => setFollowIncrement(normalizeAutoFollowIncrement(parseInt(e.target.value, 10)))}
                                 disabled={autoFollowLoading}
                                 className="mt-1 w-full rounded-lg border border-cyan-100/20 bg-black/20 px-3 py-2 text-sm text-white focus:border-cyan-100/50 focus:outline-none"
                             />

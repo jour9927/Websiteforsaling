@@ -56,7 +56,8 @@ function generateDeterministicBids(
     automationMode: AuctionAutomationMode = 'legacy',
     targetMin = 35000,
     targetMax = 40000,
-    stopSeconds?: number
+    stopSeconds?: number,
+    realBids: { amount: number; created_at: string }[] = []
 ): SimulatedBid[] {
     const start = new Date(startTime);
     const end = new Date(endTime);
@@ -83,6 +84,14 @@ function generateDeterministicBids(
     const targetCeil = Math.max(targetFloor, Math.max(targetMin, targetMax));
     const targetPrice = targetFloor + Math.floor(seededRandom(seed + 77) * (targetCeil - targetFloor + 1));
     const pacingDuration = Math.max(1, end.getTime() - stopBufferMs - start.getTime());
+    const realBidTimeline = isGlobalLinkV2
+        ? realBids
+            .map((bid) => ({ amount: bid.amount, time: new Date(bid.created_at).getTime() }))
+            .filter((bid) => Number.isFinite(bid.time))
+            .sort((a, b) => a.time - b.time)
+        : [];
+    let realBidCursor = 0;
+    let realHighestAtBidTime = startingPrice;
 
     // legacy 保持結束前 30 秒停止；Global Link v2 結束前 3 秒停止。
     const stopTime = Math.min(currentTime.getTime(), end.getTime() - stopBufferMs);
@@ -103,12 +112,23 @@ function generateDeterministicBids(
         }
 
         if (isGlobalLinkV2) {
+            while (realBidCursor < realBidTimeline.length && realBidTimeline[realBidCursor].time <= bidTime) {
+                realHighestAtBidTime = Math.max(realHighestAtBidTime, realBidTimeline[realBidCursor].amount);
+                realBidCursor++;
+            }
+
             const progress = Math.min(1, Math.max(0, (bidTime - start.getTime()) / pacingDuration));
             const easedProgress = 1 - Math.pow(1 - progress, 1.35);
             const plannedPrice = startingPrice + Math.round((targetPrice - startingPrice) * easedProgress);
             const rhythmIncrement = [10, 20, 30, 50, 80, 120, 180, 260][bidIndex % 8];
             const sustainIncrement = [5, 10, 15, 20, 30][bidIndex % 5];
-            currentPrice = currentPrice >= targetPrice
+            const pressureIncrement = currentPrice >= targetPrice
+                ? [1, 5, 10, 20, 30, 50][bidIndex % 6]
+                : [10, 20, 30, 50, 70, 90, 120, 160][bidIndex % 8];
+
+            currentPrice = realHighestAtBidTime >= currentPrice
+                ? realHighestAtBidTime + pressureIncrement
+                : currentPrice >= targetPrice
                 ? currentPrice + sustainIncrement
                 : Math.min(
                     targetPrice,
@@ -225,9 +245,10 @@ export function useSimulatedBids({
             automationMode,
             automationTargetMin,
             automationTargetMax,
-            automationStopSeconds
+            automationStopSeconds,
+            realBids
         );
-    }, [auctionId, startTime, endTime, startingPrice, minIncrement, currentTime, isActive, auctionTitle, automationMode, automationTargetMin, automationTargetMax, automationStopSeconds]);
+    }, [auctionId, startTime, endTime, startingPrice, minIncrement, currentTime, isActive, auctionTitle, automationMode, automationTargetMin, automationTargetMax, automationStopSeconds, realBids]);
 
     // === 偵測真實出價 → 生成 counter-bid ===
     useEffect(() => {

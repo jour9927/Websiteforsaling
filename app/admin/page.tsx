@@ -23,16 +23,21 @@ type DistributionRelation = {
   pokemon_name_en: string | null;
 };
 
+type CommissionDepositRelation = {
+  id: string;
+  status: string | null;
+  return_eligible_at: string | null;
+  returned_at: string | null;
+};
+
 type CommissionRow = {
   id: string;
-  title: string;
+  pokemon_name: string;
   created_at: string;
   completed_at: string | null;
-  deposit_returned_at: string | null;
-  is_first_time_client: boolean;
-  deposit_details: string | null;
   distribution: Relation<DistributionRelation>;
-  creator: Relation<ProfileRelation>;
+  commission_deposits: Relation<CommissionDepositRelation>;
+  poster: Relation<ProfileRelation>;
   executor: Relation<ProfileRelation>;
 };
 
@@ -234,30 +239,30 @@ export default async function AdminDashboardPage() {
     .select(
       `
         id,
-        title,
+        pokemon_name,
         created_at,
         completed_at,
-        deposit_returned_at,
-        is_first_time_client,
-        deposit_details,
         distribution:distributions!commissions_distribution_id_fkey (
           pokemon_name,
           pokemon_name_en
         ),
-        creator:profiles!commissions_created_by_fkey (
+        commission_deposits (
+          id,
+          status,
+          return_eligible_at,
+          returned_at
+        ),
+        poster:profiles!commissions_poster_id_fkey (
           full_name,
           email
         ),
-        executor:profiles!commissions_accepted_by_fkey (
+        executor:profiles!commissions_executor_id_fkey (
           full_name,
           email
         )
       `,
     )
     .eq("status", "completed")
-    .eq("is_first_time_client", true)
-    .is("deposit_returned_at", null)
-    .not("deposit_details", "is", null)
     .order("completed_at", { ascending: true });
 
   if (error) {
@@ -267,12 +272,14 @@ export default async function AdminDashboardPage() {
   const todoItems = ((data ?? []) as CommissionRow[])
     .map((row) => {
       const distribution = pickRelation(row.distribution);
-      const creator = pickRelation(row.creator);
+      const deposit = pickRelation(row.commission_deposits);
+      const poster = pickRelation(row.poster);
       const executor = pickRelation(row.executor);
+      const hasActiveDeposit = Boolean(deposit && deposit.status !== "returned");
       const reminderStatus = getCommissionDepositReminderStatus({
         completedAt: row.completed_at,
-        depositReturnedAt: row.deposit_returned_at,
-        requiresDeposit: row.is_first_time_client && Boolean(row.deposit_details),
+        depositReturnedAt: deposit?.returned_at,
+        requiresDeposit: hasActiveDeposit,
       });
 
       if (reminderStatus === "not_applicable" || reminderStatus === "returned") {
@@ -281,16 +288,16 @@ export default async function AdminDashboardPage() {
 
       return {
         id: row.id,
-        title: row.title,
+        title: row.pokemon_name,
         distributionName:
           distribution?.pokemon_name ||
           distribution?.pokemon_name_en ||
           "未指定配布圖鑑資料",
-        creatorName: getDisplayName(creator),
+        creatorName: getDisplayName(poster),
         executorName: executor ? getDisplayName(executor) : null,
         createdAt: row.created_at,
         completedAt: row.completed_at,
-        dueAt: getCommissionDepositReturnDueAt(row.completed_at),
+        dueAt: deposit?.return_eligible_at ?? getCommissionDepositReturnDueAt(row.completed_at),
         reminderStatus,
       } satisfies DepositTodoItem;
     })

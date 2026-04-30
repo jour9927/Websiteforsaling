@@ -71,7 +71,9 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
         automationMode: auction.automation_mode === 'global_link_v2' ? 'global_link_v2' as const : 'legacy' as const,
         automationTargetMin: auction.automation_target_min ?? 35000,
         automationTargetMax: auction.automation_target_max ?? 40000,
-        automationStopSeconds: auction.automation_stop_seconds ?? (auction.automation_mode === 'global_link_v2' ? 3 : 30)
+        automationStopSeconds: auction.automation_mode === 'global_link_v2'
+            ? 3
+            : auction.automation_stop_seconds ?? 30
     };
 
     return (
