@@ -25,6 +25,7 @@ import { Anniversary30thCountdown } from "@/components/Anniversary30thCountdown"
 import { Anniversary30thJoinPanel } from "@/components/Anniversary30thJoinPanel";
 import { Anniversary30thPartnerSelect } from "@/components/Anniversary30thPartnerSelect";
 import { RandomDistributionLiveStats } from "@/components/RandomDistributionLiveStats";
+import { RandomDistributionCompensationChoice } from "@/components/RandomDistributionCompensationChoice";
 
 export const dynamic = "force-dynamic";
 
@@ -35,11 +36,15 @@ type PageStats = {
 };
 
 const PLAYER_TEAM_SELECTION_SIZE = 3;
+const COMPENSATION_NOTE = "隨機型伊布配布活動對戰積分重整補償";
+
+type CompensationChoice = "blindbox_discount_500" | "shop_rebate_50";
 
 type PageState = {
   campaign: AnniversaryCampaign | null;
   participant: AnniversaryParticipant | null;
   completedBattleCount: number;
+  compensationChoice: CompensationChoice | null;
   stats: PageStats;
 };
 
@@ -47,6 +52,18 @@ type ParticipantStatsRow = {
   id: string;
   max_win_streak: number | null;
 };
+
+type BackpackCompensationItem = {
+  item_type: string;
+  item_name: string;
+};
+
+function resolveCompensationChoice(item: BackpackCompensationItem | null): CompensationChoice | null {
+  if (!item) return null;
+  if (item.item_type === "blindbox_discount_500") return "blindbox_discount_500";
+  if (item.item_name.includes("50%")) return "shop_rebate_50";
+  return null;
+}
 
 async function countCompletedBattles(participantIds: string[]) {
   if (participantIds.length === 0) return 0;
@@ -77,6 +94,7 @@ async function loadPageState(userId?: string): Promise<PageState> {
       campaign: null,
       participant: null,
       completedBattleCount: 0,
+      compensationChoice: null,
       stats: { completedBattles: 0, highestWinStreak: 0, baseDamage: 0 },
     };
   }
@@ -96,6 +114,7 @@ async function loadPageState(userId?: string): Promise<PageState> {
 
   let participant: AnniversaryParticipant | null = null;
   let completedBattleCount = 0;
+  let compensationChoice: CompensationChoice | null = null;
 
   if (userId) {
     const { data: participantData } = await adminSupabase
@@ -147,6 +166,19 @@ async function loadPageState(userId?: string): Promise<PageState> {
 
     if (participant) {
       completedBattleCount = await countCompletedBattles([participant.id]);
+
+      const { data: existingCompensation } = await adminSupabase
+        .from("backpack_items")
+        .select("item_type, item_name")
+        .eq("user_id", userId)
+        .eq("note", COMPENSATION_NOTE)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      compensationChoice = resolveCompensationChoice(
+        (existingCompensation || null) as BackpackCompensationItem | null,
+      );
     }
   }
 
@@ -154,6 +186,7 @@ async function loadPageState(userId?: string): Promise<PageState> {
     campaign,
     participant,
     completedBattleCount,
+    compensationChoice,
     stats: {
       completedBattles,
       highestWinStreak,
@@ -194,7 +227,7 @@ export default async function Anniversary30thPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { campaign, participant, completedBattleCount, stats } = await loadPageState(user?.id);
+  const { campaign, participant, completedBattleCount, compensationChoice, stats } = await loadPageState(user?.id);
   const startsAt = campaign?.starts_at || ANNIVERSARY_30TH_STARTS_AT;
   const endsAt = campaign?.ends_at || ANNIVERSARY_30TH_ENDS_AT;
   const battlesPerDay = campaign?.battles_per_day || ANNIVERSARY_30TH_BATTLES_PER_DAY;
@@ -214,6 +247,9 @@ export default async function Anniversary30thPage() {
     participant?.total_wins ?? 0,
   );
   const progressPct = Math.min(100, Math.round((eventPoints / ANNIVERSARY_30TH_EEVEE_POINT_GOAL) * 100));
+  const showCompensationChoice = Boolean(
+    participant && (participant.partner_unlocked || eventPoints >= ANNIVERSARY_30TH_EEVEE_POINT_GOAL),
+  );
 
   return (
     <div className="space-y-7 text-white">
@@ -326,6 +362,10 @@ export default async function Anniversary30thPage() {
                 <div className="h-full bg-emerald-300" style={{ width: `${progressPct}%` }} />
               </div>
             </div>
+
+            {showCompensationChoice ? (
+              <RandomDistributionCompensationChoice initialChoice={compensationChoice} />
+            ) : null}
 
             {teamPokemonIds.length < PLAYER_TEAM_SELECTION_SIZE ? (
               <Anniversary30thPartnerSelect

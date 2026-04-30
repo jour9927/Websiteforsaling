@@ -32,6 +32,17 @@ export const dynamic = "force-dynamic";
 const CHALLENGE_TYPES: ChallengeType[] = ["retro"];
 const PLAYER_TEAM_SELECTION_SIZE = 3;
 
+function getTaipeiDayUtcRange(dateKey: string) {
+  const start = new Date(`${dateKey}T00:00:00+08:00`);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 1);
+
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+  };
+}
+
 async function countCompletedBattles(
   adminSupabase: ReturnType<typeof createAdminSupabaseClient>,
   participantId: string,
@@ -108,6 +119,16 @@ export async function POST() {
       .update({ today_battles_used: 0, last_battle_day: todayKey })
       .eq("id", participant.id);
   }
+
+  const todayRange = getTaipeiDayUtcRange(todayKey);
+  const { count: actualTodayBattleCount } = await adminSupabase
+    .from("anniversary_battles")
+    .select("id", { count: "exact", head: true })
+    .eq("participant_id", participant.id)
+    .gte("started_at", todayRange.start)
+    .lt("started_at", todayRange.end);
+
+  todayBattlesUsed = Math.max(todayBattlesUsed, actualTodayBattleCount ?? 0);
 
   // Check for existing in-progress battle
   const { data: existingBattleData } = await supabase
