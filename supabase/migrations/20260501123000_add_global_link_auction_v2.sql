@@ -96,6 +96,8 @@ SET automation_mode = 'global_link_v2',
     automation_stop_seconds = 3
 FROM public.distributions d
 WHERE a.distribution_id = d.id
+  AND COALESCE(d.pokemon_name_en, '') NOT IN ('Leafeon', 'Glaceon')
+  AND COALESCE(d.pokemon_name, '') NOT IN ('葉伊布', '冰伊布')
   AND (
     d.event_name ILIKE '%Global Link%'
     OR d.trainer_id IN ('PGL2010LAB', 'PGL2011BF', 'PGL2011KR')
