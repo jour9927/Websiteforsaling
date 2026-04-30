@@ -265,27 +265,25 @@ export default function BidButton({
                 aria-labelledby="auction-coupon-prompt-title"
             >
                 <div className="w-full max-w-md rounded-2xl border border-cyan-300/40 bg-slate-950 p-5 shadow-2xl shadow-cyan-950/40">
-                    <div className="space-y-2">
-                        <p id="auction-coupon-prompt-title" className="text-lg font-bold text-cyan-50">
-                            是否使用 30% 抵用券？
-                        </p>
-                        <p className="text-sm leading-relaxed text-cyan-100/75">
-                            使用後會立即啟用自動跟標，自動跟標會依據您的設定盡可能跟標，但不保證一定得標；加價數字越高，越有機會跟上競標節奏。
-                        </p>
+                    <div className="flex items-start gap-4">
+                        <div className="relative shrink-0 overflow-hidden rounded-xl border border-amber-200/60 bg-gradient-to-br from-amber-200 via-yellow-400 to-orange-500 p-[1px] shadow-lg shadow-amber-950/30">
+                            <div className="flex h-20 w-24 flex-col items-center justify-center rounded-[11px] border border-white/25 bg-slate-950/90 text-center">
+                                <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-amber-100">Auction</span>
+                                <span className="text-3xl font-black leading-none text-amber-200">30%</span>
+                                <span className="text-[10px] font-semibold text-amber-100/85">抵用券</span>
+                            </div>
+                            <div className="absolute -left-2 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-slate-950" />
+                            <div className="absolute -right-2 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-slate-950" />
+                        </div>
+                        <div className="space-y-2">
+                            <p id="auction-coupon-prompt-title" className="text-lg font-bold text-cyan-50">
+                                您有一張 30% 的優惠卷，是否使用？
+                            </p>
+                            <p className="text-sm leading-relaxed text-cyan-100/75">
+                                使用本卷後成功得標後，自動套用本卷，若未得標則不影響卷的消耗，若於進場前未使用本卷，入場後不得再使用。
+                            </p>
+                        </div>
                     </div>
-
-                    <label className="mt-4 block text-xs font-medium text-cyan-100/80">
-                        跟標加價
-                        <input
-                            type="number"
-                            min={0}
-                            max={10000}
-                            value={followIncrement}
-                            onChange={(e) => setFollowIncrement(Math.max(0, parseInt(e.target.value) || 0))}
-                            disabled={autoFollowLoading}
-                            className="mt-1 w-full rounded-lg border border-cyan-100/20 bg-black/30 px-3 py-2 text-sm text-white focus:border-cyan-100/50 focus:outline-none"
-                        />
-                    </label>
 
                     <div className="mt-5 grid grid-cols-2 gap-2">
                         <button
