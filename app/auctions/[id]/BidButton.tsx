@@ -14,6 +14,7 @@ type BidButtonProps = {
     endTime: string;
     simulatedHighest?: number; // 模擬最高價（從 Client 傳入）
     automationMode?: AuctionAutomationMode;
+    automationStopSeconds?: number;
 };
 
 type AutoFollowSetting = {
@@ -49,7 +50,8 @@ export default function BidButton({
     startingPrice,
     endTime,
     simulatedHighest = 0,
-    automationMode = "legacy"
+    automationMode = "legacy",
+    automationStopSeconds = 30
 }: BidButtonProps) {
     const router = useRouter();
     const isGlobalLinkV2 = automationMode === "global_link_v2";
@@ -157,7 +159,7 @@ export default function BidButton({
             return false;
         }
 
-        if (source === "auto" && amount <= currentPrice) {
+        if (source === "auto" && amount <= Math.max(currentPrice, startingPrice)) {
             return false;
         }
 
@@ -199,13 +201,14 @@ export default function BidButton({
         } finally {
             if (source === "manual") setLoading(false);
         }
-    }, [auctionId, currentPrice, minBid, router]);
+    }, [auctionId, currentPrice, minBid, router, startingPrice]);
 
     useEffect(() => {
         if (!isGlobalLinkV2 || !autoFollowEnabled || autoFollowLoading || loading) return;
 
         const normalizedFollowIncrement = normalizeAutoFollowIncrement(followIncrement);
-        const targetAmount = Math.max(simulatedHighest + normalizedFollowIncrement, startingPrice);
+        const effectiveHighest = Math.max(currentPrice, simulatedHighest, startingPrice);
+        const targetAmount = effectiveHighest + normalizedFollowIncrement;
         if (
             targetAmount <= currentPrice ||
             targetAmount > AUTO_FOLLOW_SYSTEM_MAX_BID ||
@@ -229,8 +232,9 @@ export default function BidButton({
         isGlobalLinkV2,
         loading,
         simulatedHighest,
+        startingPrice,
         submitBid,
-        startingPrice
+        lastAutoBidAmountRef
     ]);
 
     const finalizeAutoFollow = useCallback(async () => {
@@ -296,7 +300,15 @@ export default function BidButton({
         const endMs = new Date(endTime).getTime();
         if (!Number.isFinite(endMs)) return;
 
-        const finalWindowOffsets = [2600, 1400, 400];
+        const safeStopMs = Math.max(1, automationStopSeconds) * 1000;
+        const finalWindowOffsets = [
+            Math.floor(safeStopMs * 0.8),
+            Math.floor(safeStopMs * 0.5),
+            Math.floor(safeStopMs * 0.2),
+        ]
+            .filter((value, index, array) => value >= 120 && array.findIndex((v) => v === value) === index)
+            .map((value) => Math.max(120, value));
+
         const timers = finalWindowOffsets.map((offsetMs) => {
             const delay = Math.max(0, endMs - Date.now() - offsetMs);
             return window.setTimeout(() => {
@@ -312,6 +324,7 @@ export default function BidButton({
         autoFollowLoading,
         endTime,
         finalizeAutoFollow,
+        automationStopSeconds,
         isGlobalLinkV2,
         loading
     ]);

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 import { AuctionPageClient } from "./AuctionPageClient";
 import { getEstimatedBidCount } from "@/lib/simulatedBidCount";
+import { getGlobalLinkV2VirtualHighest } from "@/lib/globalLinkV2VirtualBids";
 import CountdownTimer from "./CountdownTimer";
 
 type AuctionPageProps = {
@@ -25,6 +26,47 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
         notFound();
     }
 
+    let currentAuction = auction;
+
+    if (
+        currentAuction.status === 'active' &&
+        currentAuction.automation_mode === 'global_link_v2' &&
+        new Date(currentAuction.end_time) <= new Date()
+    ) {
+        const adminSupabase = createAdminSupabaseClient();
+        const { data: finalizerBids } = await adminSupabase
+            .from('bids')
+            .select('amount, created_at')
+            .eq('auction_id', params.id)
+            .gte('created_at', currentAuction.start_time)
+            .order('created_at', { ascending: true });
+
+        const virtualHighest = getGlobalLinkV2VirtualHighest({
+            auctionId: params.id,
+            startTime: currentAuction.start_time,
+            endTime: currentAuction.end_time,
+            startingPrice: currentAuction.starting_price,
+            currentTime: new Date(currentAuction.end_time),
+            targetMin: currentAuction.automation_target_min ?? 39000,
+            targetMax: currentAuction.automation_target_max ?? 45000,
+            stopSeconds: currentAuction.automation_stop_seconds ?? 1,
+            realBids: finalizerBids ?? [],
+        });
+
+        await adminSupabase.rpc("finalize_global_link_auto_follow_system", {
+            p_auction_id: params.id,
+            p_virtual_highest: virtualHighest,
+        });
+
+        const { data: refreshedAuction } = await supabase
+            .from('auctions')
+            .select('*, distributions(pokemon_name, pokemon_name_en, pokemon_sprite_url, original_trainer, trainer_id)')
+            .eq('id', params.id)
+            .single();
+
+        currentAuction = refreshedAuction ?? currentAuction;
+    }
+
     // 取得當前用戶
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -44,7 +86,7 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
         .from('bids')
         .select('*, profiles(full_name, email)')
         .eq('auction_id', params.id)
-        .gte('created_at', auction.start_time)
+        .gte('created_at', currentAuction.start_time)
         .order('amount', { ascending: false })
         .limit(20);
 
@@ -52,28 +94,28 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
     const sessionHighestBid = sessionBids[0] || null;
     const sessionCurrentPrice = sessionHighestBid?.amount ?? 0;
 
-    const imageUrl = auction.image_url || auction.distributions?.pokemon_sprite_url;
-    const isEnded = new Date(auction.end_time) < new Date() || auction.status === 'ended';
+    const imageUrl = currentAuction.image_url || currentAuction.distributions?.pokemon_sprite_url;
+    const isEnded = new Date(currentAuction.end_time) < new Date() || currentAuction.status === 'ended';
 
     // 傳遞給 Client Component 的資料
     const clientProps = {
         auctionId: params.id,
-        title: auction.title,  // 新增：用於判斷是否為蒂安希
+        title: currentAuction.title,  // 新增：用於判斷是否為蒂安希
         realBids: sessionBids,
-        startTime: auction.start_time,
-        startingPrice: auction.starting_price,
-        minIncrement: auction.min_increment,
-        endTime: auction.end_time,
-        isActive: !isEnded && auction.status === 'active',
+        startTime: currentAuction.start_time,
+        startingPrice: currentAuction.starting_price,
+        minIncrement: currentAuction.min_increment,
+        endTime: currentAuction.end_time,
+        isActive: !isEnded && currentAuction.status === 'active',
         realCurrentPrice: sessionCurrentPrice,
         realHighestBidder: sessionHighestBid?.profiles?.full_name || sessionHighestBid?.profiles?.email?.split('@')[0] || null,
         bidCount: sessionBids.length,
-        automationMode: auction.automation_mode === 'global_link_v2' ? 'global_link_v2' as const : 'legacy' as const,
-        automationTargetMin: auction.automation_target_min ?? 39000,
-        automationTargetMax: auction.automation_target_max ?? 45000,
-        automationStopSeconds: auction.automation_mode === 'global_link_v2'
-            ? 3
-            : auction.automation_stop_seconds ?? 30
+        automationMode: currentAuction.automation_mode === 'global_link_v2' ? 'global_link_v2' as const : 'legacy' as const,
+        automationTargetMin: currentAuction.automation_target_min ?? 39000,
+        automationTargetMax: currentAuction.automation_target_max ?? 45000,
+        automationStopSeconds: currentAuction.automation_mode === 'global_link_v2'
+            ? Math.max(1, currentAuction.automation_stop_seconds ?? 1)
+            : currentAuction.automation_stop_seconds ?? 30
     };
 
     return (
@@ -98,15 +140,15 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                                 <div id="viewer-count-slot" />
                             </>
                         )}
-                        {auction.bid_count >= 20 ? (
+                        {currentAuction.bid_count >= 20 ? (
                             <span className="rounded-full bg-red-500/90 px-3 py-1 text-xs font-bold text-white animate-pulse">
                                 🔥🔥🔥 白熱化
                             </span>
-                        ) : auction.bid_count >= 10 ? (
+                        ) : currentAuction.bid_count >= 10 ? (
                             <span className="rounded-full bg-orange-500/80 px-3 py-1 text-xs font-bold text-white">
                                 🔥🔥 激烈
                             </span>
-                        ) : auction.bid_count >= 5 ? (
+                        ) : currentAuction.bid_count >= 5 ? (
                             <span className="rounded-full bg-yellow-600/80 px-3 py-1 text-xs font-medium text-white">
                                 🔥 熱門
                             </span>
@@ -115,7 +157,7 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
 
                     {/* 標題：主標題 + 活動名稱分行 */}
                     {(() => {
-                        const [mainTitle, eventName] = auction.title.split('\n');
+                        const [mainTitle, eventName] = currentAuction.title.split('\n');
                         return (
                             <div className="mt-4">
                                 <h1 className="text-3xl font-semibold text-white">{mainTitle}</h1>
@@ -126,10 +168,10 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                         );
                     })()}
 
-                    {auction.distributions && (
+                    {currentAuction.distributions && (
                         <div className="mt-2 text-sm text-white/60">
-                            配布資訊：{auction.distributions.original_trainer && `OT: ${auction.distributions.original_trainer}`}
-                            {auction.distributions.trainer_id && ` / ID: ${auction.distributions.trainer_id}`}
+                            配布資訊：{currentAuction.distributions.original_trainer && `OT: ${currentAuction.distributions.original_trainer}`}
+                            {currentAuction.distributions.trainer_id && ` / ID: ${currentAuction.distributions.trainer_id}`}
                         </div>
                     )}
                 </header>
@@ -142,7 +184,7 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                                 <div className="flex h-80 items-center justify-center bg-gradient-to-br from-purple-900/30 to-blue-900/30">
                                     <img
                                         src={imageUrl}
-                                        alt={auction.title}
+                                        alt={currentAuction.title}
                                         className="max-h-full max-w-full object-contain p-8"
                                     />
                                 </div>
@@ -153,11 +195,11 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                             )}
                         </article>
 
-                        {auction.description && (
+                        {currentAuction.description && (
                             <article className="glass-card p-6">
                                 <h2 className="text-lg font-semibold text-white/90">競標說明</h2>
                                 <p className="mt-4 whitespace-pre-wrap text-sm text-slate-200/80">
-                                    {auction.description}
+                                    {currentAuction.description}
                                 </p>
                             </article>
                         )}
@@ -170,9 +212,9 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                     <aside className="glass-card flex flex-col gap-4 p-6 h-fit sticky top-24">
                         {/* 倒數計時器 */}
                         <CountdownTimer
-                            endTime={auction.end_time}
+                            endTime={currentAuction.end_time}
                             isEnded={isEnded}
-                            disableExtension={auction.automation_mode === 'global_link_v2'}
+                            disableExtension={currentAuction.automation_mode === 'global_link_v2'}
                         />
 
                         {/* 目前最高價 - 由 Client 控制 */}
@@ -182,20 +224,20 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                         <div className="space-y-2 border-y border-white/10 py-4 text-sm">
                             <div className="flex justify-between">
                                 <span className="text-white/60">起標價</span>
-                                <span className="text-white/90">${auction.starting_price.toLocaleString()}</span>
+                                <span className="text-white/90">${currentAuction.starting_price.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-white/60">最低加價</span>
-                                <span className="text-white/90">+${auction.min_increment.toLocaleString()}</span>
+                                <span className="text-white/90">+${currentAuction.min_increment.toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-white/60">出價次數</span>
                                 <span className="text-white/90">
-                                    {auction.bid_count + getEstimatedBidCount({
-                                        auctionId: auction.id,
-                                        startTime: auction.start_time || new Date(new Date(auction.end_time).getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-                                        endTime: auction.end_time,
-                                        currentTime: auction.status === 'ended' ? new Date(auction.end_time) : new Date()
+                                    {currentAuction.bid_count + getEstimatedBidCount({
+                                        auctionId: currentAuction.id,
+                                        startTime: currentAuction.start_time || new Date(new Date(currentAuction.end_time).getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+                                        endTime: currentAuction.end_time,
+                                        currentTime: currentAuction.status === 'ended' ? new Date(currentAuction.end_time) : new Date()
                                     })} 次
                                 </span>
                             </div>
@@ -217,7 +259,7 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                             <div className="rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-center text-sm text-white/60">
                                 競標已結束
                             </div>
-                        ) : auction.status !== 'active' ? (
+                        ) : currentAuction.status !== 'active' ? (
                             <div className="rounded-xl border border-white/20 bg-white/5 px-4 py-3 text-center text-sm text-white/60">
                                 競標尚未開始
                             </div>
@@ -228,7 +270,7 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
 
                         {/* 結束時間 */}
                         <div className="mt-2 text-center text-xs text-white/50">
-                            結束時間: {new Date(auction.end_time).toLocaleString('zh-TW')}
+                            結束時間: {new Date(currentAuction.end_time).toLocaleString('zh-TW')}
                         </div>
 
                         {/* 即時動態側欄 - 由 Client 控制 */}

@@ -79,7 +79,7 @@ function generateDeterministicBids(
     let bidTime = start.getTime() + initialDelay;
     let bidIndex = 0;
     const usedBidders = new Set<number>();
-    const stopBufferMs = Math.max(0, stopSeconds ?? (isGlobalLinkV2 ? 3 : 30)) * 1000;
+    const stopBufferMs = Math.max(1, stopSeconds ?? (isGlobalLinkV2 ? 1 : 30)) * 1000;
     const targetFloor = Math.max(startingPrice, Math.min(targetMin, targetMax));
     const targetCeil = Math.max(targetFloor, Math.max(targetMin, targetMax));
     const targetPrice = targetFloor + Math.floor(seededRandom(seed + 77) * (targetCeil - targetFloor + 1));
@@ -93,7 +93,7 @@ function generateDeterministicBids(
     let realBidCursor = 0;
     let realHighestAtBidTime = startingPrice;
 
-    // legacy 保持結束前 30 秒停止；Global Link v2 結束前 3 秒停止。
+    // legacy 保持結束前 30 秒停止；Global Link v2 預設改為 1 秒停止。
     const stopTime = Math.min(currentTime.getTime(), end.getTime() - stopBufferMs);
 
     while (bidTime < stopTime && bidIndex < (isGlobalLinkV2 ? 1500 : 20)) {

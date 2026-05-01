@@ -74,6 +74,7 @@ export function AuctionPageClient({
     automationStopSeconds
 }: AuctionPageClientProps) {
     const [mounted, setMounted] = useState(false);
+    const [liveRealBids, setLiveRealBids] = useState<RealBid[]>(realBids);
     const [displayHighest, setDisplayHighest] = useState(realCurrentPrice > 0 ? realCurrentPrice : startingPrice);
     const [displayHighestBidder, setDisplayHighestBidder] = useState<string | null>(realHighestBidder);
     const [simulatedHighest, setSimulatedHighest] = useState(0);
@@ -84,6 +85,10 @@ export function AuctionPageClient({
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    useEffect(() => {
+        setLiveRealBids(realBids);
+    }, [realBids]);
 
     // 倒數計時檢查競標是否結束
     useEffect(() => {
@@ -106,12 +111,16 @@ export function AuctionPageClient({
         return () => clearInterval(interval);
     }, [isActiveState, endTime]);
 
-    // Realtime 訂閱偵測競標狀態變更
+    // Realtime 訂閱偵測競標狀態與真實出價變更
     useEffect(() => {
-        // 動態引入 supabase client
+        let cancelled = false;
+        let cleanup: (() => void) | null = null;
+
         import('@/lib/supabase').then(({ supabase }) => {
+            if (cancelled) return;
+
             const channel = supabase
-                .channel(`auction_status_${auctionId}`)
+                .channel(`auction_live_${auctionId}`)
                 .on('postgres_changes', {
                     event: 'UPDATE',
                     schema: 'public',
@@ -123,17 +132,63 @@ export function AuctionPageClient({
                         setIsActiveState(false);
                     }
                 })
+                .on('postgres_changes', {
+                    event: 'INSERT',
+                    schema: 'public',
+                    table: 'bids',
+                    filter: `auction_id=eq.${auctionId}`
+                }, (payload) => {
+                    const newBid = payload.new as {
+                        id?: string;
+                        amount?: number;
+                        created_at?: string;
+                    };
+
+                    if (!newBid.id || typeof newBid.amount !== 'number') return;
+
+                    const bidId = newBid.id;
+                    const bidAmount = newBid.amount;
+                    const createdAt = newBid.created_at ?? new Date().toISOString();
+
+                    setLiveRealBids((prev) => {
+                        if (prev.some((bid) => bid.id === bidId)) return prev;
+
+                        return [
+                            {
+                                id: bidId,
+                                amount: bidAmount,
+                                created_at: createdAt,
+                                profiles: {
+                                    full_name: '會員'
+                                }
+                            },
+                            ...prev
+                        ];
+                    });
+
+                    setDisplayHighest((prev) => Math.max(prev, bidAmount));
+                    setDisplayHighestBidder('會員');
+                })
                 .subscribe();
 
-            return () => {
+            cleanup = () => {
                 supabase.removeChannel(channel);
             };
         });
+
+        return () => {
+            cancelled = true;
+            cleanup?.();
+        };
     }, [auctionId]);
 
     const handleHighestChange = useCallback((amount: number, bidderName: string | null) => {
         // 取模擬和真實中較高的價格
-        const effectiveReal = realCurrentPrice > 0 ? realCurrentPrice : startingPrice;
+        const liveHighest = liveRealBids.reduce(
+            (highest, bid) => Math.max(highest, bid.amount),
+            realCurrentPrice > 0 ? realCurrentPrice : startingPrice
+        );
+        const effectiveReal = Math.max(liveHighest, startingPrice);
         if (amount > effectiveReal) {
             setDisplayHighest(amount);
             setDisplayHighestBidder(bidderName);
@@ -141,7 +196,7 @@ export function AuctionPageClient({
             setDisplayHighest(effectiveReal);
             setDisplayHighestBidder(realHighestBidder);
         }
-    }, [realCurrentPrice, startingPrice, realHighestBidder]);
+    }, [liveRealBids, realCurrentPrice, startingPrice, realHighestBidder]);
 
     // Portal 目標
     const viewerSlot = mounted ? document.getElementById('viewer-count-slot') : null;
@@ -155,7 +210,7 @@ export function AuctionPageClient({
             auctionId={auctionId}
             isActive={isActiveState}
             endTime={endTime}
-            bidActivity={(realBids.length || 0) + bidCount}
+            bidActivity={(liveRealBids.length || 0) + bidCount}
             automationMode={automationMode}
         >
             {children}
@@ -182,7 +237,7 @@ export function AuctionPageClient({
                     <BidHistoryWithSimulation
                         auctionId={auctionId}
                         auctionTitle={title}
-                        realBids={realBids}
+                        realBids={liveRealBids}
                         startTime={startTime}
                         startingPrice={startingPrice}
                         minIncrement={minIncrement}
@@ -233,11 +288,12 @@ export function AuctionPageClient({
                 <BidButton
                     auctionId={auctionId}
                     minIncrement={minIncrement}
-                    currentPrice={realCurrentPrice}
+                    currentPrice={displayHighest}
                     startingPrice={startingPrice}
                     endTime={endTime}
                     simulatedHighest={simulatedHighest}
                     automationMode={automationMode}
+                    automationStopSeconds={automationStopSeconds}
                 />,
                 bidButtonSlot
             )}
