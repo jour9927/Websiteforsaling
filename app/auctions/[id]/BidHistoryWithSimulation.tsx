@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, createContext, useContext, ReactNode } from 'react';
-import { useSimulatedBids, useSimulatedViewers, type AuctionAutomationMode } from '@/hooks/useSimulatedAuction';
+import { useSimulatedBids, useSimulatedViewers, type AuctionAutomationMode, type SimulatedBid } from '@/hooks/useSimulatedAuction';
 
 interface RealBid {
     id: string;
@@ -75,6 +75,7 @@ interface BidHistoryWithSimulationProps {
     automationStopSeconds?: number;
     onHighestChange?: (amount: number, bidderName: string | null) => void;
     onSimulatedHighestChange?: (amount: number) => void;
+    onSimulatedBidsChange?: (bids: SimulatedBid[]) => void;
 }
 
 export function BidHistoryWithSimulation({
@@ -91,7 +92,8 @@ export function BidHistoryWithSimulation({
     automationTargetMax,
     automationStopSeconds,
     onHighestChange,
-    onSimulatedHighestChange
+    onSimulatedHighestChange,
+    onSimulatedBidsChange
 }: BidHistoryWithSimulationProps) {
     const { simulatedBids } = useSimulatedBids({
         auctionId,
@@ -108,15 +110,15 @@ export function BidHistoryWithSimulation({
         realBids: realBids.map(b => ({ id: b.id, amount: b.amount, created_at: b.created_at }))
     });
 
-    // 合併真實和模擬出價，按金額排序
-    const allBids = useMemo(() => {
-        const combined = [
+    const combinedBids = useMemo(() => {
+        return [
             ...realBids.map(bid => ({
                 id: bid.id,
                 bidder_name: bid.profiles?.full_name || bid.profiles?.email?.split('@')[0] || '匿名',
                 bidder_initials: (bid.profiles?.full_name || bid.profiles?.email || '?').slice(0, 2),
                 amount: bid.amount,
                 created_at: bid.created_at,
+                created_at_ms: new Date(bid.created_at).getTime(),
                 is_simulated: false as const,
                 is_real: true
             })),
@@ -126,20 +128,32 @@ export function BidHistoryWithSimulation({
                 bidder_initials: bid.bidder_name.slice(0, 2),
                 amount: bid.amount,
                 created_at: bid.created_at,
+                created_at_ms: new Date(bid.created_at).getTime(),
                 is_simulated: true as const,
                 is_real: false
             }))
         ];
-        return combined.sort((a, b) => b.amount - a.amount);
     }, [realBids, simulatedBids]);
+
+    const highestBid = useMemo(() => {
+        if (combinedBids.length === 0) return null;
+        return combinedBids.reduce((max, bid) => (bid.amount > max.amount ? bid : max), combinedBids[0]);
+    }, [combinedBids]);
+
+    // 出價紀錄：依時間顯示最新的 5 筆（避免只看到金額最大的一筆而誤以為只有最後才寫入）
+    const bidsByTime = useMemo(() => {
+        return [...combinedBids].sort((a, b) => {
+            const timeA = Number.isFinite(a.created_at_ms) ? a.created_at_ms : 0;
+            const timeB = Number.isFinite(b.created_at_ms) ? b.created_at_ms : 0;
+            return timeB - timeA;
+        });
+    }, [combinedBids]);
 
     // 通知父元件最高價變化
     useEffect(() => {
-        if (onHighestChange && allBids.length > 0) {
-            const highest = allBids[0];
-            onHighestChange(highest.amount, highest.bidder_name);
-        }
-    }, [allBids, onHighestChange]);
+        if (!onHighestChange || !highestBid) return;
+        onHighestChange(highestBid.amount, highestBid.bidder_name);
+    }, [highestBid, onHighestChange]);
 
     useEffect(() => {
         if (!onSimulatedHighestChange) return;
@@ -151,15 +165,20 @@ export function BidHistoryWithSimulation({
         onSimulatedHighestChange(simulatedHighest);
     }, [onSimulatedHighestChange, simulatedBids]);
 
-    if (allBids.length === 0) {
+    useEffect(() => {
+        if (!onSimulatedBidsChange) return;
+        onSimulatedBidsChange(simulatedBids);
+    }, [onSimulatedBidsChange, simulatedBids]);
+
+    if (combinedBids.length === 0) {
         return (
             <p className="mt-4 text-sm text-white/60">尚無出價紀錄</p>
         );
     }
 
     // 只顯示前 5 筆，其餘模糊
-    const visibleBids = allBids.slice(0, 5);
-    const hiddenCount = Math.max(0, allBids.length - 5);
+    const visibleBids = bidsByTime.slice(0, 5);
+    const hiddenCount = Math.max(0, bidsByTime.length - 5);
 
     return (
         <div className="mt-4 space-y-2">

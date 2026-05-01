@@ -12,7 +12,7 @@ import { AuctionSidebarActivity } from "./AuctionActivityWrapper";
 import { SimulatedViewers, SimulatedViewerJoinToast } from "@/components/SimulatedActivity";
 import BidButton from "./BidButton";
 import BidOutbidAlert from "./BidOutbidAlert";
-import type { AuctionAutomationMode } from "@/hooks/useSimulatedAuction";
+import type { AuctionAutomationMode, SimulatedBid } from "@/hooks/useSimulatedAuction";
 
 // 浮動在線人數元件（使用統一的 ViewerContext）
 function FloatingViewerCount() {
@@ -78,6 +78,7 @@ export function AuctionPageClient({
     const [displayHighest, setDisplayHighest] = useState(realCurrentPrice > 0 ? realCurrentPrice : startingPrice);
     const [displayHighestBidder, setDisplayHighestBidder] = useState<string | null>(realHighestBidder);
     const [simulatedHighest, setSimulatedHighest] = useState(0);
+    const [simulatedBids, setSimulatedBids] = useState<SimulatedBid[]>([]);
 
     // 動態追蹤是否活躍（可被倒數計時或資料庫更新改變）
     const [isActiveState, setIsActiveState] = useState(isActive);
@@ -249,6 +250,7 @@ export function AuctionPageClient({
                         automationStopSeconds={automationStopSeconds}
                         onHighestChange={handleHighestChange}
                         onSimulatedHighestChange={setSimulatedHighest}
+                        onSimulatedBidsChange={setSimulatedBids}
                     />
                 </article>,
                 bidHistorySlot
@@ -292,6 +294,7 @@ export function AuctionPageClient({
                     startingPrice={startingPrice}
                     endTime={endTime}
                     simulatedHighest={simulatedHighest}
+                    simulatedBids={simulatedBids}
                     automationMode={automationMode}
                     automationStopSeconds={automationStopSeconds}
                 />,

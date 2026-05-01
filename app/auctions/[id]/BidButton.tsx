@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
-import type { AuctionAutomationMode } from "@/hooks/useSimulatedAuction";
+import type { AuctionAutomationMode, SimulatedBid } from "@/hooks/useSimulatedAuction";
 
 type BidButtonProps = {
     auctionId: string;
@@ -13,6 +13,7 @@ type BidButtonProps = {
     startingPrice: number;     // 起標價
     endTime: string;
     simulatedHighest?: number; // 模擬最高價（從 Client 傳入）
+    simulatedBids?: SimulatedBid[];
     automationMode?: AuctionAutomationMode;
     automationStopSeconds?: number;
 };
@@ -50,6 +51,7 @@ export default function BidButton({
     startingPrice,
     endTime,
     simulatedHighest = 0,
+    simulatedBids = [],
     automationMode = "legacy",
     automationStopSeconds = 30
 }: BidButtonProps) {
@@ -73,9 +75,12 @@ export default function BidButton({
     const [showCouponPrompt, setShowCouponPrompt] = useState(false);
     const [couponPromptDismissed, setCouponPromptDismissed] = useState(false);
     const [followIncrement, setFollowIncrement] = useState(DEFAULT_AUTO_FOLLOW_INCREMENT);
-    const lastAutoBidAmountRef = useRef(0);
     const finalAutoFollowInFlightRef = useRef(false);
     const finalAutoFollowLastKeyRef = useRef("");
+    const liveAutoFollowStartedAtRef = useRef<number | null>(null);
+    const liveAutoFollowProcessedIdsRef = useRef<Set<string>>(new Set());
+    const liveAutoFollowQueueRef = useRef<SimulatedBid[]>([]);
+    const liveAutoFollowProcessingRef = useRef(false);
 
     // 當 minBid 變化時更新預設出價金額
     useEffect(() => {
@@ -203,38 +208,98 @@ export default function BidButton({
         }
     }, [auctionId, currentPrice, minBid, router, startingPrice]);
 
-    useEffect(() => {
-        if (!isGlobalLinkV2 || !autoFollowEnabled || autoFollowLoading || loading) return;
+    const flushLiveAutoFollowQueue = useCallback(async () => {
+        if (liveAutoFollowProcessingRef.current) return;
 
-        const normalizedFollowIncrement = normalizeAutoFollowIncrement(followIncrement);
-        const effectiveHighest = Math.max(currentPrice, simulatedHighest, startingPrice);
-        const targetAmount = effectiveHighest + normalizedFollowIncrement;
-        if (
-            targetAmount <= currentPrice ||
-            targetAmount > AUTO_FOLLOW_SYSTEM_MAX_BID ||
-            targetAmount <= lastAutoBidAmountRef.current
-        ) {
+        liveAutoFollowProcessingRef.current = true;
+
+        try {
+            while (liveAutoFollowQueueRef.current.length > 0) {
+                if (!isGlobalLinkV2 || !autoFollowEnabled) {
+                    liveAutoFollowQueueRef.current = [];
+                    return;
+                }
+
+                const bid = liveAutoFollowQueueRef.current.shift();
+                if (!bid) continue;
+
+                const { data, error: rpcError } = await supabase.rpc("place_global_link_auto_follow_bid", {
+                    p_auction_id: auctionId,
+                    p_virtual_amount: bid.amount,
+                    p_virtual_bid_id: bid.id,
+                    p_virtual_bid_at: bid.created_at
+                });
+
+                if (rpcError) throw rpcError;
+
+                const result = data as RpcResult | null;
+                if (result?.success === false) {
+                    if (result.error && result.error !== "目前價格不需要跟標") {
+                        setError(result.error);
+                    }
+                    continue;
+                }
+
+                if (result?.placed) {
+                    const placedAmount = Number(result.amount ?? bid.amount);
+                    setSuccess(`自動跟標已寫入 $${placedAmount.toLocaleString()}`);
+                    window.dispatchEvent(new CustomEvent("bidPlaced", { detail: { auctionId } }));
+                }
+            }
+        } catch (err) {
+            console.error("Live auto-follow error:", err);
+        } finally {
+            liveAutoFollowProcessingRef.current = false;
+
+            if (liveAutoFollowQueueRef.current.length > 0) {
+                void flushLiveAutoFollowQueue();
+            }
+        }
+    }, [auctionId, autoFollowEnabled, isGlobalLinkV2]);
+
+    useEffect(() => {
+        if (!isGlobalLinkV2) return;
+
+        if (!autoFollowEnabled) {
+            liveAutoFollowStartedAtRef.current = null;
+            liveAutoFollowQueueRef.current = [];
+            liveAutoFollowProcessedIdsRef.current = new Set(simulatedBids.map((bid) => bid.id));
             return;
         }
 
-        const timer = setTimeout(async () => {
-            lastAutoBidAmountRef.current = targetAmount;
-            const ok = await submitBid(targetAmount, "auto");
-            if (!ok) lastAutoBidAmountRef.current = Math.max(lastAutoBidAmountRef.current, currentPrice);
-        }, 0);
+        if (liveAutoFollowStartedAtRef.current === null) {
+            liveAutoFollowStartedAtRef.current = Date.now();
+            liveAutoFollowProcessedIdsRef.current = new Set(simulatedBids.map((bid) => bid.id));
+            return;
+        }
 
-        return () => clearTimeout(timer);
+        const endMs = new Date(endTime).getTime();
+        const nowMs = Date.now();
+        if (!Number.isFinite(endMs) || nowMs >= endMs) return;
+
+        const candidates = simulatedBids
+            .filter((bid) => {
+                if (liveAutoFollowProcessedIdsRef.current.has(bid.id)) return false;
+                const bidTime = new Date(bid.created_at).getTime();
+                if (!Number.isFinite(bidTime)) return false;
+                return bidTime >= (liveAutoFollowStartedAtRef.current ?? nowMs);
+            })
+            .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+        for (const bid of candidates) {
+            liveAutoFollowProcessedIdsRef.current.add(bid.id);
+            liveAutoFollowQueueRef.current.push(bid);
+        }
+
+        if (candidates.length > 0) {
+            void flushLiveAutoFollowQueue();
+        }
     }, [
         autoFollowEnabled,
-        autoFollowLoading,
-        currentPrice,
-        followIncrement,
+        endTime,
+        flushLiveAutoFollowQueue,
         isGlobalLinkV2,
-        loading,
-        simulatedHighest,
-        startingPrice,
-        submitBid,
-        lastAutoBidAmountRef
+        simulatedBids
     ]);
 
     const finalizeAutoFollow = useCallback(async () => {
@@ -243,10 +308,9 @@ export default function BidButton({
         const virtualHighest = Math.max(simulatedHighest, startingPrice);
         const normalizedFollowIncrement = normalizeAutoFollowIncrement(followIncrement);
         const expectedAmount = virtualHighest + normalizedFollowIncrement;
-        const attemptKey = `${auctionId}:${virtualHighest}:${expectedAmount}:${currentPrice}`;
+        const attemptKey = `${auctionId}:${virtualHighest}:${normalizedFollowIncrement}`;
 
         if (
-            expectedAmount <= currentPrice ||
             expectedAmount > AUTO_FOLLOW_SYSTEM_MAX_BID ||
             attemptKey === finalAutoFollowLastKeyRef.current
         ) {
@@ -286,7 +350,6 @@ export default function BidButton({
     }, [
         auctionId,
         autoFollowEnabled,
-        currentPrice,
         followIncrement,
         isGlobalLinkV2,
         router,

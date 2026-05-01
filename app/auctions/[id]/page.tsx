@@ -53,10 +53,14 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
             realBids: finalizerBids ?? [],
         });
 
-        await adminSupabase.rpc("finalize_global_link_auto_follow_system", {
+        const { error: finalizerError } = await adminSupabase.rpc("finalize_global_link_auto_follow_system", {
             p_auction_id: params.id,
             p_virtual_highest: virtualHighest,
         });
+
+        if (finalizerError) {
+            console.error("Global Link v2 auto-follow finalizer failed:", finalizerError);
+        }
 
         const { data: refreshedAuction } = await supabase
             .from('auctions')
@@ -81,18 +85,37 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
         userProfile = data;
     }
 
-    // 取得本場次出價紀錄。同一個競標重開時，用 start_time 切開舊場資料。
+    // 取得本場次出價紀錄（依時間）。同一個競標重開時，用 start_time 切開舊場資料。
     const { data: bids } = await supabase
         .from('bids')
-        .select('*, profiles(full_name, email)')
+        .select('id, amount, created_at, profiles(full_name, email)')
+        .eq('auction_id', params.id)
+        .gte('created_at', currentAuction.start_time)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+    // 最高價仍需用金額排序抓一次，避免「只抓最新 N 筆」時漏掉最高出價。
+    const { data: highestBid } = await supabase
+        .from('bids')
+        .select('amount, profiles(full_name, email)')
         .eq('auction_id', params.id)
         .gte('created_at', currentAuction.start_time)
         .order('amount', { ascending: false })
-        .limit(20);
+        .limit(1)
+        .maybeSingle();
 
-    const sessionBids = bids || [];
-    const sessionHighestBid = sessionBids[0] || null;
-    const sessionCurrentPrice = sessionHighestBid?.amount ?? 0;
+    const sessionBids = (bids ?? []).map((bid) => ({
+        id: bid.id,
+        amount: bid.amount,
+        created_at: bid.created_at,
+        profiles: bid.profiles?.[0]
+            ? {
+                full_name: bid.profiles[0].full_name,
+                email: bid.profiles[0].email
+            }
+            : undefined
+    }));
+    const sessionCurrentPrice = highestBid?.amount ?? 0;
 
     const imageUrl = currentAuction.image_url || currentAuction.distributions?.pokemon_sprite_url;
     const isEnded = new Date(currentAuction.end_time) < new Date() || currentAuction.status === 'ended';
@@ -108,7 +131,7 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
         endTime: currentAuction.end_time,
         isActive: !isEnded && currentAuction.status === 'active',
         realCurrentPrice: sessionCurrentPrice,
-        realHighestBidder: sessionHighestBid?.profiles?.full_name || sessionHighestBid?.profiles?.email?.split('@')[0] || null,
+        realHighestBidder: highestBid?.profiles?.[0]?.full_name || highestBid?.profiles?.[0]?.email?.split('@')[0] || null,
         bidCount: sessionBids.length,
         automationMode: currentAuction.automation_mode === 'global_link_v2' ? 'global_link_v2' as const : 'legacy' as const,
         automationTargetMin: currentAuction.automation_target_min ?? 39000,
