@@ -166,7 +166,7 @@ export default function EventComments({ eventTitle }: Props) {
         time: "2026/5/2"
     }));
 
-    const hiddenLabel = `以下還有 ${comments.length - 8} 則留言...`;
+    const hiddenLabel = `以下還有 130 則留言...`;
 
     return (
         <div className="glass-card mt-8 p-6">
