@@ -200,7 +200,7 @@ export default async function EventPage({ params }: EventPageProps) {
               已確認: <span className="text-2xl font-semibold text-white">{totalRegistrationCount}</span>
               {event.max_participants && ` / ${event.max_participants}`}
             </p>
-            <p className="text-xs text-slate-200/60">
+            <p className="text-xs text-amber-300/80">
               {event.pre_registration_count > 0
                 ? "報名會先進入排隊階段，只有獲得正式參與資格後才會出現在參與紀錄與抽選頁。"
                 : "報名會先進入待確認，只有獲得管理員批准後才會出現在參與紀錄與抽選頁。"}
