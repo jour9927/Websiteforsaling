@@ -202,7 +202,7 @@ export default async function EventPage({ params }: EventPageProps) {
             </p>
             <p className="text-xs text-slate-200/60">
               {event.pre_registration_count > 0
-                ? "提交預報名後，管理員將從預報名者中挑選正式參與者。"
+                ? "報名會先進入排隊階段，只有獲得正式參與資格後才會出現在參與紀錄與抽選頁。"
                 : "報名會先進入待確認，只有獲得管理員批准後才會出現在參與紀錄與抽選頁。"}
             </p>
             {pendingOnline > 0 && !event.pre_registration_count && (
