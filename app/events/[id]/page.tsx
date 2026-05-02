@@ -143,7 +143,7 @@ export default async function EventPage({ params }: EventPageProps) {
             </div>
           )}
           <div className="flex items-center gap-2">
-            <span className="text-white/60">👥 名額:</span>
+            <span className="text-white/60">{event.pre_registration_count > 0 ? '🎫 釋放名額:' : '👥 名額:'}</span>
             <span>
               {event.max_participants || '不限'}
               {isOverCapacity && (
