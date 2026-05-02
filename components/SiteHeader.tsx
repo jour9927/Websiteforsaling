@@ -20,6 +20,7 @@ const primaryLinks = [
   { label: "競標", href: "/auctions" as Route },
   { label: "委託", href: "/commissions" as Route },
   // { label: "🏪 商店", href: "/shop" as Route }, // 暫時隱藏
+  { label: "🏪 商店", href: "/store" as Route },
   { label: "配布圖鑑", href: "/pokedex" as Route },
   { label: "📚 圖鑑書架", href: "/guides" as Route },
   // { label: "🎮 遊樂場", href: "/games" as Route }, // 暫時隱藏

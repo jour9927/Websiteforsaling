@@ -1,0 +1,25 @@
+WORKSPACE=/Users/alan_dingchaoliao/Documents/_歸檔_專案_App與網站開發/網站開發/網站架設
+COMMAND=npm run lint
+STARTED_AT=2026-04-23 19:35:09 CST
+--- OUTPUT START ---
+
+> event-glass@0.1.0 lint
+> next lint
+
+
+./app/admin/announcements/page.tsx
+44:6  Warning: React Hook useEffect has a missing dependency: 'loadAll'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/admin/bids/page.tsx
+40:8  Warning: React Hook useEffect has a missing dependency: 'loadBids'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/admin/commissions/page.tsx
+65:6  Warning: React Hook useEffect has a missing dependency: 'fetchCommissions'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/commissions/create/page.tsx
+62:6  Warning: React Hook useEffect has a missing dependency: 'supabase'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
+--- OUTPUT END ---
+EXIT_CODE=0
+FINISHED_AT=2026-04-23 19:35:11 CST

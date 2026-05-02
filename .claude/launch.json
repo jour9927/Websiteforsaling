@@ -1,0 +1,15 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dev",
+      "runtimeExecutable": "/Users/alan_dingchaoliao/.nvm/versions/node/v22.22.0/bin/node",
+      "runtimeArgs": ["/Users/alan_dingchaoliao/Documents/網站開發/網站架設/node_modules/.bin/next", "dev"],
+      "env": {
+        "PATH": "/Users/alan_dingchaoliao/.nvm/versions/node/v22.22.0/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+      },
+      "port": 3000,
+      "autoPort": true
+    }
+  ]
+}

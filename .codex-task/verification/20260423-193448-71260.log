@@ -1,0 +1,196 @@
+WORKSPACE=/Users/alan_dingchaoliao/Documents/_歸檔_專案_App與網站開發/網站開發/網站架設
+COMMAND=npm run build
+STARTED_AT=2026-04-23 19:34:48 CST
+--- OUTPUT START ---
+
+> event-glass@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.33
+  - Environments: .env.local
+  - Experiments (use with caution):
+    · typedRoutes
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+
+./app/admin/announcements/page.tsx
+44:6  Warning: React Hook useEffect has a missing dependency: 'loadAll'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/admin/bids/page.tsx
+40:8  Warning: React Hook useEffect has a missing dependency: 'loadBids'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/admin/commissions/page.tsx
+65:6  Warning: React Hook useEffect has a missing dependency: 'fetchCommissions'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/commissions/create/page.tsx
+62:6  Warning: React Hook useEffect has a missing dependency: 'supabase'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/91) ...
+   Generating static pages (22/91) 
+   Generating static pages (45/91) 
+   Generating static pages (68/91) 
+ ✓ Generating static pages (91/91)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                         Size     First Load JS
+┌ ƒ /                                               3.46 kB         189 kB
+├ ƒ /_not-found                                     158 B          87.5 kB
+├ ƒ /admin                                          197 B          96.2 kB
+├ ƒ /admin/ai-settings                              3.02 kB         144 kB
+├ ƒ /admin/anniversary-30th                         1.83 kB        89.2 kB
+├ ƒ /admin/announcements                            4.04 kB         154 kB
+├ ƒ /admin/announcements/[id]                       2.91 kB         153 kB
+├ ƒ /admin/auctions                                 3.47 kB         154 kB
+├ ƒ /admin/backpack                                 3.78 kB         145 kB
+├ ƒ /admin/bids                                     3.23 kB         145 kB
+├ ƒ /admin/commissions                              2.48 kB         153 kB
+├ ƒ /admin/deliveries                               2.9 kB         90.2 kB
+├ ƒ /admin/eevee-day                                2.32 kB        89.6 kB
+├ ƒ /admin/events                                   4.37 kB         154 kB
+├ ƒ /admin/events/[id]                              5.9 kB          156 kB
+├ ƒ /admin/items                                    1.41 kB        88.7 kB
+├ ƒ /admin/members                                  2.41 kB         144 kB
+├ ƒ /admin/messages                                 3.62 kB         145 kB
+├ ƒ /admin/notifications                            3.3 kB          145 kB
+├ ƒ /admin/payments                                 2.99 kB        90.3 kB
+├ ƒ /admin/popularity                               2.26 kB        98.2 kB
+├ ƒ /admin/public-image                             2.39 kB         144 kB
+├ ƒ /admin/registrations                            1.31 kB        97.3 kB
+├ ƒ /admin/registrations/[id]                       1.4 kB         97.4 kB
+├ ƒ /admin/virtual-comments                         2.91 kB         144 kB
+├ ƒ /admin/virtual-commission-chats                 3.35 kB         145 kB
+├ ƒ /anniversary-30th                               2.44 kB         100 kB
+├ ƒ /anniversary-30th/battle                        145 B           102 kB
+├ ƒ /anniversary-30th/battle/arena                  158 B          87.5 kB
+├ ƒ /announcements                                  1.17 kB        97.1 kB
+├ ƒ /announcements/[id]                             402 B          96.4 kB
+├ ƒ /api/admin/ai-settings                          0 B                0 B
+├ ƒ /api/admin/anniversary-30th/contracts/delivery  0 B                0 B
+├ ƒ /api/admin/anniversary-30th/enroll              0 B                0 B
+├ ƒ /api/admin/anniversary-30th/participants        0 B                0 B
+├ ƒ /api/admin/anniversary-30th/route               0 B                0 B
+├ ƒ /api/admin/announcements/reads                  0 B                0 B
+├ ƒ /api/admin/announcements/toggle                 0 B                0 B
+├ ƒ /api/admin/check-env                            0 B                0 B
+├ ƒ /api/admin/commissions/[id]/deposit-return      0 B                0 B
+├ ƒ /api/admin/commissions/[id]/proof-review        0 B                0 B
+├ ƒ /api/admin/commissions/[id]/review              0 B                0 B
+├ ƒ /api/admin/commissions/[id]/status              0 B                0 B
+├ ƒ /api/admin/create-time-rift-auctions            0 B                0 B
+├ ƒ /api/admin/deliveries                           0 B                0 B
+├ ƒ /api/admin/deliveries/[id]                      0 B                0 B
+├ ƒ /api/admin/deliveries/users                     0 B                0 B
+├ ƒ /api/admin/eevee-day                            0 B                0 B
+├ ƒ /api/admin/items                                0 B                0 B
+├ ƒ /api/admin/items/[id]                           0 B                0 B
+├ ƒ /api/admin/items/users                          0 B                0 B
+├ ƒ /api/admin/members/role                         0 B                0 B
+├ ƒ /api/admin/payments                             0 B                0 B
+├ ƒ /api/admin/payments/[id]                        0 B                0 B
+├ ƒ /api/admin/payments/users                       0 B                0 B
+├ ƒ /api/admin/popularity                           0 B                0 B
+├ ƒ /api/admin/registrations/[id]/status            0 B                0 B
+├ ƒ /api/admin/registrations/[id]/time              0 B                0 B
+├ ƒ /api/admin/registrations/create                 0 B                0 B
+├ ƒ /api/admin/run-migration-039                    0 B                0 B
+├ ƒ /api/admin/virtual-comments                     0 B                0 B
+├ ƒ /api/anniversary-30th/additional/pay            0 B                0 B
+├ ƒ /api/anniversary-30th/battle/heartbeat          0 B                0 B
+├ ƒ /api/anniversary-30th/battle/play               0 B                0 B
+├ ƒ /api/anniversary-30th/battle/start              0 B                0 B
+├ ƒ /api/anniversary-30th/join                      0 B                0 B
+├ ƒ /api/anniversary-30th/partner/select            0 B                0 B
+├ ƒ /api/announcements/read                         0 B                0 B
+├ ƒ /api/announcements/read-status                  0 B                0 B
+├ ƒ /api/check-in                                   0 B                0 B
+├ ƒ /api/check-in/goal                              0 B                0 B
+├ ƒ /api/comments/[id]/react                        0 B                0 B
+├ ƒ /api/comments/reactions                         0 B                0 B
+├ ƒ /api/commission-chats                           0 B                0 B
+├ ƒ /api/commissions                                0 B                0 B
+├ ƒ /api/commissions/[id]                           0 B                0 B
+├ ƒ /api/commissions/[id]/accept                    0 B                0 B
+├ ƒ /api/commissions/[id]/executor-fee              0 B                0 B
+├ ƒ /api/commissions/[id]/messages                  0 B                0 B
+├ ƒ /api/cron/auto-auction                          0 B                0 B
+├ ƒ /api/cron/commission-deposit-reminders          0 B                0 B
+├ ƒ /api/cron/commission-maintenance                0 B                0 B
+├ ƒ /api/cron/process-notification-deliveries       0 B                0 B
+├ ƒ /api/cron/update-points                         0 B                0 B
+├ ƒ /api/cron/virtual-commissions                   0 B                0 B
+├ ƒ /api/cron/virtual-visits                        0 B                0 B
+├ ƒ /api/debug/registrations                        0 B                0 B
+├ ƒ /api/eevee-day/quiz                             0 B                0 B
+├ ƒ /api/eevee-day/reward                           0 B                0 B
+├ ƒ /api/eevee-day/status                           0 B                0 B
+├ ƒ /api/events                                     0 B                0 B
+├ ƒ /api/events/[id]                                0 B                0 B
+├ ƒ /api/events/[id]/draw                           0 B                0 B
+├ ƒ /api/events/[id]/register                       0 B                0 B
+├ ƒ /api/follow                                     0 B                0 B
+├ ƒ /api/follow/list                                0 B                0 B
+├ ƒ /api/games/crash                                0 B                0 B
+├ ƒ /api/games/roulette                             0 B                0 B
+├ ƒ /api/generate-homepage-comment                  0 B                0 B
+├ ƒ /api/generate-reply                             0 B                0 B
+├ ƒ /api/generate-spontaneous                       0 B                0 B
+├ ƒ /api/me/history                                 0 B                0 B
+├ ƒ /api/me/profile                                 0 B                0 B
+├ ƒ /api/popularity                                 0 B                0 B
+├ ƒ /auctions                                       1.66 kB        97.6 kB
+├ ƒ /auctions/[id]                                  13.3 kB         168 kB
+├ ƒ /backpack                                       158 B          87.5 kB
+├ ƒ /check-in                                       6.57 kB         108 kB
+├ ƒ /collection                                     2.1 kB          103 kB
+├ ƒ /commission-chats                               2.48 kB         104 kB
+├ ƒ /commissions                                    2.36 kB        98.3 kB
+├ ƒ /commissions/[id]                               5.74 kB         102 kB
+├ ƒ /commissions/create                             4.15 kB         154 kB
+├ ƒ /deliveries                                     196 B          96.2 kB
+├ ƒ /eevee-day                                      4.62 kB         106 kB
+├ ƒ /eevee-day/quiz                                 2.46 kB        90.1 kB
+├ ƒ /events                                         1.46 kB         103 kB
+├ ƒ /events/[id]                                    2.18 kB         152 kB
+├ ƒ /events/[id]/draw                               158 B          87.5 kB
+├ ƒ /games                                          193 B          96.2 kB
+├ ƒ /games/crash                                    3.69 kB         154 kB
+├ ƒ /games/risk-box                                 4.47 kB         155 kB
+├ ƒ /games/roulette                                 1.59 kB        88.9 kB
+├ ƒ /games/scratch                                  4.87 kB         155 kB
+├ ƒ /guides                                         7.02 kB         154 kB
+├ ƒ /history                                        193 B          96.2 kB
+├ ƒ /items                                          193 B          96.2 kB
+├ ƒ /login                                          1.54 kB         152 kB
+├ ƒ /logout                                         999 B           142 kB
+├ ○ /manifest.webmanifest                           0 B                0 B
+├ ƒ /messages                                       2.83 kB         144 kB
+├ ƒ /payments                                       193 B          96.2 kB
+├ ƒ /pokedex                                        5.09 kB         155 kB
+├ ƒ /privacy                                        158 B          87.5 kB
+├ ƒ /profile                                        3.81 kB         154 kB
+├ ƒ /random-distribution                            2.44 kB         100 kB
+├ ƒ /random-distribution/battle                     145 B           102 kB
+├ ƒ /rankings                                       1.56 kB        97.5 kB
+├ ○ /robots.txt                                     0 B                0 B
+├ ƒ /shop                                           4.66 kB         101 kB
+├ ƒ /signup                                         2.08 kB         152 kB
+├ ○ /sitemap.xml                                    0 B                0 B
+└ ƒ /user/[id]                                      209 B           186 kB
++ First Load JS shared by all                       87.3 kB
+  ├ chunks/2117-c01262c6ac7927ea.js                 31.7 kB
+  ├ chunks/fd9d1056-64288c35ac512afb.js             53.7 kB
+  └ other shared chunks (total)                     1.94 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+--- OUTPUT END ---
+EXIT_CODE=0
+FINISHED_AT=2026-04-23 19:35:03 CST

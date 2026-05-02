@@ -1,0 +1,48 @@
+WORKSPACE=/Users/alan_dingchaoliao/Documents/_歸檔_專案_App與網站開發/網站開發/網站架設
+COMMAND=npm run build
+STARTED_AT=2026-04-23 19:32:57 CST
+--- OUTPUT START ---
+
+> event-glass@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.33
+  - Environments: .env.local
+  - Experiments (use with caution):
+    · typedRoutes
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+
+./app/admin/announcements/page.tsx
+44:6  Warning: React Hook useEffect has a missing dependency: 'loadAll'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/admin/bids/page.tsx
+40:8  Warning: React Hook useEffect has a missing dependency: 'loadBids'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/admin/commissions/page.tsx
+65:6  Warning: React Hook useEffect has a missing dependency: 'fetchCommissions'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/commissions/create/page.tsx
+62:6  Warning: React Hook useEffect has a missing dependency: 'supabase'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
+Failed to compile.
+
+./app/anniversary-30th/battle/page.tsx:249:35
+Type error: Type '{ startsAt: string; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'startsAt' does not exist on type 'IntrinsicAttributes'.
+
+[0m [90m 247 |[39m       [33m<[39m[33mdiv[39m className[33m=[39m[32m"space-y-5 text-white"[39m[33m>[39m[0m
+[0m [90m 248 |[39m         [33m<[39m[33mNotice[39m title[33m=[39m[32m"隨機對戰視窗"[39m body[33m=[39m[32m"活動尚未正式開戰。"[39m [33m/[39m[33m>[39m[0m
+[0m[31m[1m>[22m[39m[90m 249 |[39m         [33m<[39m[33mAnniversary30thCountdown[39m startsAt[33m=[39m{startsAt} [33m/[39m[33m>[39m[0m
+[0m [90m     |[39m                                   [31m[1m^[22m[39m[0m
+[0m [90m 250 |[39m       [33m<[39m[33m/[39m[33mdiv[39m[33m>[39m[0m
+[0m [90m 251 |[39m     )[33m;[39m[0m
+[0m [90m 252 |[39m   }[0m
+Next.js build worker exited with code: 1 and signal: null
+--- OUTPUT END ---
+EXIT_CODE=1
+FINISHED_AT=2026-04-23 19:33:10 CST

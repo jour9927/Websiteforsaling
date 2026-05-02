@@ -1,0 +1,47 @@
+WORKSPACE=/Users/alan_dingchaoliao/Documents/_歸檔_專案_App與網站開發/網站開發/網站架設
+COMMAND=npm run build
+STARTED_AT=2026-04-29 21:27:29 CST
+--- OUTPUT START ---
+
+> event-glass@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.33
+  - Environments: .env.local
+  - Experiments (use with caution):
+    · typedRoutes
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully
+   Linting and checking validity of types ...
+
+./app/admin/announcements/page.tsx
+44:6  Warning: React Hook useEffect has a missing dependency: 'loadAll'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/admin/bids/page.tsx
+40:8  Warning: React Hook useEffect has a missing dependency: 'loadBids'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/admin/commissions/page.tsx
+65:6  Warning: React Hook useEffect has a missing dependency: 'fetchCommissions'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./app/commissions/create/page.tsx
+62:6  Warning: React Hook useEffect has a missing dependency: 'supabase'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/basic-features/eslint#disabling-rules
+Failed to compile.
+
+./components/Anniversary30thBattleConsole.tsx:726:34
+Type error: '??' and '||' operations cannot be mixed without parentheses.
+
+[0m [90m 724 |[39m                           [33m<[39m[33mspan[39m className[33m=[39m[32m"border-2 border-slate-950 px-2 py-2"[39m[33m>[39m對手KO {opponentScore}[33m<[39m[33m/[39m[33mspan[39m[33m>[39m[0m
+[0m [90m 725 |[39m                           [33m<[39m[33mspan[39m className[33m=[39m[32m"border-2 border-slate-950 px-2 py-2"[39m[33m>[39m[0m
+[0m[31m[1m>[22m[39m[90m 726 |[39m                             我方剩 {resolution[33m?[39m[33m.[39mplayerTeamRemaining [33m?[39m[33m?[39m playerTeam[33m.[39mfilter((pokemon) [33m=>[39m [33m![39mpokemon[33m.[39mfainted)[33m.[39mlength [33m||[39m [32m"--"[39m}[0m
+[0m [90m     |[39m                                  [31m[1m^[22m[39m[0m
+[0m [90m 727 |[39m                           [33m<[39m[33m/[39m[33mspan[39m[33m>[39m[0m
+[0m [90m 728 |[39m                           [33m<[39m[33mspan[39m className[33m=[39m[32m"border-2 border-slate-950 px-2 py-2"[39m[33m>[39m[0m
+[0m [90m 729 |[39m                             對手剩 {resolution[33m?[39m[33m.[39mopponentTeamRemaining [33m?[39m[33m?[39m opponentTeam[33m.[39mfilter((pokemon) [33m=>[39m [33m![39mpokemon[33m.[39mfainted)[33m.[39mlength [33m||[39m [32m"--"[39m}[0m
+Next.js build worker exited with code: 1 and signal: null
+--- OUTPUT END ---
+EXIT_CODE=1
+FINISHED_AT=2026-04-29 21:27:46 CST
