@@ -10,30 +10,42 @@ function getTodayKey(): string {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function getStorageKey(userId: string): string {
+    return `${STORAGE_KEY}_${userId}`;
+}
+
 export function CheckInReminder() {
     const [show, setShow] = useState(false);
 
     useEffect(() => {
-        // 當天已關閉就不再顯示
-        const dismissed = localStorage.getItem(STORAGE_KEY);
-        const today = getTodayKey();
-        if (dismissed === today) return;
-
         fetch("/api/check-in")
             .then((res) => {
                 if (res.status === 401) return null;
                 return res.json();
             })
             .then((data) => {
-                if (data && data.canCheckIn) {
-                    setShow(true);
-                }
+                if (!data || !data.canCheckIn) return;
+
+                // 帳號層級記錄：當天該帳號已關閉就不再顯示
+                const today = getTodayKey();
+                const key = getStorageKey(data.userId);
+                if (localStorage.getItem(key) === today) return;
+
+                setShow(true);
             })
             .catch(() => {});
     }, []);
 
     const handleDismiss = () => {
-        localStorage.setItem(STORAGE_KEY, getTodayKey());
+        // 需要重新 fetch 取得 userId 才能存對的 key
+        fetch("/api/check-in")
+            .then((res) => res.json())
+            .then((data) => {
+                if (data?.userId) {
+                    localStorage.setItem(getStorageKey(data.userId), getTodayKey());
+                }
+            })
+            .catch(() => {});
         setShow(false);
     };
 

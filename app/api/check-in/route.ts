@@ -77,6 +77,7 @@ export async function GET() {
     }
 
     return NextResponse.json({
+        userId: user.id,
         canCheckIn,
         streak: profile.check_in_streak || 0,
         fortunePoints: profile.fortune_points || 0,
