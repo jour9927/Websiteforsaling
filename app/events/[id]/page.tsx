@@ -198,9 +198,14 @@ export default async function EventPage({ params }: EventPageProps) {
             )}
             {event.pre_registration_count > 0 ? (
               event.title?.includes("暗影洛奇亞") ? (
-                <p className="mt-1 text-sm text-white/80">
-                  已確認 <span className="text-lg font-semibold text-white">0</span>/{event.max_participants}
-                </p>
+                <>
+                  <p className="mt-1 text-sm text-white/80">
+                    已確認 <span className="text-lg font-semibold text-white">0</span>/1（第一梯次 圓形競技場）
+                  </p>
+                  <p className="mt-0.5 text-sm text-white/60">
+                    已確認 <span className="text-lg font-semibold text-white/50">0</span>/1（第二梯次 XD暗影洛奇亞）
+                  </p>
+                </>
               ) : (
                 <>
                   <p className="mt-1 text-sm text-white/80">
