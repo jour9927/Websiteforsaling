@@ -130,7 +130,7 @@ const LUGIA_REPLIES: Record<number, { name: string; text: string; time: string }
         { name: "宋**", text: "明智的決定，我也放棄了", time: "2026/5/2" },
     ],
     60: [
-        { name: "呂**", text: "畢竟600多人排 排到按鈕都壞了", time: "2026/5/2" },
+        { name: "呂**", text: "畢竟738人排 排到按鈕都壞了", time: "2026/5/2" },
         { name: "賴**", text: "這個問題回報屬於A類嚴重bug，你累計兩次可以跟管理員要求一隻自選六代配布", time: "2026/5/2" },
     ],
 };
