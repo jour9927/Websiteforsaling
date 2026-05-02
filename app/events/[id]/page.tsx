@@ -252,7 +252,10 @@ export default async function EventPage({ params }: EventPageProps) {
               名額已滿
             </div>
           ) : (
-            <RegisterButton eventId={params.id} />
+            <RegisterButton eventId={params.id} isPreRegistration={event.pre_registration_count > 0} />
+            {event.pre_registration_count > 0 && (
+              <p className="text-xs text-amber-400/70 text-center mt-1">目前僅開放預報名，審核通過後才算正式報名</p>
+            )}
           )}
 
           {/* 抽選按鈕 */}

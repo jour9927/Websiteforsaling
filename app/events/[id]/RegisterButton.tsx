@@ -4,7 +4,7 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
-export default function RegisterButton({ eventId }: { eventId: string }) {
+export default function RegisterButton({ eventId, isPreRegistration = false }: { eventId: string; isPreRegistration?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
@@ -113,7 +113,7 @@ export default function RegisterButton({ eventId }: { eventId: string }) {
         disabled={loading}
         className="w-full rounded-xl bg-gradient-to-r from-purple-500/80 to-pink-500/80 px-4 py-3 text-center text-sm font-semibold text-white transition hover:from-purple-500 hover:to-pink-500 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {loading ? "報名中..." : "🎉 立即報名"}
+        {loading ? "報名中..." : isPreRegistration ? "📋 預報名" : "🎉 立即報名"}
       </button>
       
       {error && (
