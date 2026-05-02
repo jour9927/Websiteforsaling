@@ -116,6 +116,9 @@ const LUGIA_REPLIES: Record<number, { name: string; text: string; time: string }
         { name: "蔡**", text: "你沒看錯，就是2個，不是打錯", time: "2026/5/2" },
         { name: "許**", text: "2個名額738人搶，管理團隊是在測試大家底線嗎", time: "2026/5/2" },
     ],
+    4: [
+        { name: "范**", text: "按鈕都壞了 能不內定嗎", time: "2026/5/2" },
+    ],
     7: [
         { name: "郭**", text: "不是羞辱人，是根本沒有要給人的意思", time: "2026/5/2" },
         { name: "楊**", text: "2個名額738人，你敢信這個比例", time: "2026/5/2" },
