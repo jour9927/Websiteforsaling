@@ -16,8 +16,10 @@ const FAKE_NAMES = [
     "每日Pokemon捕手", "Pokemon散步黨", "Pokemon交換站長", "Pokemon補給員", "Pokemon對戰新手"
 ];
 
-// 針對「葉伊布排除盲盒」的假象留言 — 名額極少引發怨言
-const BUG_COMMENTS = [
+// ═══════════════════════════════════════════
+// 葉伊布排除盲盒留言（名額極少引發怨言）
+// ═══════════════════════════════════════════
+const SYLVEON_COMMENTS = [
     "管理團隊想奧步不讓人用卷？敢發卷卻只給這一點名額？？",
     "排除2隻還OK啦，但15個名額是認真的嗎？",
     "管理員拜託加開名額，才15人是要大家打架嗎 😭",
@@ -80,27 +82,91 @@ const BUG_COMMENTS = [
     "15個名額可以理解啦，但為什麼不能擴充一下",
 ];
 
-// 葉伊布活動留言日期（統一今天 5/2）
-const COMMENT_DATES = [
-    "2026/5/2", "2026/5/2", "2026/5/2", "2026/5/2", "2026/5/2",
-    "2026/5/2", "2026/5/2", "2026/5/2", "2026/5/2", "2026/5/2",
-    "2026/5/2", "2026/5/2", "2026/5/2", "2026/5/2", "2026/5/2",
-    "2026/5/2", "2026/5/2", "2026/5/2", "2026/5/2", "2026/5/2",
-    "2026/5/2", "2026/5/2", "2026/5/2", "2026/5/2", "2026/5/2",
-    "2026/5/2", "2026/5/2", "2026/5/2", "2026/5/2", "2026/5/2",
+// ═══════════════════════════════════════════
+// 暗影洛奇亞盲盒留言（2個名額引發絕望）
+// ═══════════════════════════════════════════
+const LUGIA_COMMENTS = [
+    "2個名額？？？我沒看錯吧，這是開玩笑的嗎",
+    "277人搶2個位置，機率連1%都不到，直接放棄",
+    "60,000門檻那麼高結果只給2人，管理員是認真的嗎",
+    "根本不可能上啦，洗洗睡比較實在",
+    "這活動根本就是內定吧，2個名額開什麼玩笑",
+    "不用想了，2個位置一定早就被管理員朋友訂走了",
+    "圓形競技場的暗影洛奇亞耶…但2個名額是在羞辱人嗎",
+    "277人報名只取2個？？？這比中樂透還難吧",
+    "60,000我付得起但只有2人能上，這機率我不敢賭",
+    "直接放棄，這活動設計根本沒打算讓人參與",
+    "花了60,000還要跟276人搶2個位置，瘋了嗎",
+    "暗影洛奇亞超想要的…但看到2個名額心直接涼了",
+    "2/277 = 0.7%，這不是活動，這是樂透",
+    "拜託管理員清醒一點，2個名額到底有什麼意義",
+    "有人跟我一樣覺得這活動只是在刷存在感嗎",
+    "這不是盲盒活動，這是絕望活動",
+    "60,000丟水裡還比較快，至少不用等結果",
+    "我已經放棄了，各位加油（0.7%的機率）",
+    "名額2人然後用預報名制？？到底在想什麼",
+    "不用排了啦，2個名額擺明就是做做樣子",
+    "277人裡面一定有內定，我們這些路人只是在陪榜",
+    "暗影洛奇亞配布史上最難搶活動，沒有之一",
+    "60,000的門檻 + 2個名額 = 史上最坑活動",
+    "這活動誰想出來的，2個名額到底要辦給誰看",
+    "連排隊都懶得排了，感覺就是浪費時間",
+    "暗影洛奇亞很香，但2個名額讓我直接冷靜了",
+    "如果這不是內定，那我就是寶可夢大師了",
+    "277個韭菜陪2個天選之人演戲",
+    "建議直接抽選然後公布名單，不要讓大家等",
+    "60,000我可以拿去買10個盲盒了，幹嘛賭這個",
+    "管理團隊到底在想什麼？2個名額是寫錯了嗎",
+    "這機率比我色違遇到的機率還低，笑死",
+    "暗影洛奇亞值得更好的對待，不是這種羞辱式活動",
+    "各位醒醒，2個名額 = 不是你，就是你不是你",
+    "已經對這活動不抱任何期待了，佛系看待",
+    "60,000我寧願拿去買周邊，至少確定拿得到東西",
+    "這大概是有史以來最絕望的Pokemon活動了",
+    "277人陪審團，選出2個天選之人",
+    "暗影洛奇亞一定很後悔被這樣對待",
+    "不用想了，這機率連轉蛋都不如",
+    "建議管理團隊把活動下架，2個名額真的太羞辱人",
+    "我已經刪除預報名了，浪費時間",
+    "2/277，這不是機率，這是奇蹟",
+    "暗影洛奇亞的配布等了這麼久，結果是這種活動…",
+    "看到2個名額直接笑出來，管理團隊很有幽默感",
+    "60,000的誠意 vs 2個名額的現實，掰掰",
+    "這活動唯一的用處就是讓我知道什麼叫絕望",
+    "277人裡面取2人，感覺像是在選總統",
+    "我決定把60,000省下來，這活動太沒誠意了",
+    "暗影洛奇亞很棒，但這活動設計真的很糟糕",
+    "2個名額辦什麼活動，私訊那兩個人就好啦",
+    "不用排了不用排了，大家回家吧",
+    "這不是盲盒活動，這是社會實驗",
+    "預報名277人，然後呢？然後就沒有然後了",
+    "60,000 + 2個名額 = 管理團隊的黑色幽默",
+    "我已經看開了，這活動就是告訴我們：你不是那個人",
+    "暗影洛奇亞值得一個正常的活動，不是這個",
+    "2個位置277人搶，連抽籤都覺得殘忍",
+    "管理團隊拜託，2改成20好不好，至少給個希望",
+    "這是我見過最令人沮喪的Pokemon活動頁面",
 ];
 
-const HIDDEN_LABEL = `以下還有 ${BUG_COMMENTS.length - 8} 則留言...`;
+// 留言日期統一今天 5/2
 
-const STATIC_COMMENTS = Array.from({ length: 8 }).map((_, i) => ({
-    id: i,
-    name: FAKE_NAMES[i],
-    text: BUG_COMMENTS[i],
-    time: COMMENT_DATES[i]
-}));
+interface Props {
+    eventTitle?: string;
+}
 
-export default function EventComments() {
-    const comments = STATIC_COMMENTS;
+export default function EventComments({ eventTitle }: Props) {
+    const comments = eventTitle?.includes("暗影洛奇亞")
+        ? LUGIA_COMMENTS
+        : SYLVEON_COMMENTS;
+
+    const staticComments = Array.from({ length: 8 }).map((_, i) => ({
+        id: i,
+        name: FAKE_NAMES[i],
+        text: comments[i],
+        time: "2026/5/2"
+    }));
+
+    const hiddenLabel = `以下還有 ${comments.length - 8} 則留言...`;
 
     return (
         <div className="glass-card mt-8 p-6">
@@ -110,7 +176,7 @@ export default function EventComments() {
             
             <div className="relative">
                 <div className="space-y-4 max-h-[520px] overflow-hidden">
-                    {comments.map(comment => (
+                    {staticComments.map(comment => (
                         <div key={comment.id} className="flex gap-3 animate-fade-in">
                             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs text-white/70">
                                 {comment.name.slice(0, 1)}
@@ -129,7 +195,7 @@ export default function EventComments() {
                 {/* 底部淡化遮罩 */}
                 <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#0f172a] to-transparent flex items-end justify-center pb-2 pointer-events-none">
                     <span className="text-xs font-medium text-white/50 bg-black/40 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
-                        {HIDDEN_LABEL}
+                        {hiddenLabel}
                     </span>
                 </div>
             </div>

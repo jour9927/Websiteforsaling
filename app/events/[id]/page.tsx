@@ -289,7 +289,7 @@ export default async function EventPage({ params }: EventPageProps) {
       </section>
 
       {/* 假象 Bug 留言區 */}
-      <EventComments />
+      <EventComments eventTitle={event.title} />
     </div>
   );
 }
