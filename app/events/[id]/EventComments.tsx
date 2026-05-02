@@ -229,7 +229,7 @@ export default function EventComments({ eventTitle }: Props) {
             </h3>
             
             <div className="relative">
-                <div className="space-y-4 max-h-[520px] overflow-hidden">
+                <div className="space-y-4 max-h-[800px] overflow-hidden">
                     {staticComments.map(comment => (
                         <div key={comment.id}>
                             <div className="flex gap-3 animate-fade-in">
