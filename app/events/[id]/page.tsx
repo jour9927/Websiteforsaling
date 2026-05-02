@@ -151,6 +151,12 @@ export default async function EventPage({ params }: EventPageProps) {
               )}
             </span>
           </div>
+          {event.pre_registration_count > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-white/60">📋 預報名:</span>
+              <span className="text-amber-400 font-semibold">{event.pre_registration_count.toLocaleString()} 人</span>
+            </div>
+          )}
         </div>
 
         {event.description && (
@@ -185,8 +191,13 @@ export default async function EventPage({ params }: EventPageProps) {
         <aside className="glass-card flex flex-col gap-4 p-6">
           <div>
             <p className="text-xs uppercase text-slate-200/70">報名狀態</p>
-            <p className="mt-2 text-sm text-white/80">
-              已報名: <span className="text-2xl font-semibold text-white">{totalRegistrationCount}</span>
+            {event.pre_registration_count > 0 && (
+              <p className="mt-2 text-sm text-amber-400/90">
+                📋 已預報名 <span className="text-xl font-bold text-amber-400">{event.pre_registration_count.toLocaleString()}</span> 人
+              </p>
+            )}
+            <p className="mt-1 text-sm text-white/80">
+              已確認: <span className="text-2xl font-semibold text-white">{totalRegistrationCount}</span>
               {event.max_participants && ` / ${event.max_participants}`}
             </p>
             <p className="text-xs text-slate-200/60">

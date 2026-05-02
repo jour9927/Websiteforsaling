@@ -11,6 +11,7 @@ type EditableEvent = {
   end_date: string;
   max_participants: number | null;
   offline_registrations: number;
+  pre_registration_count: number;
   status: "draft" | "published" | "closed";
   description: string | null;
   image_url: string | null;
@@ -31,6 +32,7 @@ type EventFormState = {
   end_date: string;
   max_participants: string;
   offline_registrations: string;
+  pre_registration_count: string;
   description: string;
   location: string;
   organizer_category: "admin" | "vip";
@@ -57,6 +59,7 @@ export default function EventEditForm({ event }: EventEditFormProps) {
     end_date: event.end_date ? event.end_date.slice(0, 16) : "",
     max_participants: event.max_participants !== null ? String(event.max_participants) : "",
     offline_registrations: String(event.offline_registrations || 0),
+    pre_registration_count: String(event.pre_registration_count || 0),
     description: event.description || "",
     location: event.location || "",
     organizer_category: event.organizer_category,
@@ -198,6 +201,9 @@ export default function EventEditForm({ event }: EventEditFormProps) {
         offline_registrations: formData.offline_registrations.trim()
           ? Number(formData.offline_registrations)
           : 0,
+        pre_registration_count: formData.pre_registration_count.trim()
+          ? Number(formData.pre_registration_count)
+          : 0,
         description: formData.description,
         location: formData.location.trim() || null,
         organizer_category: formData.organizer_category,
@@ -326,6 +332,27 @@ export default function EventEditForm({ event }: EventEditFormProps) {
         />
         <span className="text-[10px] text-white/50">
           用於記錄線下報名人數，會計入總報名人數
+        </span>
+      </label>
+
+      <label className="flex flex-col gap-2 text-xs text-white/70">
+        <div className="flex items-center gap-2">
+          <span>預報名人數</span>
+          <span className="text-[10px] text-amber-400">（手動設定，純顯示）</span>
+        </div>
+        <input
+          type="number"
+          min={0}
+          inputMode="numeric"
+          placeholder="0"
+          value={formData.pre_registration_count}
+          onChange={(e) =>
+            setFormData((prev) => ({ ...prev, pre_registration_count: e.target.value }))
+          }
+          className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 focus:border-amber-400 focus:outline-none"
+        />
+        <span className="text-[10px] text-amber-400/70">
+          前台顯示用，不影響名額計算。管理員手動填入預報名總數
         </span>
       </label>
 
