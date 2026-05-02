@@ -90,7 +90,7 @@ const COMMENT_DATES = [
     "2026/5/24", "2026/5/24", "2026/5/24", "2026/5/24", "2026/5/24",
 ];
 
-const HIDDEN_LABEL = "以下還有 52 則留言...";
+const HIDDEN_LABEL = `以下還有 ${BUG_COMMENTS.length - 8} 則留言...`;
 
 const STATIC_COMMENTS = Array.from({ length: 8 }).map((_, i) => ({
     id: i,
@@ -99,11 +99,8 @@ const STATIC_COMMENTS = Array.from({ length: 8 }).map((_, i) => ({
     time: COMMENT_DATES[i]
 }));
 
-const HIDDEN_COUNT = 52;
-
 export default function EventComments() {
     const comments = STATIC_COMMENTS;
-    const hiddenCount = HIDDEN_COUNT;
 
     return (
         <div className="glass-card mt-8 p-6">
