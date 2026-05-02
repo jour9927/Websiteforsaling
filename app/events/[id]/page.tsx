@@ -196,10 +196,21 @@ export default async function EventPage({ params }: EventPageProps) {
                 📋 已預報名 <span className="text-xl font-bold text-amber-400">{event.pre_registration_count.toLocaleString()}</span> 人
               </p>
             )}
-            <p className="mt-1 text-sm text-white/80">
-              已確認: <span className="text-2xl font-semibold text-white">{totalRegistrationCount}</span>
-              {event.max_participants && ` / ${event.max_participants}`}
-            </p>
+            {event.pre_registration_count > 0 ? (
+              <>
+                <p className="mt-1 text-sm text-white/80">
+                  已確認 <span className="text-lg font-semibold text-white">15</span>/15（第一梯次）
+                </p>
+                <p className="mt-0.5 text-sm text-white/60">
+                  已確認 <span className="text-lg font-semibold text-white/50">0</span>/15（第二梯次）<span className="text-xs text-white/30">尚未開放</span>
+                </p>
+              </>
+            ) : (
+              <p className="mt-1 text-sm text-white/80">
+                已確認: <span className="text-2xl font-semibold text-white">{totalRegistrationCount}</span>
+                {event.max_participants && ` / ${event.max_participants}`}
+              </p>
+            )}
             <p className="text-xs text-amber-300/80">
               {event.pre_registration_count > 0
                 ? "報名會先進入排隊階段，只有獲得正式參與資格後才會出現在參與紀錄與抽選頁。"
