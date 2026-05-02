@@ -83,6 +83,55 @@ const SYLVEON_COMMENTS = [
 ];
 
 // ═══════════════════════════════════════════
+// 留言回覆串（營造討論熱度）
+// ═══════════════════════════════════════════
+const SYLVEON_REPLIES: Record<number, { name: string; text: string; time: string }[]> = {
+    0: [
+        { name: "色違獵人", text: "管理團隊就是這樣啊，發卷又不敢真的給名額", time: "2026/5/2 14:23" },
+        { name: "潛水路人", text: "習慣了啦，每次都是這樣操作的", time: "2026/5/2 14:45" },
+    ],
+    1: [
+        { name: "百變怪迷", text: "排除2隻算客氣了，至少不是只能排除1隻", time: "2026/5/2 15:02" },
+    ],
+    2: [
+        { name: "太晶團戰王", text: "15人真的太少了吧，至少給個50", time: "2026/5/2 15:10" },
+        { name: "圖鑑收集狂", text: "50？想太多，有20就偷笑了", time: "2026/5/2 15:22" },
+    ],
+    3: [
+        { name: "Mega進化控", text: "真的，500多人只有15人能上，根本做樣子", time: "2026/5/2 16:05" },
+        { name: "散步訓練家", text: "就是發個活動交差了事的概念", time: "2026/5/2 16:10" },
+    ],
+    7: [
+        { name: "社群日玩家", text: "大學錄取率都沒這麼低", time: "2026/5/2 17:30" },
+        { name: "P***", text: "笑死 這比考醫科還難", time: "2026/5/2 17:31" },
+        { name: "孵蛋廢人", text: "醫科還有名額，這個連名額都沒有好嗎", time: "2026/5/2 17:45" },
+    ],
+};
+
+// ═══════════════════════════════════════════
+// 暗影洛奇亞盲盒留言回覆串
+// ═══════════════════════════════════════════
+const LUGIA_REPLIES: Record<number, { name: string; text: string; time: string }[]> = {
+    0: [
+        { name: "傳說收集者", text: "你沒看錯，就是2個，不是打錯", time: "2026/5/2 14:01" },
+        { name: "稀有Pokemon獵人", text: "2個名額738人搶，管理團隊是在測試大家底線嗎", time: "2026/5/2 14:10" },
+    ],
+    7: [
+        { name: "百變怪迷", text: "不是羞辱人，是根本沒有要給人的意思", time: "2026/5/2 15:30" },
+        { name: "Pokemon迷", text: "2個名額738人，你敢信這個比例", time: "2026/5/2 15:35" },
+    ],
+    12: [
+        { name: "對戰狂人", text: "0.27%我還以為是手遊UP池的機率", time: "2026/5/2 16:00" },
+        { name: "閃光收藏家", text: "手遊至少有保底，這活動連保底都沒有", time: "2026/5/2 16:12" },
+    ],
+    19: [
+        { name: "潛水路人", text: "不是做樣子不然是什麼，2個名額你敢信", time: "2026/5/2 17:00" },
+        { name: "道館踢館王", text: "我信，但我已經放棄了", time: "2026/5/2 17:05" },
+        { name: "色違獵人", text: "明智的決定，我也放棄了", time: "2026/5/2 17:15" },
+    ],
+};
+
+// ═══════════════════════════════════════════
 // 暗影洛奇亞盲盒留言（2個名額引發絕望）
 // ═══════════════════════════════════════════
 const LUGIA_COMMENTS = [
@@ -159,11 +208,16 @@ export default function EventComments({ eventTitle }: Props) {
         ? LUGIA_COMMENTS
         : SYLVEON_COMMENTS;
 
+    const replies = eventTitle?.includes("暗影洛奇亞")
+        ? LUGIA_REPLIES
+        : SYLVEON_REPLIES;
+
     const staticComments = Array.from({ length: 8 }).map((_, i) => ({
         id: i,
         name: FAKE_NAMES[i],
         text: comments[i],
-        time: "2026/5/2"
+        time: "2026/5/2",
+        replies: replies[i] || [],
     }));
 
     const hiddenLabel = `以下還有 130 則留言...`;
@@ -177,17 +231,38 @@ export default function EventComments({ eventTitle }: Props) {
             <div className="relative">
                 <div className="space-y-4 max-h-[520px] overflow-hidden">
                     {staticComments.map(comment => (
-                        <div key={comment.id} className="flex gap-3 animate-fade-in">
-                            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs text-white/70">
-                                {comment.name.slice(0, 1)}
-                            </div>
-                            <div className="flex-1 rounded-2xl rounded-tl-none bg-white/5 px-4 py-3">
-                                <div className="flex items-center justify-between mb-1">
-                                    <span className="text-sm font-medium text-white/80">{comment.name}</span>
-                                    <span className="text-xs text-white/40">{comment.time}</span>
+                        <div key={comment.id}>
+                            <div className="flex gap-3 animate-fade-in">
+                                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-xs text-white/70">
+                                    {comment.name.slice(0, 1)}
                                 </div>
-                                <p className="text-sm text-white/70">{comment.text}</p>
+                                <div className="flex-1 rounded-2xl rounded-tl-none bg-white/5 px-4 py-3">
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className="text-sm font-medium text-white/80">{comment.name}</span>
+                                        <span className="text-xs text-white/40">{comment.time}</span>
+                                    </div>
+                                    <p className="text-sm text-white/70">{comment.text}</p>
+                                </div>
                             </div>
+                            {/* 回覆串 */}
+                            {comment.replies.length > 0 && (
+                                <div className="ml-11 mt-1 space-y-2 border-l-2 border-white/10 pl-4">
+                                    {comment.replies.map((reply, ri) => (
+                                        <div key={ri} className="flex gap-2">
+                                            <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-[10px] text-white/50">
+                                                {reply.name.slice(0, 1)}
+                                            </div>
+                                            <div className="flex-1 rounded-xl bg-white/[0.03] px-3 py-2">
+                                                <div className="flex items-center justify-between mb-0.5">
+                                                    <span className="text-xs font-medium text-white/60">{reply.name}</span>
+                                                    <span className="text-[10px] text-white/30">{reply.time}</span>
+                                                </div>
+                                                <p className="text-xs text-white/50">{reply.text}</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     ))}
                 </div>
