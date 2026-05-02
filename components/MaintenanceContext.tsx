@@ -9,7 +9,7 @@ type MaintenanceContextType = {
 };
 
 const MaintenanceContext = createContext<MaintenanceContextType>({
-    maintenanceMode: true,
+    maintenanceMode: false,
     toggleMaintenance: () => { },
     isAdmin: false,
 });
@@ -24,7 +24,7 @@ type MaintenanceProviderProps = {
 };
 
 export function MaintenanceProvider({ children, isAdmin }: MaintenanceProviderProps) {
-    const [maintenanceMode, setMaintenanceMode] = useState(true);
+    const [maintenanceMode, setMaintenanceMode] = useState(false);
     const [isLoaded, setIsLoaded] = useState(false);
 
     // 從 localStorage 讀取管理員的設定
@@ -45,13 +45,13 @@ export function MaintenanceProvider({ children, isAdmin }: MaintenanceProviderPr
         localStorage.setItem("adminMaintenanceOff", String(!newValue));
     };
 
-    // 非管理員永遠維持 maintenanceMode = true
-    const effectiveMode = isAdmin ? maintenanceMode : true;
+    // 維護模式（所有用戶共用同一個開關）
+    const effectiveMode = maintenanceMode;
 
     // 避免 SSR hydration 不匹配（先回傳預設值）
     if (!isLoaded) {
         return (
-            <MaintenanceContext.Provider value={{ maintenanceMode: true, toggleMaintenance, isAdmin }}>
+            <MaintenanceContext.Provider value={{ maintenanceMode, toggleMaintenance, isAdmin }}>
                 {children}
             </MaintenanceContext.Provider>
         );
