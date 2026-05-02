@@ -17,6 +17,7 @@ export const adminNavItems = [
   { href: "/admin/items" as Route, label: "物品管理", icon: "🎁" },
   { href: "/admin/payments" as Route, label: "付款管理", icon: "💳" },
   { href: "/admin/store" as Route, label: "商店管理", icon: "🏪" },
+  { href: "/admin/store/orders" as Route, label: "商店訂單", icon: "📦" },
   { href: "/admin/deliveries" as Route, label: "交付紀錄", icon: "📦" },
   { href: "/admin/notifications" as Route, label: "通知中心", icon: "🔔" },
   { href: "/admin/messages" as Route, label: "會員訊息", icon: "✉️" },

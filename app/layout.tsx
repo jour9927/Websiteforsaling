@@ -8,6 +8,8 @@ import { MaintenanceProvider } from "@/components/MaintenanceContext";
 import GlobalAnnouncementOverlay from "@/components/GlobalAnnouncementOverlay";
 import { GlobalMessageToast } from "@/components/GlobalMessageToast";
 import { GlobalBackpackToast } from "@/components/GlobalBackpackToast";
+import { CartProvider } from "@/lib/cart";
+import { CartSidebar } from "@/components/CartSidebar";
 import { createServerSupabaseClient } from "@/lib/auth";
 
 // Force dynamic rendering for all pages (required for Supabase auth with cookies)
@@ -119,13 +121,16 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <GlobalMessageToast isAuthenticated={isAuthenticated} />
         <MaintenanceBanner />
         <MaintenanceProvider isAdmin={isAdmin}>
-          <div className="flex min-h-screen flex-col">
-            <SiteHeader displayName={displayName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
-            <main className="flex-1">
-              <div className="mx-auto w-full max-w-5xl px-4 py-10 md:px-6 md:py-12">{children}</div>
-            </main>
-            <SiteFooter />
-          </div>
+          <CartProvider>
+            <CartSidebar />
+            <div className="flex min-h-screen flex-col">
+              <SiteHeader displayName={displayName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
+              <main className="flex-1">
+                <div className="mx-auto w-full max-w-5xl px-4 py-10 md:px-6 md:py-12">{children}</div>
+              </main>
+              <SiteFooter />
+            </div>
+          </CartProvider>
         </MaintenanceProvider>
       </body>
     </html>

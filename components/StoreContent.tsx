@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useCart } from "@/lib/cart";
 
 interface ShopProduct {
   id: string;
@@ -23,6 +24,7 @@ export default function StoreContent() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<ShopProduct | null>(null);
+  const { addItem } = useCart();
 
   useEffect(() => {
     fetch("/api/admin/store")
@@ -187,6 +189,24 @@ export default function StoreContent() {
                       {formatPrice(product.price)}
                     </span>
                   </div>
+
+                  {/* 加入購物車 */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addItem({
+                        productId: product.id,
+                        name: product.name,
+                        price: product.price,
+                        image_url: product.image_url,
+                        stock: product.stock,
+                      });
+                    }}
+                    disabled={product.stock === 0}
+                    className="mt-3 w-full rounded-lg bg-amber-500 py-2 text-xs font-bold text-black hover:bg-amber-400 transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    {product.stock === 0 ? "已售罄" : "🛒 加入購物車"}
+                  </button>
                 </div>
               </div>
             </div>
@@ -259,6 +279,24 @@ export default function StoreContent() {
                 </span>
               </div>
             </div>
+
+            {/* 加入購物車 */}
+            <button
+              onClick={() => {
+                addItem({
+                  productId: selectedItem.id,
+                  name: selectedItem.name,
+                  price: selectedItem.price,
+                  image_url: selectedItem.image_url,
+                  stock: selectedItem.stock,
+                });
+                setSelectedItem(null);
+              }}
+              disabled={selectedItem.stock === 0}
+              className="mt-6 w-full rounded-xl bg-amber-500 py-3 text-sm font-bold text-black hover:bg-amber-400 transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {selectedItem.stock === 0 ? "已售罄" : "🛒 加入購物車"}
+            </button>
           </div>
         </div>
       )}
