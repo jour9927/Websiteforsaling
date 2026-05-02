@@ -8,6 +8,7 @@ import { MaintenanceProvider } from "@/components/MaintenanceContext";
 import GlobalAnnouncementOverlay from "@/components/GlobalAnnouncementOverlay";
 import { GlobalMessageToast } from "@/components/GlobalMessageToast";
 import { GlobalBackpackToast } from "@/components/GlobalBackpackToast";
+import { CheckInReminder } from "@/components/CheckInReminder";
 import { CartProvider } from "@/lib/cart";
 import { CartSidebar } from "@/components/CartSidebar";
 import { createServerSupabaseClient } from "@/lib/auth";
@@ -123,6 +124,7 @@ export default async function RootLayout({ children }: RootLayoutProps) {
         <MaintenanceProvider isAdmin={isAdmin}>
           <CartProvider>
             <CartSidebar />
+            <CheckInReminder />
             <div className="flex min-h-screen flex-col">
               <SiteHeader displayName={displayName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
               <main className="flex-1">
