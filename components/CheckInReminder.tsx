@@ -52,7 +52,7 @@ export function CheckInReminder() {
     if (!show) return null;
 
     return (
-        <div className="fixed top-36 left-1/2 -translate-x-1/2 z-40 w-full max-w-xl px-4 animate-slide-down">
+        <div className="fixed top-32 left-1/2 -translate-x-1/2 z-40 w-full max-w-xl px-4 animate-slide-down">
             <div className="glass-card border border-amber-500/30 bg-gradient-to-r from-amber-500/10 to-orange-500/5 px-4 py-3 flex items-center justify-between gap-3 shadow-lg shadow-amber-500/10">
                 <div className="flex items-center gap-2 min-w-0">
                     <span className="text-lg shrink-0">📅</span>
