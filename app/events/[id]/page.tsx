@@ -201,9 +201,11 @@ export default async function EventPage({ params }: EventPageProps) {
               {event.max_participants && ` / ${event.max_participants}`}
             </p>
             <p className="text-xs text-slate-200/60">
-              報名會先進入待確認，只有獲得管理員批准後才會出現在參與紀錄與抽選頁。
+              {event.pre_registration_count > 0
+                ? "提交預報名後，管理員將從預報名者中挑選正式參與者。"
+                : "報名會先進入待確認，只有獲得管理員批准後才會出現在參與紀錄與抽選頁。"}
             </p>
-            {pendingOnline > 0 && (
+            {pendingOnline > 0 && !event.pre_registration_count && (
               <p className="text-xs text-slate-200/60">
                 目前 {pendingOnline} 筆報名仍待確認，通過核可後才會列入參與紀錄。
               </p>
