@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-type CompensationChoice = "blindbox_discount_500" | "shop_rebate_50" | "pokemon_choice_5";
+type CompensationChoice = "blindbox_discount_500" | "blindbox_discount_1000" | "blindbox_discount_2000" | "blindbox_discount_5000" | "shop_rebate_50" | "pokemon_choice_5";
 
 type ChoiceOption = {
   id: CompensationChoice;
@@ -19,14 +19,32 @@ const OPTIONS: ChoiceOption[] = [
     description: "適用於後續盲盒消費折抵。",
   },
   {
-    id: "shop_rebate_50",
+    id: "blindbox_discount_1000",
     label: "B",
+    title: "1000 元盲盒抵用券",
+    description: "適用於後續盲盒消費折抵。",
+  },
+  {
+    id: "blindbox_discount_2000",
+    label: "C",
+    title: "2000 元盲盒抵用券",
+    description: "適用於後續盲盒消費折抵。",
+  },
+  {
+    id: "blindbox_discount_5000",
+    label: "D",
+    title: "5000 元盲盒抵用券",
+    description: "適用於後續盲盒消費折抵。",
+  },
+  {
+    id: "shop_rebate_50",
+    label: "E",
     title: "商店消費報銷券（50%）",
     description: "商店消費可申請整體 50% 報銷。",
   },
   {
     id: "pokemon_choice_5",
-    label: "C",
+    label: "F",
     title: "寶可夢五選一",
     description: "可從指定補償清單中選擇 1 隻寶可夢。",
   },
