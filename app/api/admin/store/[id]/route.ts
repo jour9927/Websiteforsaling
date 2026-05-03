@@ -8,7 +8,7 @@ export async function PUT(
 ) {
   const supabase = createAdminSupabaseClient();
   const body = await req.json();
-  const { name, description, price, image_url, category, stock, is_active } = body;
+  const { name, description, price, image_url, category, stock, is_active, seller_name, interested_count, liked_count } = body;
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (name !== undefined) updates.name = name;
@@ -18,6 +18,9 @@ export async function PUT(
   if (category !== undefined) updates.category = category;
   if (stock !== undefined) updates.stock = Number(stock);
   if (is_active !== undefined) updates.is_active = is_active;
+  if (seller_name !== undefined) updates.seller_name = seller_name;
+  if (interested_count !== undefined) updates.interested_count = Number(interested_count);
+  if (liked_count !== undefined) updates.liked_count = Number(liked_count);
 
   const { data, error } = await supabase
     .from("shop_products")

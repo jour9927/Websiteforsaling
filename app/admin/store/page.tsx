@@ -11,9 +11,26 @@ interface ShopProduct {
   category: string;
   stock: number;
   is_active: boolean;
+  seller_name: string | null;
+  interested_count: number;
+  liked_count: number;
 }
 
 const CATEGORIES = ["一般", "道具", "收藏品", "服飾", "票券", "特殊"];
+
+const SELLER_NAMES = [
+  "神奇寶貝收藏家 小智", "寶可夢獵人 J", "阿羅拉訓練家 瑪奧",
+  "卡洛斯老店 老闆", "合眾收藏家 鳴依", "豐緣冒險家 小悠",
+  "關都訓練師 小茂", "城都遺跡守護者", "神奧研究員 竹蘭",
+  "帕底亞留學生", "伽勒爾道館主 彩豆", "野外調查員 小銀",
+  "對戰塔冠軍 米可利", "華藍道館主 小霞", "寶可夢飼育家 阿蜜",
+  "古代遺跡探索者", "未白鎮新手訓練家", "圓朱市靈媒",
+  "流星瀑布守護人", "冠軍之路登山客",
+];
+
+function randomSellerName(): string {
+  return SELLER_NAMES[Math.floor(Math.random() * SELLER_NAMES.length)];
+}
 
 export default function AdminStorePage() {
   const [products, setProducts] = useState<ShopProduct[]>([]);
@@ -28,8 +45,11 @@ export default function AdminStorePage() {
     price: 0,
     image_url: "",
     category: "一般",
-    stock: -1,
+    stock: 1,
     is_active: true,
+    seller_name: "",
+    interested_count: 0,
+    liked_count: 0,
   });
 
   const fetchProducts = useCallback(async () => {
@@ -50,8 +70,11 @@ export default function AdminStorePage() {
       price: 0,
       image_url: "",
       category: "一般",
-      stock: -1,
+      stock: 1,
       is_active: true,
+      seller_name: "",
+      interested_count: 0,
+      liked_count: 0,
     });
     setEditingId(null);
     setShowAddForm(false);
@@ -66,6 +89,9 @@ export default function AdminStorePage() {
       category: product.category,
       stock: product.stock,
       is_active: product.is_active,
+      seller_name: product.seller_name || "",
+      interested_count: product.interested_count || 0,
+      liked_count: product.liked_count || 0,
     });
     setEditingId(product.id);
     setShowAddForm(true);
@@ -180,7 +206,7 @@ export default function AdminStorePage() {
               </div>
               <div>
                 <label className="block text-xs text-white/60 mb-1">
-                  庫存 (-1 = 無限)
+                  庫存 (1~3)
                 </label>
                 <input
                   type="number"
@@ -188,6 +214,45 @@ export default function AdminStorePage() {
                   onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
                   className="w-full px-3 py-2 rounded-lg bg-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                   min={-1}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-white/60 mb-1">刊登者</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={form.seller_name}
+                    onChange={(e) => setForm({ ...form, seller_name: e.target.value })}
+                    className="flex-1 px-3 py-2 rounded-lg bg-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                    placeholder="隨機或自訂名稱"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, seller_name: randomSellerName() })}
+                    className="px-3 py-2 rounded-lg bg-white/10 text-white/60 text-xs hover:bg-white/20 hover:text-white transition shrink-0"
+                  >
+                    🎲 隨機
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-white/60 mb-1">感興趣人數</label>
+                <input
+                  type="number"
+                  value={form.interested_count}
+                  onChange={(e) => setForm({ ...form, interested_count: Number(e.target.value) })}
+                  className="w-full px-3 py-2 rounded-lg bg-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  min={0}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-white/60 mb-1">按愛心人數</label>
+                <input
+                  type="number"
+                  value={form.liked_count}
+                  onChange={(e) => setForm({ ...form, liked_count: Number(e.target.value) })}
+                  className="w-full px-3 py-2 rounded-lg bg-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  min={0}
                 />
               </div>
             </div>
@@ -305,6 +370,16 @@ export default function AdminStorePage() {
                   <span>
                     庫存: {product.stock === -1 ? "無限" : product.stock}
                   </span>
+                  {product.seller_name && (
+                    <span>👤 {product.seller_name}</span>
+                  )}
+                  {(product.interested_count > 0 || product.liked_count > 0) && (
+                    <span>
+                      {product.interested_count > 0 && `👀 ${product.interested_count}`}
+                      {product.interested_count > 0 && product.liked_count > 0 && " · "}
+                      {product.liked_count > 0 && `❤️ ${product.liked_count}`}
+                    </span>
+                  )}
                 </div>
               </div>
 

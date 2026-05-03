@@ -12,6 +12,9 @@ interface ShopProduct {
   category: string;
   stock: number;
   is_active: boolean;
+  seller_name: string | null;
+  interested_count: number;
+  liked_count: number;
 }
 
 function formatPrice(price: number) {
@@ -172,6 +175,23 @@ export default function StoreContent() {
                     </p>
                   )}
 
+                  {/* 刊登者 */}
+                  {product.seller_name && (
+                    <p className="text-white/40 text-[11px] mt-2">
+                      👤 {product.seller_name}
+                    </p>
+                  )}
+
+                  {/* 感興趣 & 愛心 */}
+                  <div className="flex items-center gap-3 mt-2 text-[11px] text-white/50">
+                    {product.interested_count > 0 && (
+                      <span>👀 {product.interested_count} 人感興趣</span>
+                    )}
+                    {product.liked_count > 0 && (
+                      <span>❤️ {product.liked_count}</span>
+                    )}
+                  </div>
+
                   {/* 庫存 + 價格 */}
                   <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/10">
                     <div>
@@ -278,6 +298,22 @@ export default function StoreContent() {
                     : "已售罄"}
                 </span>
               </div>
+              {selectedItem.seller_name && (
+                <div className="flex justify-between py-2 border-b border-white/10">
+                  <span className="text-white/50">刊登者</span>
+                  <span className="text-white">{selectedItem.seller_name}</span>
+                </div>
+              )}
+            </div>
+
+            {/* 感興趣 & 愛心 */}
+            <div className="flex items-center gap-4 mt-4 text-sm">
+              {selectedItem.interested_count > 0 && (
+                <span className="text-white/50">👀 {selectedItem.interested_count} 人感興趣</span>
+              )}
+              {selectedItem.liked_count > 0 && (
+                <span className="text-white/50">❤️ {selectedItem.liked_count}</span>
+              )}
             </div>
 
             {/* 加入購物車 */}
