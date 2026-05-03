@@ -4,7 +4,7 @@ import { ANNIVERSARY_30TH_EVENT_ID, ANNIVERSARY_30TH_SLUG } from "@/lib/annivers
 
 export const dynamic = "force-dynamic";
 
-export async function POST(request: Request) {
+export async function POST() {
   const supabase = createServerSupabaseClient();
   const adminSupabase = createAdminSupabaseClient();
   const {
@@ -13,15 +13,6 @@ export async function POST(request: Request) {
 
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  // 解析邀請碼
-  let inviteCode: string | undefined;
-  try {
-    const body = await request.json();
-    inviteCode = body.inviteCode;
-  } catch {
-    // no body — ok
   }
 
   const { data: campaign, error: campaignError } = await adminSupabase
@@ -49,49 +40,14 @@ export async function POST(request: Request) {
   }
 
   if (!existingRegistration) {
-    // 驗證邀請碼
-    let invitedByUserId: string | null = null;
-    if (inviteCode) {
-      const code = inviteCode.trim().toUpperCase();
-
-      // 不允許用自己的邀請碼
-      const { data: myProfile } = await adminSupabase
-        .from("profiles")
-        .select("invitation_code")
-        .eq("id", session.user.id)
-        .single();
-
-      if (myProfile?.invitation_code === code) {
-        return NextResponse.json({ error: "不能使用自己的邀請碼喔！" }, { status: 400 });
-      }
-
-      // 查找邀請人
-      const { data: inviter } = await adminSupabase
-        .from("profiles")
-        .select("id")
-        .eq("invitation_code", code)
-        .single();
-
-      if (!inviter) {
-        return NextResponse.json({ error: "找不到這個邀請碼，請確認後再試" }, { status: 400 });
-      }
-
-      invitedByUserId = inviter.id;
-    }
-
-    const insertPayload: Record<string, unknown> = {
-      event_id: eventId,
-      user_id: session.user.id,
-      status: "pending",
-      registered_at: now,
-    };
-    if (invitedByUserId) {
-      insertPayload.invited_by_user_id = invitedByUserId;
-    }
-
     const { error: registrationError } = await adminSupabase
       .from("registrations")
-      .insert(insertPayload);
+      .insert({
+        event_id: eventId,
+        user_id: session.user.id,
+        status: "pending",
+        registered_at: now,
+      });
 
     if (registrationError) {
       return NextResponse.json({ error: registrationError.message }, { status: 500 });
