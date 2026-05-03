@@ -379,6 +379,11 @@ export function Anniversary30thBattleConsole({
   const activeOpponent = getActivePokemon(opponentTeam, liveBattleState?.opponent.activeIndex);
   const playerMeta = getPartnerMeta(activePlayer?.id, partnerPokemon);
   const opponentMeta = getOpponentMeta(activeOpponent?.id, battle);
+  const activeMoves = useMemo(() => {
+    const pokemonMoves = PARTNER_POKEMON_POOL.find(p => p.id === activePlayer?.id)?.moves;
+    if (!pokemonMoves) return RETRO_BATTLE_MOVES;
+    return RETRO_BATTLE_MOVES.filter(move => pokemonMoves.includes(move.id));
+  }, [activePlayer?.id]);
   const playerSprite = getPokemonSpriteUrl(playerMeta.sprite);
   const opponentSprite = getPokemonSpriteUrl(opponentMeta.spriteId);
   const playerHp = activePlayer?.hp ?? resolution?.playerHp ?? 100;
@@ -925,7 +930,7 @@ export function Anniversary30thBattleConsole({
                           <span className="border-2 border-slate-950 px-2 py-1 text-slate-400">RUN</span>
                         </div>
                         <div className="grid gap-2 sm:grid-cols-2">
-                          {RETRO_BATTLE_MOVES.map((move) => {
+                          {activeMoves.map((move) => {
                             const ppRemaining = liveBattleState?.player.pp[move.id] ?? RETRO_MOVE_PP[move.id];
                             const submittingMove = submittingAction?.startsWith(`${move.id}:`) ?? false;
                             const disabled = submittingAction !== null || ppRemaining <= 0 || timerExpired;
