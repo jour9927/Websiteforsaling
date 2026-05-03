@@ -26,6 +26,7 @@ import { Anniversary30thJoinPanel } from "@/components/Anniversary30thJoinPanel"
 import { Anniversary30thPartnerSelect } from "@/components/Anniversary30thPartnerSelect";
 import { RandomDistributionLiveStats } from "@/components/RandomDistributionLiveStats";
 import { RandomDistributionCompensationChoice } from "@/components/RandomDistributionCompensationChoice";
+import InviteCodeCopyButton from "@/app/events/[id]/InviteCodeCopyButton";
 
 export const dynamic = "force-dynamic";
 
@@ -229,6 +230,17 @@ export default async function Anniversary30thPage() {
   } = await supabase.auth.getUser();
 
   const { campaign, participant, completedBattleCount, compensationChoice, stats } = await loadPageState(user?.id);
+
+  // 取得使用者邀請碼
+  let userInviteCode: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('invitation_code')
+      .eq('id', user.id)
+      .single();
+    userInviteCode = profile?.invitation_code || null;
+  }
   const startsAt = campaign?.starts_at || ANNIVERSARY_30TH_STARTS_AT;
   const endsAt = campaign?.ends_at || ANNIVERSARY_30TH_ENDS_AT;
   const battlesPerDay = campaign?.battles_per_day || ANNIVERSARY_30TH_BATTLES_PER_DAY;
@@ -304,6 +316,19 @@ export default async function Anniversary30thPage() {
         highestWinStreak={stats.highestWinStreak}
         anchorIso={startsAt}
       />
+
+      {/* 邀請碼 */}
+      {user && userInviteCode && (
+        <section className="rounded-lg border border-dashed border-amber-500/30 bg-amber-500/5 p-5 max-w-md">
+          <p className="text-xs text-amber-300/80 mb-2">🎁 你的邀請碼 — 分享給朋友，活動結束有機會獲得驚喜！</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-center text-lg font-mono font-bold tracking-widest text-amber-400">
+              {userInviteCode}
+            </code>
+            <InviteCodeCopyButton code={userInviteCode} />
+          </div>
+        </section>
+      )}
 
       {!user ? (
         <section className="rounded-lg border border-amber-300/20 bg-black/30 p-8 text-center">
