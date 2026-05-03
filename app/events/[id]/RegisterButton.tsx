@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 export default function RegisterButton({ eventId, isPreRegistration = false }: { eventId: string; isPreRegistration?: boolean }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [inviteError, setInviteError] = useState("");
   const router = useRouter();
 
   const handleRegister = async () => {
@@ -71,20 +73,49 @@ export default function RegisterButton({ eventId, isPreRegistration = false }: {
         }
       }
 
+      // 驗證邀請碼（如有輸入）
+      let invitedByUserId: string | null = null;
+      if (inviteCode.trim()) {
+        // 不允許用自己的邀請碼
+        const { data: myProfile } = await supabase
+          .from('profiles')
+          .select('invitation_code')
+          .eq('id', user.id)
+          .single();
+        
+        if (myProfile?.invitation_code === inviteCode.trim().toUpperCase()) {
+          setInviteError("不能使用自己的邀請碼喔！");
+          return;
+        }
+
+        // 查找邀請人
+        const { data: inviter } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('invitation_code', inviteCode.trim().toUpperCase())
+          .single();
+
+        if (!inviter) {
+          setInviteError("找不到這個邀請碼，請確認後再試");
+          return;
+        }
+
+        invitedByUserId = inviter.id;
+      }
+
       // 建立報名記錄
-      console.log('準備插入報名記錄:', {
+      const insertPayload: Record<string, unknown> = {
         event_id: eventId,
         user_id: user.id,
-        status: 'pending'
-      });
+        status: 'pending',
+      };
+      if (invitedByUserId) {
+        insertPayload.invited_by_user_id = invitedByUserId;
+      }
 
       const { data: insertData, error: insertError } = await supabase
         .from('registrations')
-        .insert([{
-          event_id: eventId,
-          user_id: user.id,
-          status: 'pending'
-        }])
+        .insert([insertPayload])
         .select();
 
       console.log('插入結果:', { insertData, insertError });
@@ -108,6 +139,25 @@ export default function RegisterButton({ eventId, isPreRegistration = false }: {
 
   return (
     <div className="space-y-2">
+      {/* 邀請碼輸入 */}
+      <div className="space-y-1">
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={inviteCode}
+            onChange={(e) => { setInviteCode(e.target.value); setInviteError(""); }}
+            placeholder="輸入邀請碼（選填）"
+            disabled={loading}
+            className="flex-1 rounded-lg bg-white/10 border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-amber-500/50 disabled:opacity-50"
+            maxLength={20}
+            autoComplete="off"
+          />
+        </div>
+        {inviteError && (
+          <p className="text-xs text-red-300">{inviteError}</p>
+        )}
+      </div>
+
       <button
         onClick={handleRegister}
         disabled={loading}

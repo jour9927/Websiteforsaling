@@ -5,6 +5,7 @@ import { createServerSupabaseClient } from "@/lib/auth";
 import RegisterButton from "./RegisterButton";
 import { ShareLinkButton } from "./ShareLinkButton";
 import EventComments from "./EventComments";
+import InviteCodeCopyButton from "./InviteCodeCopyButton";
 
 type EventPageProps = {
   params: { id: string };
@@ -61,6 +62,8 @@ export default async function EventPage({ params }: EventPageProps) {
 
   // 檢查用戶是否已報名
   let userRegistration = null;
+  let userInviteCode: string | null = null;
+  let invitedOthersCount = 0;
   if (user) {
     const { data } = await supabase
       .from('registrations')
@@ -69,6 +72,22 @@ export default async function EventPage({ params }: EventPageProps) {
       .eq('user_id', user.id)
       .single();
     userRegistration = data;
+
+    // 取得使用者邀請碼
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('invitation_code')
+      .eq('id', user.id)
+      .single();
+    userInviteCode = profile?.invitation_code || null;
+
+    // 檢查用戶邀請了幾個人到此活動
+    const { count } = await supabase
+      .from('registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_id', params.id)
+      .eq('invited_by_user_id', user.id);
+    invitedOthersCount = count || 0;
   }
 
   const remainingSlots = event.max_participants ? event.max_participants - totalRegistrationCount : null;
@@ -296,6 +315,40 @@ export default async function EventPage({ params }: EventPageProps) {
 
           {/* 分享按鈕 */}
           <ShareLinkButton />
+
+          {/* 邀請碼 */}
+          {user && userInviteCode && (
+            <div className="mt-2 rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5 p-4">
+              <p className="text-xs text-amber-300/80 mb-2">🎁 你的邀請碼 — 分享給朋友，活動結束有機會獲得驚喜！</p>
+              <div className="flex items-center gap-2">
+                <code className="flex-1 rounded-lg bg-white/10 px-3 py-2 text-center text-lg font-mono font-bold tracking-widest text-amber-400">
+                  {userInviteCode}
+                </code>
+                <InviteCodeCopyButton code={userInviteCode} />
+              </div>
+            </div>
+          )}
+
+          {/* 活動結束後的驚喜抽獎 */}
+          {isEnded && user && userRegistration && (
+            (userRegistration.invited_by_user_id || invitedOthersCount > 0) && (
+              <div className="mt-2 rounded-xl border border-dashed border-pink-500/40 bg-pink-500/10 p-4">
+                <p className="text-xs text-pink-300/90 mb-1">🎁 邀請碼驚喜</p>
+                {userRegistration.invited_by_user_id && (
+                  <p className="text-xs text-pink-200/70 mb-2">你使用了邀請碼報名，獲得驚喜抽獎資格！</p>
+                )}
+                {invitedOthersCount > 0 && (
+                  <p className="text-xs text-pink-200/70 mb-2">你的邀請碼被 {invitedOthersCount} 人使用，獲得驚喜抽獎資格！</p>
+                )}
+                <Link
+                  href={`/events/${params.id}/invite-surprise` as Route}
+                  className="block rounded-lg bg-gradient-to-r from-pink-500/60 to-purple-500/60 px-4 py-2 text-center text-sm font-semibold text-white transition hover:from-pink-500/80 hover:to-purple-500/80"
+                >
+                  🎁 領取驚喜
+                </Link>
+              </div>
+            )
+          )}
         </aside>
       </section>
 
