@@ -8,6 +8,8 @@ export function Anniversary30thJoinPanel() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [inviteError, setInviteError] = useState("");
 
   async function handleJoin() {
     setSubmitting(true);
@@ -20,6 +22,7 @@ export function Anniversary30thJoinPanel() {
         headers: {
           "Content-Type": "application/json",
         },
+        body: JSON.stringify({ inviteCode: inviteCode.trim() || undefined }),
       });
 
       const payload = await response.json();
@@ -49,6 +52,23 @@ export function Anniversary30thJoinPanel() {
 
       {error ? <p className="mt-4 text-sm text-rose-300">{error}</p> : null}
       {success ? <p className="mt-4 text-sm text-emerald-300">{success}</p> : null}
+
+      {/* 邀請碼輸入 */}
+      <div className="mt-4">
+        <input
+          type="text"
+          value={inviteCode}
+          onChange={(e) => { setInviteCode(e.target.value); setInviteError(""); }}
+          placeholder="輸入邀請碼（選填）"
+          disabled={submitting}
+          className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-amber-500/50 disabled:opacity-50"
+          maxLength={20}
+          autoComplete="off"
+        />
+        {inviteError && (
+          <p className="mt-1 text-xs text-rose-300">{inviteError}</p>
+        )}
+      </div>
 
       <button
         type="button"
