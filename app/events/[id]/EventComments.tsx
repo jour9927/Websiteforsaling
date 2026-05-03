@@ -230,6 +230,8 @@ export default function EventComments({ eventTitle }: Props) {
     }));
 
     const hiddenLabel = `以下還有 130 則留言...`;
+    const isLugia = eventTitle?.includes("暗影洛奇亞");
+    const maxHeight = isLugia ? "max-h-[1400px]" : "max-h-[800px]";
 
     return (
         <div className="glass-card mt-8 p-6">
@@ -238,7 +240,7 @@ export default function EventComments({ eventTitle }: Props) {
             </h3>
             
             <div className="relative">
-                <div className="space-y-4 max-h-[800px] overflow-hidden">
+                <div className={`space-y-4 ${maxHeight} overflow-hidden`}>
                     {staticComments.map(comment => (
                         <div key={comment.id}>
                             <div className="flex gap-3 animate-fade-in">
