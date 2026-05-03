@@ -49,9 +49,11 @@ export default function ProfileForm({ user, profile, isRealNameSubmitted }: Prof
   });
   const [realName, setRealName] = useState(profile?.real_name || "");
   const [realNameKana, setRealNameKana] = useState(profile?.real_name_kana || "");
-  const [ownedGames, setOwnedGames] = useState<string[]>(profile?.owned_games || []);
   const [realNameSaving, setRealNameSaving] = useState(false);
   const [realNameMsg, setRealNameMsg] = useState("");
+  const [gameRegMsg, setGameRegMsg] = useState<Record<string, string>>({});
+  const [gameRegLoading, setGameRegLoading] = useState<Record<string, boolean>>({});
+  const registeredGames: string[] = profile?.owned_games || [];
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -62,12 +64,6 @@ export default function ProfileForm({ user, profile, isRealNameSubmitted }: Prof
     { id: "bdsp", zh: "珍鑽", en: "Brilliant Diamond/Shining Pearl", ja: "ブリリアントダイヤモンド・シャイニングパール" },
     { id: "lets_go", zh: "皮伊", en: "Let's Go Pikachu/Eevee", ja: "Let's Go ピカチュウ・イーブイ" },
   ];
-
-  const toggleGame = (gameId: string) => {
-    setOwnedGames((prev) =>
-      prev.includes(gameId) ? prev.filter((g) => g !== gameId) : [...prev, gameId]
-    );
-  };
 
   const handleRealNameSave = async () => {
     if (!realName.trim()) {
@@ -84,7 +80,6 @@ export default function ProfileForm({ user, profile, isRealNameSubmitted }: Prof
         body: JSON.stringify({
           real_name: realName.trim(),
           real_name_kana: realNameKana.trim() || null,
-          owned_games: ownedGames,
         }),
       });
 
@@ -99,6 +94,31 @@ export default function ProfileForm({ user, profile, isRealNameSubmitted }: Prof
       setRealNameMsg("系統異常，請稍後再試");
     } finally {
       setRealNameSaving(false);
+    }
+  };
+
+  const handleGameRegister = async (gameId: string) => {
+    setGameRegLoading((prev) => ({ ...prev, [gameId]: true }));
+    setGameRegMsg((prev) => ({ ...prev, [gameId]: "" }));
+
+    try {
+      const res = await fetch("/api/profile/register-game", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ game_id: gameId }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setGameRegMsg((prev) => ({ ...prev, [gameId]: data.message || "登記成功！" }));
+        router.refresh();
+      } else {
+        setGameRegMsg((prev) => ({ ...prev, [gameId]: data.error || "登記失敗" }));
+      }
+    } catch {
+      setGameRegMsg((prev) => ({ ...prev, [gameId]: "系統異常，請稍後再試" }));
+    } finally {
+      setGameRegLoading((prev) => ({ ...prev, [gameId]: false }));
     }
   };
 
@@ -237,9 +257,9 @@ export default function ProfileForm({ user, profile, isRealNameSubmitted }: Prof
           )}
         </div>
         <p className="text-xs text-amber-200/60 mb-4">
-          此為入群基本要求。你的名字會顯示在社群成員列表中。
+          此為成為群內成員的必經之路。請填寫你的真實名字。
           <br />
-          <span className="text-amber-400/80">5/30 前完成填寫可申請獎勵！</span>
+          <span className="text-amber-400/80">你的名字會顯示在社群成員列表中。</span>
         </p>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -275,37 +295,6 @@ export default function ProfileForm({ user, profile, isRealNameSubmitted }: Prof
           </label>
         </div>
 
-        {/* 持有遊戲 */}
-        <div className="mt-4">
-          <p className="text-sm text-slate-200/80 mb-2">
-            🎮 持有的寶可夢遊戲 <span className="text-xs text-white/40">（複選）</span>
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {GAMES.map((game) => {
-              const selected = ownedGames.includes(game.id);
-              return (
-                <button
-                  key={game.id}
-                  type="button"
-                  onClick={() => toggleGame(game.id)}
-                  disabled={isRealNameSubmitted}
-                  className={`rounded-lg px-3 py-2 text-xs transition border ${
-                    selected
-                      ? "border-amber-400/60 bg-amber-500/20 text-amber-300"
-                      : "border-white/10 bg-white/5 text-white/50 hover:border-white/30 hover:text-white/70"
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  <span className="font-medium">{game.zh}</span>
-                  <span className="mx-1 text-white/30">/</span>
-                  <span className="text-white/40 text-[10px]">{game.en}</span>
-                  <span className="mx-1 text-white/20">/</span>
-                  <span className="text-white/30 text-[10px]">{game.ja}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
         {realNameMsg && (
           <div
             className={`mt-4 rounded-xl px-4 py-3 text-sm ${
@@ -328,6 +317,58 @@ export default function ProfileForm({ user, profile, isRealNameSubmitted }: Prof
             {realNameSaving ? "提交中..." : "提交實名資料"}
           </button>
         )}
+      </div>
+
+      {/* 遊戲版本登記 */}
+      <div className="mb-8 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <h2 className="text-lg font-semibold text-emerald-300">🎮 遊戲版本登記</h2>
+        </div>
+        <p className="text-xs text-emerald-200/60 mb-4">
+          每個遊戲版本可各登記一次。5/30 前完成登記可獲得獎勵！
+        </p>
+
+        <div className="space-y-3">
+          {GAMES.map((game) => {
+            const registered = registeredGames.includes(game.id);
+            const msg = gameRegMsg[game.id];
+            const loading = gameRegLoading[game.id];
+            return (
+              <div
+                key={game.id}
+                className={`rounded-xl border p-4 flex items-center justify-between gap-3 ${
+                  registered
+                    ? "border-green-500/30 bg-green-500/5"
+                    : "border-white/10 bg-white/5"
+                }`}
+              >
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-white">{game.zh}</p>
+                  <p className="text-[11px] text-white/40">
+                    {game.en} / {game.ja}
+                  </p>
+                  {msg && (
+                    <p className={`text-xs mt-1 ${msg.includes("成功") || msg.includes("獎勵") ? "text-green-300" : "text-red-300"}`}>
+                      {msg}
+                    </p>
+                  )}
+                </div>
+                {registered ? (
+                  <span className="shrink-0 rounded-full bg-green-500/20 px-3 py-1 text-xs text-green-300">✓ 已登記</span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleGameRegister(game.id)}
+                    disabled={loading}
+                    className="shrink-0 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2 text-xs font-semibold text-white transition hover:opacity-90 disabled:opacity-50"
+                  >
+                    {loading ? "登記中..." : "📋 登記"}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       <h2 className="mb-4 text-lg font-medium text-white/80">個人資料</h2>
