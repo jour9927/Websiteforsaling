@@ -231,7 +231,7 @@ export default async function ProfilePage() {
       </div>
 
       {/* 個人資料表單 */}
-      <ProfileForm user={user} profile={profile} />
+      <ProfileForm user={user} profile={profile} isRealNameSubmitted={!!profile?.real_name_submitted_at} />
     </div>
   );
 }
