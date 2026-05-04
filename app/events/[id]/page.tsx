@@ -231,7 +231,7 @@ export default async function EventPage({ params }: EventPageProps) {
                     已確認 <span className="text-lg font-semibold text-white">15</span>/15（第一梯次）
                   </p>
                   <p className="mt-0.5 text-sm text-white/60">
-                    已確認 <span className="text-lg font-semibold text-white/50">0</span>/15（第二梯次）<span className="text-xs text-emerald-400/70">🔥 開放中</span>
+                    已確認 <span className="text-lg font-semibold text-white/50">0</span>/15（第二梯次）<span className="text-xs text-amber-400/70">⏳ 延期至 6/16</span>
                   </p>
                 </>
               )
