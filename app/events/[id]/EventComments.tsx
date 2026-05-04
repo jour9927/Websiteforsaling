@@ -87,24 +87,24 @@ const SYLVEON_COMMENTS = [
 // ═══════════════════════════════════════════
 const SYLVEON_REPLIES: Record<number, { name: string; text: string; time: string }[]> = {
     0: [
-        { name: "謝**", text: "終於加開了！等好久 😭", time: "2026/5/4" },
-        { name: "趙**", text: "第二梯次再沒中就認了", time: "2026/5/4" },
+        { name: "謝**", text: "終於加開了！等好久 😭", time: "2026/5/5" },
+        { name: "趙**", text: "第二梯次再沒中就認了", time: "2026/5/5" },
     ],
     1: [
         { name: "徐**", text: "排除2隻算客氣了，至少不是只能排除1隻", time: "2026/5/2" },
     ],
     2: [
-        { name: "馬**", text: "第二梯次來啦！這次絕對要先卡位", time: "2026/5/4" },
-        { name: "朱**", text: "兩梯次加起來30個，希望不要再秒殺了", time: "2026/5/4" },
+        { name: "馬**", text: "第二梯次來啦！這次絕對要先卡位", time: "2026/5/5" },
+        { name: "朱**", text: "兩梯次加起來30個，希望不要再秒殺了", time: "2026/5/5" },
     ],
     3: [
-        { name: "胡**", text: "600多人搶30個起碼機率翻倍了", time: "2026/5/4" },
-        { name: "高**", text: "翻倍還是不到5%啊…但至少有進步", time: "2026/5/4" },
+        { name: "胡**", text: "600多人搶30個起碼機率翻倍了", time: "2026/5/5" },
+        { name: "高**", text: "翻倍還是不到5%啊…但至少有進步", time: "2026/5/5" },
     ],
     7: [
-        { name: "羅**", text: "第二梯次開放了，這次一定要把握機會", time: "2026/5/4" },
-        { name: "劉**", text: "沒中的快來集合，第二波衝刺", time: "2026/5/4" },
-        { name: "鄭**", text: "趁現在人還不多趕快預報名", time: "2026/5/4" },
+        { name: "羅**", text: "第二梯次開放了，這次一定要把握機會", time: "2026/5/5" },
+        { name: "劉**", text: "沒中的快來集合，第二波衝刺", time: "2026/5/5" },
+        { name: "鄭**", text: "趁現在人還不多趕快預報名", time: "2026/5/5" },
     ],
 };
 
@@ -225,7 +225,7 @@ export default function EventComments({ eventTitle }: Props) {
         id: i,
         name: FAKE_NAMES[i],
         text: comments[i],
-        time: "2026/5/4",
+        time: "2026/5/5 07:30",
         replies: replies[i] || [],
     }));
 
