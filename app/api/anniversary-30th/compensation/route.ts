@@ -10,7 +10,7 @@ import {
 
 export const dynamic = "force-dynamic";
 
-type CompensationChoice = "blindbox_discount_500" | "blindbox_discount_1000" | "shop_rebate_50" | "pokemon_choice_5";
+type CompensationChoice = "blindbox_discount_500" | "shop_rebate_50" | "pokemon_choice_5";
 
 type BackpackCompensationItem = {
   id: string;
@@ -23,7 +23,6 @@ type BackpackCompensationItem = {
 const COMPENSATION_NOTE = "隨機型伊布配布活動對戰積分重整補償";
 const COMPENSATION_ITEM_NAMES: Record<CompensationChoice, string> = {
   blindbox_discount_500: "500 元盲盒抵用券",
-  blindbox_discount_1000: "1000 元盲盒抵用券",
   shop_rebate_50: "商店消費報銷券（50%）",
   pokemon_choice_5: "寶可夢五選一補償券",
 };
@@ -31,7 +30,6 @@ const COMPENSATION_ITEM_NAMES: Record<CompensationChoice, string> = {
 function resolveCompensationChoice(item: BackpackCompensationItem | null): CompensationChoice | null {
   if (!item) return null;
   if (item.item_type === "blindbox_discount_500") return "blindbox_discount_500";
-  if (item.item_type === "blindbox_discount_1000") return "blindbox_discount_1000";
   if (item.item_type === "pokemon_choice_5") return "pokemon_choice_5";
   if (item.item_name.includes("50%")) return "shop_rebate_50";
   return null;
@@ -140,7 +138,6 @@ export async function POST(request: NextRequest) {
 
   if (
     choice !== "blindbox_discount_500" &&
-    choice !== "blindbox_discount_1000" &&
     choice !== "shop_rebate_50" &&
     choice !== "pokemon_choice_5"
   ) {
@@ -163,9 +160,7 @@ export async function POST(request: NextRequest) {
   const itemType =
     choice === "blindbox_discount_500"
       ? "blindbox_discount_500"
-      : choice === "blindbox_discount_1000"
-        ? "blindbox_discount_1000"
-        : choice === "pokemon_choice_5"
+      : choice === "pokemon_choice_5"
           ? "pokemon_choice_5"
           : "auction_fee_rebate_40";
   const { error: insertError } = await adminSupabase

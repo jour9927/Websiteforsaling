@@ -14,6 +14,20 @@ export const BACKPACK_ITEM_OPTIONS = [
     badgeClass: "bg-cyan-500/20 text-cyan-200",
   },
   {
+    type: "blindbox_discount_2000",
+    name: "盲盒折抵券 2000",
+    description: "購買盲盒可折抵 2000",
+    icon: "🎟️",
+    badgeClass: "bg-violet-500/20 text-violet-200",
+  },
+  {
+    type: "blindbox_discount_5000",
+    name: "盲盒折抵券 5000",
+    description: "購買盲盒可折抵 5000",
+    icon: "🎫",
+    badgeClass: "bg-pink-500/20 text-pink-200",
+  },
+  {
     type: "auction_fee_rebate_30",
     name: "競標費用報銷券（30%）",
     description: "競標結算後可報銷 30% 費用",
