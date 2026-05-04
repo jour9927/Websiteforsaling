@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 
-type CompensationChoice = "blindbox_discount_500" | "blindbox_discount_1000" | "blindbox_discount_2000" | "blindbox_discount_5000" | "shop_rebate_50" | "pokemon_choice_5";
+type CompensationChoice = "blindbox_discount_500" | "blindbox_discount_1000" | "shop_rebate_50" | "pokemon_choice_5";
 
 type ChoiceOption = {
   id: CompensationChoice;
@@ -22,18 +22,6 @@ const OPTIONS: ChoiceOption[] = [
     id: "blindbox_discount_1000",
     label: "B",
     title: "1000 元盲盒抵用券",
-    description: "適用於後續盲盒消費折抵。",
-  },
-  {
-    id: "blindbox_discount_2000",
-    label: "C",
-    title: "2000 元盲盒抵用券",
-    description: "適用於後續盲盒消費折抵。",
-  },
-  {
-    id: "blindbox_discount_5000",
-    label: "D",
-    title: "5000 元盲盒抵用券",
     description: "適用於後續盲盒消費折抵。",
   },
   {
