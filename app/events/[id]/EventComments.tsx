@@ -225,7 +225,7 @@ export default function EventComments({ eventTitle }: Props) {
         id: i,
         name: FAKE_NAMES[i],
         text: comments[i],
-        time: "2026/5/5 07:30",
+        time: "2026/5/5",
         replies: replies[i] || [],
     }));
 
