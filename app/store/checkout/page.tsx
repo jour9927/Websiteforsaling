@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
@@ -9,12 +9,38 @@ function formatPrice(price: number) {
   return `NT$ ${price.toLocaleString()}`;
 }
 
+type CouponItem = {
+  id: string;
+  item_name: string;
+  created_at: string;
+};
+
 export default function CheckoutPage() {
   const { items, totalAmount, clearCart } = useCart();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
+  const [coupons, setCoupons] = useState<CouponItem[]>([]);
+  const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null);
+  const [loadingCoupons, setLoadingCoupons] = useState(true);
+
+  const discountedAmount = selectedCouponId
+    ? Math.round(totalAmount * 0.5)
+    : totalAmount;
+
+  useEffect(() => {
+    fetch("/api/store/checkout/coupons")
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCoupons(data);
+          if (data.length > 0) setSelectedCouponId(data[0].id);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoadingCoupons(false));
+  }, []);
 
   if (items.length === 0) {
     return (
@@ -49,6 +75,7 @@ export default function CheckoutPage() {
           })),
           notes,
           total_amount: totalAmount,
+          coupon_item_id: selectedCouponId || null,
         }),
       });
 
@@ -110,12 +137,62 @@ export default function CheckoutPage() {
         </div>
 
         <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/10">
-          <span className="text-white/60">總計</span>
+          <span className="text-white/60">
+            {selectedCouponId ? (
+              <span>
+                原價 <span className="line-through">{formatPrice(totalAmount)}</span>
+              </span>
+            ) : (
+              "總計"
+            )}
+          </span>
           <span className="text-2xl font-bold text-amber-400">
-            {formatPrice(totalAmount)}
+            {formatPrice(discountedAmount)}
           </span>
         </div>
       </section>
+
+      {/* 50% 折價券 */}
+      {!loadingCoupons && coupons.length > 0 && (
+        <section className="glass-card p-6">
+          <h2 className="text-sm font-semibold text-white/70 mb-3">🎫 折價券</h2>
+          {coupons.map((c) => (
+            <label
+              key={c.id}
+              className={`flex items-center gap-3 rounded-xl border p-4 cursor-pointer transition ${
+                selectedCouponId === c.id
+                  ? "border-emerald-400/50 bg-emerald-500/10"
+                  : "border-white/10 bg-white/5 hover:border-white/20"
+              }`}
+            >
+              <input
+                type="radio"
+                name="coupon"
+                checked={selectedCouponId === c.id}
+                onChange={() => setSelectedCouponId(c.id)}
+                className="accent-emerald-400"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-white">{c.item_name}</p>
+                <p className="text-xs text-white/40">
+                  結帳金額享 50% 折扣
+                </p>
+              </div>
+              {selectedCouponId === c.id && (
+                <span className="text-xs text-emerald-400 font-semibold">使用中</span>
+              )}
+            </label>
+          ))}
+          {selectedCouponId && (
+            <button
+              onClick={() => setSelectedCouponId(null)}
+              className="mt-2 text-xs text-white/40 hover:text-white/70 transition"
+            >
+              不使用折價券
+            </button>
+          )}
+        </section>
+      )}
 
       {/* 備註 */}
       <section className="glass-card p-6">

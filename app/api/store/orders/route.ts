@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { items, notes, total_amount } = body;
+  const { items, notes, total_amount, coupon_item_id } = body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: "購物車為空" }, { status: 400 });
@@ -22,14 +22,48 @@ export async function POST(req: NextRequest) {
   // 使用 admin client 寫入（繞過 RLS INSERT 限制）
   const adminClient = createAdminSupabaseClient();
 
+  let discountedAmount = Number(total_amount);
+  let couponNote = "";
+
+  // 處理 50% 抵用券
+  if (coupon_item_id) {
+    const { data: coupon } = await adminClient
+      .from("backpack_items")
+      .select("id, item_type, item_name, is_active")
+      .eq("id", coupon_item_id)
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!coupon) {
+      return NextResponse.json({ error: "找不到該折價券" }, { status: 400 });
+    }
+
+    if (!coupon.is_active) {
+      return NextResponse.json({ error: "該折價券已使用" }, { status: 400 });
+    }
+
+    if (coupon.item_name !== "商店消費報銷券（50%）") {
+      return NextResponse.json({ error: "該折價券不適用於商店消費" }, { status: 400 });
+    }
+
+    discountedAmount = Math.round(Number(total_amount) * 0.5);
+    couponNote = `（使用 50% 商店報銷券，原價 NT$ ${Number(total_amount).toLocaleString()}）`;
+
+    // 標記折價券為已使用
+    await adminClient
+      .from("backpack_items")
+      .update({ is_active: false })
+      .eq("id", coupon_item_id);
+  }
+
   // 建立訂單
   const { data: order, error: orderError } = await adminClient
     .from("shop_orders")
     .insert({
       user_id: user.id,
       status: "pending",
-      total_amount: Number(total_amount),
-      notes: notes ?? "",
+      total_amount: discountedAmount,
+      notes: [notes ?? "", couponNote].filter(Boolean).join(" ").trim(),
     })
     .select()
     .single();
