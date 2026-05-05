@@ -28,12 +28,12 @@ export const UNLOCK_LEGENDARY_TOTAL_WINS = 15; // 總贏15場 → 傳說寶可�
 
 // ─── Partner Pokémon Selection Pool ───
 export const PARTNER_POKEMON_POOL = [
-  { id: "pikachu", name: "皮卡丘", sprite: "25", color: "#F5D442", moves: ["thunderbolt", "quick-attack", "swift"] as RetroMoveId[] },
-  { id: "eevee", name: "伊布", sprite: "133", color: "#C4A76A", moves: ["tackle", "quick-attack", "swift"] as RetroMoveId[] },
-  { id: "charmander", name: "小火龍", sprite: "4", color: "#F08030", moves: ["flamethrower", "tackle", "sand-attack"] as RetroMoveId[] },
-  { id: "squirtle", name: "傑尼龜", sprite: "7", color: "#6890F0", moves: ["water-gun", "tackle", "swift"] as RetroMoveId[] },
-  { id: "bulbasaur", name: "妙蛙種子", sprite: "1", color: "#78C850", moves: ["vine-whip", "tackle", "quick-attack"] as RetroMoveId[] },
-  { id: "jigglypuff", name: "胖丁", sprite: "39", color: "#EE99AC", moves: ["psychic", "swift", "sand-attack"] as RetroMoveId[] },
+  { id: "pikachu", name: "皮卡丘", sprite: "25", color: "#F5D442", moves: ["thunderbolt", "quick-attack", "swift", "tackle"] as RetroMoveId[] },
+  { id: "eevee", name: "伊布", sprite: "133", color: "#C4A76A", moves: ["tackle", "quick-attack", "swift", "sand-attack"] as RetroMoveId[] },
+  { id: "charmander", name: "小火龍", sprite: "4", color: "#F08030", moves: ["flamethrower", "tackle", "sand-attack", "swift"] as RetroMoveId[] },
+  { id: "squirtle", name: "傑尼龜", sprite: "7", color: "#6890F0", moves: ["water-gun", "tackle", "swift", "quick-attack"] as RetroMoveId[] },
+  { id: "bulbasaur", name: "妙蛙種子", sprite: "1", color: "#78C850", moves: ["vine-whip", "tackle", "quick-attack", "swift"] as RetroMoveId[] },
+  { id: "jigglypuff", name: "胖丁", sprite: "39", color: "#EE99AC", moves: ["psychic", "swift", "sand-attack", "tackle"] as RetroMoveId[] },
 ] as const;
 
 export type PartnerPokemonId = (typeof PARTNER_POKEMON_POOL)[number]["id"];
