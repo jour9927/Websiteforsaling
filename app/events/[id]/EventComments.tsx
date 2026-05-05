@@ -248,9 +248,8 @@ export default function EventComments({ eventTitle }: Props) {
                                     {comment.name.slice(0, 1)}
                                 </div>
                                 <div className="flex-1 rounded-2xl rounded-tl-none bg-white/5 px-4 py-3">
-                                    <div className="flex items-center justify-between mb-1">
+                                    <div className="mb-1">
                                         <span className="text-sm font-medium text-white/80">{comment.name}</span>
-                                        <span className="text-xs text-white/40">{comment.time}</span>
                                     </div>
                                     <p className="text-sm text-white/70">{comment.text}</p>
                                 </div>
@@ -264,9 +263,8 @@ export default function EventComments({ eventTitle }: Props) {
                                                 {reply.name.slice(0, 1)}
                                             </div>
                                             <div className="flex-1 rounded-xl bg-white/[0.03] px-3 py-2">
-                                                <div className="flex items-center justify-between mb-0.5">
+                                                <div className="mb-0.5">
                                                     <span className="text-xs font-medium text-white/60">{reply.name}</span>
-                                                    <span className="text-[10px] text-white/30">{reply.time}</span>
                                                 </div>
                                                 <p className="text-xs text-white/50">{reply.text}</p>
                                             </div>
