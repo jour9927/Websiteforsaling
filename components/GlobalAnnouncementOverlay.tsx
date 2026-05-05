@@ -129,7 +129,7 @@ export default function GlobalAnnouncementOverlay() {
                             {announcement.title}
                         </h2>
 
-                        <div className="mb-6 text-sm leading-relaxed text-white/70 whitespace-pre-wrap max-h-60 overflow-y-auto">
+                        <div className="mb-6 text-sm leading-relaxed text-white/70 whitespace-pre-wrap">
                             {announcement.content}
                         </div>
 
