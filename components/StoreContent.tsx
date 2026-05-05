@@ -62,6 +62,15 @@ export default function StoreContent() {
     });
   }, [products, selectedCategory, searchQuery]);
 
+  const availableProducts = useMemo(
+    () => filtered.filter((p) => p.stock !== 0),
+    [filtered],
+  );
+  const soldOutProducts = useMemo(
+    () => filtered.filter((p) => p.stock === 0),
+    [filtered],
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-32">
@@ -137,101 +146,195 @@ export default function StoreContent() {
           <p className="text-white/30 text-sm mt-2">敬請期待新商品上架！</p>
         </div>
       ) : (
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filtered.map((product) => (
-            <div
-              key={product.id}
-              onClick={() => setSelectedItem(product)}
-              className="glass-card overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg border border-white/10"
-            >
-              <div className="p-5 bg-gradient-to-br from-white/[0.03] to-white/[0.01]">
-                {/* 商品圖片 */}
-                <div className="w-full h-40 rounded-xl bg-white/5 flex items-center justify-center mb-4 overflow-hidden">
-                  {product.image_url ? (
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
-                  ) : (
-                    <span className="text-4xl opacity-30">🏪</span>
-                  )}
-                </div>
-
-                {/* 商品資訊 */}
-                <div>
-                  <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-white font-semibold text-lg leading-tight">
-                      {product.name}
-                    </h3>
-                    <span className="shrink-0 px-2 py-0.5 rounded text-[10px] bg-white/10 text-white/60">
-                      {product.category}
-                    </span>
-                  </div>
-                  {product.description && (
-                    <p className="text-white/50 text-sm mt-1 line-clamp-2">
-                      {product.description}
-                    </p>
-                  )}
-
-                  {/* 刊登者 */}
-                  {product.seller_name && (
-                    <p className="text-white/40 text-[11px] mt-2">
-                      👤 {product.seller_name}
-                    </p>
-                  )}
-
-                  {/* 感興趣 & 愛心 */}
-                  <div className="flex items-center gap-3 mt-2 text-[11px] text-white/50">
-                    {product.interested_count > 0 && (
-                      <span>👀 {product.interested_count} 人感興趣</span>
-                    )}
-                    {product.liked_count > 0 && (
-                      <span>❤️ {product.liked_count}</span>
-                    )}
-                  </div>
-
-                  {/* 庫存 + 價格 */}
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/10">
-                    <div>
-                      {product.stock === -1 ? (
-                        <span className="text-xs text-emerald-400/80">無限庫存</span>
-                      ) : product.stock > 0 ? (
-                        <span className="text-xs text-white/50">
-                          庫存 {product.stock}
-                        </span>
+        <>
+          {/* 可購買商品 */}
+          {availableProducts.length > 0 && (
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {availableProducts.map((product) => (
+                <div
+                  key={product.id}
+                  onClick={() => setSelectedItem(product)}
+                  className="glass-card overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg border border-white/10"
+                >
+                  <div className="p-5 bg-gradient-to-br from-white/[0.03] to-white/[0.01]">
+                    {/* 商品圖片 */}
+                    <div className="relative w-full h-40 rounded-xl bg-white/5 flex items-center justify-center mb-4 overflow-hidden">
+                      {product.image_url ? (
+                        <img
+                          src={product.image_url}
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                          referrerPolicy="no-referrer"
+                        />
                       ) : (
-                        <span className="text-xs text-red-400/80">已售罄</span>
+                        <span className="text-4xl opacity-30">🏪</span>
                       )}
                     </div>
-                    <span className="text-lg font-bold text-amber-400">
-                      {formatPrice(product.price)}
-                    </span>
-                  </div>
 
-                  {/* 加入購物車 */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addItem({
-                        productId: product.id,
-                        name: product.name,
-                        price: product.price,
-                        image_url: product.image_url,
-                        stock: product.stock,
-                      });
-                    }}
-                    disabled={product.stock === 0}
-                    className="mt-3 w-full rounded-lg bg-amber-500 py-2 text-xs font-bold text-black hover:bg-amber-400 transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    {product.stock === 0 ? "已售罄" : "🛒 加入購物車"}
-                  </button>
+                    {/* 商品資訊 */}
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <h3 className="text-white font-semibold text-lg leading-tight">
+                          {product.name}
+                        </h3>
+                        <span className="shrink-0 px-2 py-0.5 rounded text-[10px] bg-white/10 text-white/60">
+                          {product.category}
+                        </span>
+                      </div>
+                      {product.description && (
+                        <p className="text-white/50 text-sm mt-1 line-clamp-2">
+                          {product.description}
+                        </p>
+                      )}
+
+                      {/* 刊登者 */}
+                      {product.seller_name && (
+                        <p className="text-white/40 text-[11px] mt-2">
+                          👤 {product.seller_name}
+                        </p>
+                      )}
+
+                      {/* 感興趣 & 愛心 */}
+                      <div className="flex items-center gap-3 mt-2 text-[11px] text-white/50">
+                        {product.interested_count > 0 && (
+                          <span>👀 {product.interested_count} 人感興趣</span>
+                        )}
+                        {product.liked_count > 0 && (
+                          <span>❤️ {product.liked_count}</span>
+                        )}
+                      </div>
+
+                      {/* 庫存 + 價格 */}
+                      <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/10">
+                        <div>
+                          {product.stock === -1 ? (
+                            <span className="text-xs text-emerald-400/80">無限庫存</span>
+                          ) : product.stock > 0 ? (
+                            <span className="text-xs text-white/50">
+                              庫存 {product.stock}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-red-400/80">已售罄</span>
+                          )}
+                        </div>
+                        <span className="text-lg font-bold text-amber-400">
+                          {formatPrice(product.price)}
+                        </span>
+                      </div>
+
+                      {/* 加入購物車 */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          addItem({
+                            productId: product.id,
+                            name: product.name,
+                            price: product.price,
+                            image_url: product.image_url,
+                            stock: product.stock,
+                          });
+                        }}
+                        disabled={product.stock === 0}
+                        className="mt-3 w-full rounded-lg bg-amber-500 py-2 text-xs font-bold text-black hover:bg-amber-400 transition active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        {product.stock === 0 ? "已售罄" : "🛒 加入購物車"}
+                      </button>
+                    </div>
+                  </div>
                 </div>
+              ))}
+            </section>
+          )}
+
+          {/* 已售罄商品 */}
+          {soldOutProducts.length > 0 && (
+            <section className="mt-10">
+              <div className="flex items-center gap-2 mb-4">
+                <h2 className="text-lg font-bold text-white/40">已售罄</h2>
+                <span className="text-xs text-white/30">({soldOutProducts.length})</span>
               </div>
-            </div>
-          ))}
-        </section>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {soldOutProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    onClick={() => setSelectedItem(product)}
+                    className="glass-card overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg border border-white/5 opacity-70"
+                  >
+                    <div className="p-5 bg-gradient-to-br from-white/[0.03] to-white/[0.01]">
+                      {/* 商品圖片 + 售罄標籤 */}
+                      <div className="relative w-full h-40 rounded-xl bg-white/5 flex items-center justify-center mb-4 overflow-hidden">
+                        {product.image_url ? (
+                          <img
+                            src={product.image_url}
+                            alt={product.name}
+                            className="w-full h-full object-cover"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <span className="text-4xl opacity-30">🏪</span>
+                        )}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <span className="px-4 py-1.5 rounded-full bg-red-500/80 text-white text-sm font-bold tracking-wide shadow-lg">
+                            已售罄
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 商品資訊 */}
+                      <div>
+                        <div className="flex items-start justify-between gap-2">
+                          <h3 className="text-white/60 font-semibold text-lg leading-tight">
+                            {product.name}
+                          </h3>
+                          <span className="shrink-0 px-2 py-0.5 rounded text-[10px] bg-white/5 text-white/40">
+                            {product.category}
+                          </span>
+                        </div>
+                        {product.description && (
+                          <p className="text-white/30 text-sm mt-1 line-clamp-2">
+                            {product.description}
+                          </p>
+                        )}
+
+                        {/* 刊登者 */}
+                        {product.seller_name && (
+                          <p className="text-white/30 text-[11px] mt-2">
+                            👤 {product.seller_name}
+                          </p>
+                        )}
+
+                        {/* 感興趣 & 愛心 */}
+                        <div className="flex items-center gap-3 mt-2 text-[11px] text-white/40">
+                          {product.interested_count > 0 && (
+                            <span>👀 {product.interested_count} 人感興趣</span>
+                          )}
+                          {product.liked_count > 0 && (
+                            <span>❤️ {product.liked_count}</span>
+                          )}
+                        </div>
+
+                        {/* 價格 */}
+                        <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
+                          <span className="text-xs text-red-400/60">已售罄</span>
+                          <span className="text-lg font-bold text-amber-400/60">
+                            {formatPrice(product.price)}
+                          </span>
+                        </div>
+
+                        <button
+                          disabled
+                          className="mt-3 w-full rounded-lg bg-white/5 py-2 text-xs font-bold text-white/30 cursor-not-allowed"
+                        >
+                          已售罄
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
 
       {/* 商品詳情 Modal */}
