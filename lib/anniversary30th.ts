@@ -28,12 +28,12 @@ export const UNLOCK_LEGENDARY_TOTAL_WINS = 15; // 總贏15場 → 傳說寶可�
 
 // ─── Partner Pokémon Selection Pool ───
 export const PARTNER_POKEMON_POOL = [
-  { id: "pikachu", name: "皮卡丘", sprite: "25", color: "#F5D442", moves: ["quick-attack", "swift", "sand-attack"] as RetroMoveId[] },
+  { id: "pikachu", name: "皮卡丘", sprite: "25", color: "#F5D442", moves: ["thunderbolt", "quick-attack", "swift"] as RetroMoveId[] },
   { id: "eevee", name: "伊布", sprite: "133", color: "#C4A76A", moves: ["tackle", "quick-attack", "swift"] as RetroMoveId[] },
-  { id: "charmander", name: "小火龍", sprite: "4", color: "#F08030", moves: ["tackle", "quick-attack", "sand-attack"] as RetroMoveId[] },
-  { id: "squirtle", name: "傑尼龜", sprite: "7", color: "#6890F0", moves: ["tackle", "swift", "sand-attack"] as RetroMoveId[] },
-  { id: "bulbasaur", name: "妙蛙種子", sprite: "1", color: "#78C850", moves: ["tackle", "quick-attack", "swift"] as RetroMoveId[] },
-  { id: "jigglypuff", name: "胖丁", sprite: "39", color: "#EE99AC", moves: ["quick-attack", "swift", "sand-attack"] as RetroMoveId[] },
+  { id: "charmander", name: "小火龍", sprite: "4", color: "#F08030", moves: ["flamethrower", "tackle", "sand-attack"] as RetroMoveId[] },
+  { id: "squirtle", name: "傑尼龜", sprite: "7", color: "#6890F0", moves: ["water-gun", "tackle", "swift"] as RetroMoveId[] },
+  { id: "bulbasaur", name: "妙蛙種子", sprite: "1", color: "#78C850", moves: ["vine-whip", "tackle", "quick-attack"] as RetroMoveId[] },
+  { id: "jigglypuff", name: "胖丁", sprite: "39", color: "#EE99AC", moves: ["psychic", "swift", "sand-attack"] as RetroMoveId[] },
 ] as const;
 
 export type PartnerPokemonId = (typeof PARTNER_POKEMON_POOL)[number]["id"];
@@ -231,6 +231,14 @@ export const RETRO_BATTLE_MOVES = [
   { id: "quick-attack", name: "電光一閃", power: 40, accuracy: 100, type: "一般" },
   { id: "swift", name: "高速星星", power: 60, accuracy: 100, type: "一般" },
   { id: "sand-attack", name: "潑沙", power: 20, accuracy: 90, type: "地面" },
+  { id: "thunderbolt", name: "十萬伏特", power: 55, accuracy: 100, type: "電" },
+  { id: "flamethrower", name: "噴射火焰", power: 55, accuracy: 100, type: "火" },
+  { id: "water-gun", name: "水槍", power: 40, accuracy: 100, type: "水" },
+  { id: "vine-whip", name: "飛葉快刀", power: 45, accuracy: 95, type: "草" },
+  { id: "shadow-ball", name: "暗影球", power: 50, accuracy: 100, type: "幽靈" },
+  { id: "ice-beam", name: "冰凍光束", power: 50, accuracy: 100, type: "冰" },
+  { id: "psychic", name: "精神強念", power: 50, accuracy: 100, type: "超能力" },
+  { id: "stomping-tantrum", name: "十萬馬力", power: 60, accuracy: 95, type: "地面" },
 ] as const;
 
 export type RetroMoveId = (typeof RETRO_BATTLE_MOVES)[number]["id"];
@@ -880,6 +888,14 @@ export const RETRO_MOVE_TYPE: Record<RetroMoveId, RetroType> = {
   "quick-attack": "Normal",
   swift: "Normal",
   "sand-attack": "Ground",
+  thunderbolt: "Electric",
+  flamethrower: "Fire",
+  "water-gun": "Water",
+  "vine-whip": "Grass",
+  "shadow-ball": "Ghost",
+  "ice-beam": "Ice",
+  psychic: "Psychic",
+  "stomping-tantrum": "Ground",
 };
 
 // PP 上限（Gen 1 真實值；預期未來改 UI 時讓 PP=0 disable 按鈕）
@@ -888,6 +904,14 @@ export const RETRO_MOVE_PP: Record<RetroMoveId, number> = {
   "quick-attack": 30,
   swift: 20,
   "sand-attack": 15,
+  thunderbolt: 15,
+  flamethrower: 15,
+  "water-gun": 25,
+  "vine-whip": 25,
+  "shadow-ball": 15,
+  "ice-beam": 10,
+  psychic: 10,
+  "stomping-tantrum": 10,
 };
 
 export function getRetroMoveType(moveId: RetroMoveId): RetroType {
