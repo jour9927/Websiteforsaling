@@ -372,7 +372,7 @@ function generateRetroScript(
 ): boolean[] {
   const results: boolean[] = [];
   for (let index = 0; index < total; index += 1) {
-    results.push(rng() < 0.56);
+    results.push(rng() < 0.83);
   }
 
   const winCount = results.filter(Boolean).length;
