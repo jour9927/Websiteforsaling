@@ -19,6 +19,7 @@ export interface DistributionBadge {
     release_year?: number | null;
     rarity: DistributionBadgeRarity;
     base_points: number;
+    icon_url?: string | null;
     description?: string | null;
     sort_order?: number | null;
 }
@@ -93,4 +94,12 @@ export function sortDistributionBadges<T extends DistributionBadge>(badges: T[])
 
 export function sumBadgePoints(badges: DistributionBadge[]): number {
     return badges.reduce((total, badge) => total + (badge.base_points || 0), 0);
+}
+
+export function getDistributionBadgeIconFallback(badge: Pick<DistributionBadge, "category" | "rarity">): string {
+    if (badge.category === "mark") {
+        return badge.rarity === "mythic" || badge.rarity === "legendary" ? "✦" : "◆";
+    }
+
+    return badge.rarity === "mythic" || badge.rarity === "legendary" ? "🏵" : "🎗";
 }

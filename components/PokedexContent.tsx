@@ -9,6 +9,7 @@ import {
     type DistributionBadge,
     type UserDistributionRecord,
     badgeRarityMeta,
+    getDistributionBadgeIconFallback,
     isBadgeCompatibleWithDistribution,
     sortDistributionBadges,
     sumBadgePoints,
@@ -68,6 +69,40 @@ const genColors: Record<number, string> = {
     8: "from-pink-500 to-pink-700",
     9: "from-purple-500 to-violet-700",
 };
+
+function DistributionBadgeIcon({
+    badge,
+    className = "h-5 w-5",
+}: {
+    badge: DistributionBadge;
+    className?: string;
+}) {
+    const [hasImageError, setHasImageError] = useState(false);
+
+    if (badge.icon_url && !hasImageError) {
+        return (
+            <img
+                src={badge.icon_url}
+                alt=""
+                aria-hidden="true"
+                className={`${className} shrink-0 object-contain`}
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                onError={() => setHasImageError(true)}
+            />
+        );
+    }
+
+    return (
+        <span
+            aria-hidden="true"
+            className={`${className} inline-flex shrink-0 items-center justify-center text-[11px] leading-none`}
+        >
+            {getDistributionBadgeIconFallback(badge)}
+        </span>
+    );
+}
 
 export default function PokedexContent({
     distributions,
@@ -438,7 +473,10 @@ export default function PokedexContent({
                             className={`min-w-[180px] rounded-lg border px-3 py-2 ${badgeRarityMeta[badge.rarity].className}`}
                         >
                             <div className="flex items-center justify-between gap-2">
-                                <p className="truncate text-sm font-semibold">{badge.name}</p>
+                                <div className="flex min-w-0 items-center gap-2">
+                                    <DistributionBadgeIcon badge={badge} className="h-6 w-6" />
+                                    <p className="truncate text-sm font-semibold">{badge.name}</p>
+                                </div>
                                 <span className="shrink-0 text-[10px]">{badge.category === "mark" ? "證章" : "緞帶"}</span>
                             </div>
                             <div className="mt-1 flex items-center justify-between text-[11px] opacity-80">
@@ -608,10 +646,11 @@ export default function PokedexContent({
                                         {attachedBadges.slice(0, 3).map((badge) => (
                                             <span
                                                 key={badge.attachment_id}
-                                                className={`max-w-full truncate rounded-full border px-1.5 py-0.5 text-[10px] ${badgeRarityMeta[badge.rarity].className}`}
+                                                className={`inline-flex max-w-full items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] ${badgeRarityMeta[badge.rarity].className}`}
                                                 title={`${badge.name} +${badge.base_points.toLocaleString()}`}
                                             >
-                                                {badge.name}
+                                                <DistributionBadgeIcon badge={badge} className="h-3.5 w-3.5" />
+                                                <span className="truncate">{badge.name}</span>
                                             </span>
                                         ))}
                                         {attachedBadges.length > 3 && (
@@ -659,7 +698,10 @@ export default function PokedexContent({
                                                     }`}
                                             >
                                                 <span className="flex items-center justify-between gap-2">
-                                                    <span className="truncate font-medium">{badge.name}</span>
+                                                    <span className="flex min-w-0 items-center gap-1.5">
+                                                        <DistributionBadgeIcon badge={badge} className="h-5 w-5" />
+                                                        <span className="truncate font-medium">{badge.name}</span>
+                                                    </span>
                                                     <span className="shrink-0 font-mono">+{badge.base_points.toLocaleString()}</span>
                                                 </span>
                                                 <span className="mt-0.5 flex items-center justify-between gap-2 text-[10px] opacity-70">
