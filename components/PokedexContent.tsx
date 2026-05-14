@@ -10,6 +10,7 @@ import {
     type UserDistributionRecord,
     badgeRarityMeta,
     getDistributionBadgeIconFallback,
+    getDistributionBadgeIconUrl,
     isBadgeCompatibleWithDistribution,
     sortDistributionBadges,
     sumBadgePoints,
@@ -78,11 +79,12 @@ function DistributionBadgeIcon({
     className?: string;
 }) {
     const [hasImageError, setHasImageError] = useState(false);
+    const iconUrl = getDistributionBadgeIconUrl(badge);
 
-    if (badge.icon_url && !hasImageError) {
+    if (iconUrl && !hasImageError) {
         return (
             <img
-                src={badge.icon_url}
+                src={iconUrl}
                 alt=""
                 aria-hidden="true"
                 className={`${className} shrink-0 object-contain`}

@@ -96,6 +96,29 @@ export function sumBadgePoints(badges: DistributionBadge[]): number {
     return badges.reduce((total, badge) => total + (badge.base_points || 0), 0);
 }
 
+const badgeIconFileOverrides: Record<string, string> = {
+    Sinnoh_Champion_Ribbon: "Sinnoh_Champion_Ribbon_VIII",
+    Galar_Champion_Ribbon: "Galar_Champion_Ribbon_VIII",
+    Twinkling_Star_Ribbon: "Twinkling_Star_Ribbon_VIII",
+    Tower_Master_Ribbon: "Tower_Master_Ribbon_VIII",
+    Master_Rank_Ribbon: "Master_Rank_Ribbon_VIII",
+};
+
+export function getDistributionBadgeIconUrl(badge: Pick<DistributionBadge, "icon_url">): string | null {
+    if (!badge.icon_url) return null;
+
+    let iconUrl = badge.icon_url.replace(
+        "https://archives.bulbagarden.net/media/upload/Special:Redirect/file/",
+        "https://archives.bulbagarden.net/wiki/Special:Redirect/file/",
+    );
+
+    for (const [staleFileName, currentFileName] of Object.entries(badgeIconFileOverrides)) {
+        iconUrl = iconUrl.replace(`/file/${staleFileName}.png`, `/file/${currentFileName}.png`);
+    }
+
+    return iconUrl;
+}
+
 export function getDistributionBadgeIconFallback(badge: Pick<DistributionBadge, "category" | "rarity">): string {
     if (badge.category === "mark") {
         return badge.rarity === "mythic" || badge.rarity === "legendary" ? "✦" : "◆";
