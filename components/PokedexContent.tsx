@@ -4,6 +4,15 @@ import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { detectLanguage, getLanguageTag, getLanguageStyle } from "@/lib/utils/language";
+import {
+    type AttachedDistributionBadge,
+    type DistributionBadge,
+    type UserDistributionRecord,
+    badgeRarityMeta,
+    isBadgeCompatibleWithDistribution,
+    sortDistributionBadges,
+    sumBadgePoints,
+} from "@/lib/distributionBadges";
 
 interface Distribution {
     id: string;
@@ -30,7 +39,10 @@ interface Distribution {
 interface PokedexContentProps {
     distributions: Distribution[];
     distributionsByGen: Record<number, Distribution[]>;
+    badges: DistributionBadge[];
     userCollected: string[];
+    userDistributionRecords: UserDistributionRecord[];
+    attachedBadgesByDistributionId: Record<string, AttachedDistributionBadge[]>;
     isLoggedIn: boolean;
     userId?: string;
 }
@@ -60,15 +72,22 @@ const genColors: Record<number, string> = {
 export default function PokedexContent({
     distributions,
     distributionsByGen,
+    badges,
     userCollected: initialCollected,
+    userDistributionRecords: initialUserDistributionRecords,
+    attachedBadgesByDistributionId: initialAttachedBadgesByDistributionId,
     isLoggedIn,
     userId,
 }: PokedexContentProps) {
     const [selectedGen, setSelectedGen] = useState<number | null>(9);
     const [collected, setCollected] = useState<string[]>(initialCollected);
+    const [userDistributionRecords, setUserDistributionRecords] = useState<UserDistributionRecord[]>(initialUserDistributionRecords);
+    const [attachedBadgesByDistributionId, setAttachedBadgesByDistributionId] = useState<Record<string, AttachedDistributionBadge[]>>(initialAttachedBadgesByDistributionId);
     const [searchQuery, setSearchQuery] = useState("");
     const [showCollectedOnly, setShowCollectedOnly] = useState(false);
     const [isToggling, setIsToggling] = useState<string | null>(null);
+    const [activeBadgeDistributionId, setActiveBadgeDistributionId] = useState<string | null>(null);
+    const [togglingBadgeId, setTogglingBadgeId] = useState<string | null>(null);
     const [showDisclaimer, setShowDisclaimer] = useState(true);
 
     // 根據 ID 和日期產生穩定的隨機漲跌幅（每天變化一次）
@@ -123,6 +142,22 @@ export default function PokedexContent({
         return display.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     }
 
+    function getUserDistributionRecord(distributionId: string): UserDistributionRecord | undefined {
+        return userDistributionRecords.find(record => record.distribution_id === distributionId);
+    }
+
+    function getAttachedBadges(distributionId: string): AttachedDistributionBadge[] {
+        return sortDistributionBadges(attachedBadgesByDistributionId[distributionId] || []);
+    }
+
+    function getCompatibleBadges(distributionGeneration: number): DistributionBadge[] {
+        return sortDistributionBadges(badges.filter(badge => isBadgeCompatibleWithDistribution(badge, distributionGeneration)));
+    }
+
+    function getTotalPoints(dist: Distribution): number {
+        return (dist.points || 0) + sumBadgePoints(getAttachedBadges(dist.id));
+    }
+
     // 過濾配布
     const filteredDistributions = distributions.filter((dist) => {
         if (selectedGen && dist.generation !== selectedGen) return false;
@@ -138,6 +173,11 @@ export default function PokedexContent({
             ? distributionsByGen[selectedGen]?.some(d => d.id === id)
             : true
     ).length;
+    const visibleBadges = selectedGen
+        ? sortDistributionBadges(badges.filter(badge => badge.generation === selectedGen))
+        : sortDistributionBadges(badges);
+    const attachedBadgeCount = Object.values(attachedBadgesByDistributionId).reduce((total, item) => total + item.length, 0);
+    const attachedBadgePoints = Object.values(attachedBadgesByDistributionId).reduce((total, item) => total + sumBadgePoints(item), 0);
 
     // 切換收集狀態
     async function toggleCollect(distributionId: string) {
@@ -154,19 +194,84 @@ export default function PokedexContent({
                 .eq("distribution_id", distributionId);
 
             setCollected(prev => prev.filter(id => id !== distributionId));
+            setUserDistributionRecords(prev => prev.filter(record => record.distribution_id !== distributionId));
+            setAttachedBadgesByDistributionId(prev => {
+                const next = { ...prev };
+                delete next[distributionId];
+                return next;
+            });
+            if (activeBadgeDistributionId === distributionId) setActiveBadgeDistributionId(null);
         } else {
             // 添加收集
-            await supabase
+            const { data } = await supabase
                 .from("user_distributions")
                 .insert({
                     user_id: userId,
                     distribution_id: distributionId,
-                });
+                })
+                .select("id, distribution_id")
+                .single();
 
             setCollected(prev => [...prev, distributionId]);
+            if (data) {
+                setUserDistributionRecords(prev => [...prev, {
+                    id: data.id as string,
+                    distribution_id: data.distribution_id as string,
+                }]);
+            }
         }
 
         setIsToggling(null);
+    }
+
+    async function toggleBadge(dist: Distribution, badge: DistributionBadge) {
+        if (!isLoggedIn || !userId) return;
+        if (!isBadgeCompatibleWithDistribution(badge, dist.generation)) return;
+
+        const userDistribution = getUserDistributionRecord(dist.id);
+        if (!userDistribution) return;
+
+        const attachedBadge = getAttachedBadges(dist.id).find(item => item.id === badge.id);
+        setTogglingBadgeId(`${dist.id}:${badge.id}`);
+
+        if (attachedBadge) {
+            await supabase
+                .from("user_distribution_badges")
+                .delete()
+                .eq("id", attachedBadge.attachment_id)
+                .eq("user_id", userId);
+
+            setAttachedBadgesByDistributionId(prev => ({
+                ...prev,
+                [dist.id]: (prev[dist.id] || []).filter(item => item.attachment_id !== attachedBadge.attachment_id),
+            }));
+        } else {
+            const { data } = await supabase
+                .from("user_distribution_badges")
+                .insert({
+                    user_id: userId,
+                    user_distribution_id: userDistribution.id,
+                    badge_id: badge.id,
+                })
+                .select("id, distribution_badges (*)")
+                .single();
+
+            const insertedBadge = data?.distribution_badges as unknown as DistributionBadge | null;
+            if (data && insertedBadge) {
+                setAttachedBadgesByDistributionId(prev => ({
+                    ...prev,
+                    [dist.id]: sortDistributionBadges([
+                        ...(prev[dist.id] || []),
+                        {
+                            ...insertedBadge,
+                            attachment_id: data.id as string,
+                        },
+                    ]),
+                }));
+            }
+        }
+
+        setTogglingBadgeId(null);
     }
 
     const availableGens = Object.keys(distributionsByGen).map(Number).sort((a, b) => b - a);
@@ -295,11 +400,71 @@ export default function PokedexContent({
                 </div>
             </section>
 
+            {/* 證章 / 緞帶圖鑑 */}
+            <section className="glass-card p-5">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <h2 className="text-lg font-bold text-white">證章與緞帶</h2>
+                            <span className="rounded-full border border-white/10 bg-white/10 px-2 py-0.5 text-xs text-white/60">
+                                獨立收藏軸
+                            </span>
+                        </div>
+                        <p className="mt-1 text-sm text-white/55">
+                            按世代、年份與稀有度排序；只可附加到相容世代的已收集配布。
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[360px]">
+                        <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                            <p className="text-lg font-bold text-white">{visibleBadges.length}</p>
+                            <p className="text-[11px] text-white/45">本頁證章</p>
+                        </div>
+                        <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                            <p className="text-lg font-bold text-amber-300">{attachedBadgeCount}</p>
+                            <p className="text-[11px] text-white/45">已附加</p>
+                        </div>
+                        <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                            <p className="text-lg font-bold text-emerald-300">{attachedBadgePoints.toLocaleString()}</p>
+                            <p className="text-[11px] text-white/45">加成點數</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+                    {visibleBadges.map((badge) => (
+                        <div
+                            key={badge.id}
+                            className={`min-w-[180px] rounded-lg border px-3 py-2 ${badgeRarityMeta[badge.rarity].className}`}
+                        >
+                            <div className="flex items-center justify-between gap-2">
+                                <p className="truncate text-sm font-semibold">{badge.name}</p>
+                                <span className="shrink-0 text-[10px]">{badge.category === "mark" ? "證章" : "緞帶"}</span>
+                            </div>
+                            <div className="mt-1 flex items-center justify-between text-[11px] opacity-80">
+                                <span>第{badge.generation}世代</span>
+                                <span>{badge.release_year || "年份未定"}</span>
+                            </div>
+                            <div className="mt-1 flex items-center justify-between text-[11px]">
+                                <span>{badgeRarityMeta[badge.rarity].label}</span>
+                                <span className="font-mono">+{badge.base_points.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    ))}
+                    {visibleBadges.length === 0 && (
+                        <p className="text-sm text-white/45">目前沒有符合此世代的證章資料</p>
+                    )}
+                </div>
+            </section>
+
             {/* 配布列表 */}
             <section className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {filteredDistributions.map((dist) => {
                     const isCollected = collected.includes(dist.id);
                     const isLoading = isToggling === dist.id;
+                    const attachedBadges = getAttachedBadges(dist.id);
+                    const compatibleBadges = getCompatibleBadges(dist.generation);
+                    const isBadgePanelOpen = activeBadgeDistributionId === dist.id;
 
                     return (
                         <div
@@ -436,6 +601,80 @@ export default function PokedexContent({
                                 </span>
                             </div>
 
+                            {/* 已附加證章 */}
+                            <div className="mt-2 space-y-1">
+                                {attachedBadges.length > 0 && (
+                                    <div className="flex flex-wrap justify-center gap-1">
+                                        {attachedBadges.slice(0, 3).map((badge) => (
+                                            <span
+                                                key={badge.attachment_id}
+                                                className={`max-w-full truncate rounded-full border px-1.5 py-0.5 text-[10px] ${badgeRarityMeta[badge.rarity].className}`}
+                                                title={`${badge.name} +${badge.base_points.toLocaleString()}`}
+                                            >
+                                                {badge.name}
+                                            </span>
+                                        ))}
+                                        {attachedBadges.length > 3 && (
+                                            <span className="rounded-full border border-white/10 bg-white/10 px-1.5 py-0.5 text-[10px] text-white/55">
+                                                +{attachedBadges.length - 3}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
+
+                                {isCollected ? (
+                                    <button
+                                        type="button"
+                                        onClick={(event) => {
+                                            event.stopPropagation();
+                                            setActiveBadgeDistributionId(isBadgePanelOpen ? null : dist.id);
+                                        }}
+                                        className="w-full rounded-lg border border-amber-400/25 bg-amber-500/10 px-2 py-1 text-[11px] font-medium text-amber-200 transition hover:bg-amber-500/20"
+                                    >
+                                        {isBadgePanelOpen ? "收合證章" : "附加證章"}
+                                    </button>
+                                ) : (
+                                    <p className="text-center text-[10px] text-white/30">收集後可附加證章</p>
+                                )}
+                            </div>
+
+                            {isBadgePanelOpen && (
+                                <div
+                                    className="mt-2 max-h-40 space-y-1 overflow-y-auto rounded-lg border border-white/10 bg-slate-950/75 p-2"
+                                    onClick={(event) => event.stopPropagation()}
+                                >
+                                    {compatibleBadges.map((badge) => {
+                                        const isAttached = attachedBadges.some(item => item.id === badge.id);
+                                        const isBadgeLoading = togglingBadgeId === `${dist.id}:${badge.id}`;
+
+                                        return (
+                                            <button
+                                                key={badge.id}
+                                                type="button"
+                                                disabled={isBadgeLoading}
+                                                onClick={() => toggleBadge(dist, badge)}
+                                                className={`w-full rounded-md border px-2 py-1.5 text-left text-[11px] transition disabled:opacity-60 ${isAttached
+                                                    ? "border-amber-400/35 bg-amber-500/20 text-amber-100"
+                                                    : "border-white/10 bg-white/5 text-white/70 hover:bg-white/10"
+                                                    }`}
+                                            >
+                                                <span className="flex items-center justify-between gap-2">
+                                                    <span className="truncate font-medium">{badge.name}</span>
+                                                    <span className="shrink-0 font-mono">+{badge.base_points.toLocaleString()}</span>
+                                                </span>
+                                                <span className="mt-0.5 flex items-center justify-between gap-2 text-[10px] opacity-70">
+                                                    <span>{badgeRarityMeta[badge.rarity].label} · {badge.release_year || "年份未定"}</span>
+                                                    <span>{isAttached ? "已附加" : "可附加"}</span>
+                                                </span>
+                                            </button>
+                                        );
+                                    })}
+                                    {compatibleBadges.length === 0 && (
+                                        <p className="text-center text-[11px] text-white/40">沒有相容證章</p>
+                                    )}
+                                </div>
+                            )}
+
                             {/* 配布點數 */}
                             {dist.points ? (() => {
                                 // 伊布家族遮罩
@@ -450,21 +689,28 @@ export default function PokedexContent({
                                         </div>
                                     );
                                 }
-                                const fluct = getFluctuation(dist.id, dist.points);
+                                const totalPoints = getTotalPoints(dist);
+                                const badgePoints = sumBadgePoints(attachedBadges);
+                                const fluct = getFluctuation(dist.id, totalPoints);
                                 return (
                                     <div className="mt-1.5 space-y-0.5">
                                         <p className="text-center text-xs font-medium">
-                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${dist.points >= 900000 ? 'bg-gradient-to-r from-red-500/30 to-orange-500/30 text-red-300' :
-                                                dist.points >= 350000 ? 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-300' :
-                                                    dist.points >= 120000 ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 text-purple-300' :
-                                                        dist.points >= 50000 ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 text-blue-300' :
-                                                            dist.points >= 10000 ? 'bg-gradient-to-r from-emerald-500/30 to-green-500/30 text-emerald-300' :
-                                                                dist.points >= 5000 ? 'bg-gradient-to-r from-teal-500/30 to-cyan-500/30 text-teal-300' :
+                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full ${totalPoints >= 900000 ? 'bg-gradient-to-r from-red-500/30 to-orange-500/30 text-red-300' :
+                                                totalPoints >= 350000 ? 'bg-gradient-to-r from-amber-500/30 to-yellow-500/30 text-amber-300' :
+                                                    totalPoints >= 120000 ? 'bg-gradient-to-r from-purple-500/30 to-pink-500/30 text-purple-300' :
+                                                        totalPoints >= 50000 ? 'bg-gradient-to-r from-blue-500/30 to-cyan-500/30 text-blue-300' :
+                                                            totalPoints >= 10000 ? 'bg-gradient-to-r from-emerald-500/30 to-green-500/30 text-emerald-300' :
+                                                                totalPoints >= 5000 ? 'bg-gradient-to-r from-teal-500/30 to-cyan-500/30 text-teal-300' :
                                                                     'bg-white/10 text-white/50'
                                                 }`}>
-                                                💎 {formatPoints(dist.points)}
+                                                💎 {formatPoints(totalPoints)}
                                             </span>
                                         </p>
+                                        {badgePoints > 0 && (
+                                            <p className="text-center text-[10px] text-amber-300/80">
+                                                證章 +{badgePoints.toLocaleString()}
+                                            </p>
+                                        )}
                                         <p className="text-center text-[10px] font-mono flex items-center justify-center gap-1">
                                             {fluct.type === 'crash' && <span className="px-1 py-0.5 rounded bg-blue-500/20 text-blue-400 font-bold text-[9px]">📉 跌停</span>}
                                             {fluct.type === 'boom' && <span className="px-1 py-0.5 rounded bg-red-500/20 text-red-400 font-bold text-[9px]">🚀 漲停</span>}

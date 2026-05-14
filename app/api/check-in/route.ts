@@ -3,6 +3,8 @@ import { createServerSupabaseClient } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+const CHECK_IN_DEBT_RESET_START_DATE = new Date(2026, 4, 14);
+
 // 計算某日期距今多少天
 function daysBetween(date1: Date, date2: Date): number {
     const d1 = new Date(date1);
@@ -10,6 +12,23 @@ function daysBetween(date1: Date, date2: Date): number {
     d1.setHours(0, 0, 0, 0);
     d2.setHours(0, 0, 0, 0);
     return Math.floor((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+function isBeforeDebtReset(date: Date): boolean {
+    return daysBetween(date, CHECK_IN_DEBT_RESET_START_DATE) > 0;
+}
+
+function getEffectiveDebt(currentDebt: number | null | undefined, lastCheckIn: string | null | undefined): number {
+    if (!lastCheckIn) {
+        return 0;
+    }
+
+    const lastCheckInDate = new Date(lastCheckIn);
+    if (isBeforeDebtReset(lastCheckInDate)) {
+        return 0;
+    }
+
+    return Math.max(0, currentDebt || 0);
 }
 
 // GET: 取得簽到狀態
@@ -83,7 +102,7 @@ export async function GET() {
         fortunePoints: profile.fortune_points || 0,
         economyPoints: profile.points || 0,
         lastCheckIn: profile.last_check_in,
-        debt: profile.check_in_debt || 0,
+        debt: getEffectiveDebt(profile.check_in_debt, profile.last_check_in),
         milestone: profile.check_in_milestone || 40,
         goalDistribution,
     });
@@ -136,7 +155,7 @@ export async function POST() {
 
     // 計算連續簽到天數和補簽債務
     let newStreak = profile?.check_in_streak || 0;
-    let newDebt = profile?.check_in_debt || 0;
+    let newDebt = getEffectiveDebt(profile?.check_in_debt, profile?.last_check_in);
     const milestone = profile?.check_in_milestone || 40;
     let newLotteryTickets = profile?.lottery_tickets || 0;
     let newBlindboxCoupons = profile?.blindbox_coupons || 0;
@@ -156,7 +175,9 @@ export async function POST() {
             }
         } else if (daysSinceLastCheckIn > 1) {
             // 斷簽了！計算債務
-            const missedDays = daysSinceLastCheckIn - 1;
+            const missedDays = isBeforeDebtReset(lastCheckIn)
+                ? daysBetween(CHECK_IN_DEBT_RESET_START_DATE, today)
+                : daysSinceLastCheckIn - 1;
             newDebt += missedDays * 2;  // 每斷 1 天加 2 天債務
             newStreak = 1;  // 連續天數重置為 1
         }
