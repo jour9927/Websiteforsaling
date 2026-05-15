@@ -8,9 +8,11 @@ import {
     type AttachedDistributionBadge,
     type DistributionBadge,
     type UserDistributionRecord,
+    badgePointTierMeta,
     badgeRarityMeta,
     getDistributionBadgeIconFallback,
     getDistributionBadgeIconUrl,
+    getDistributionBadgePointTier,
     isBadgeCompatibleWithDistribution,
     sortDistributionBadges,
     sumBadgePoints,
@@ -213,6 +215,13 @@ export default function PokedexContent({
     const visibleBadges = selectedGen
         ? sortDistributionBadges(badges.filter(badge => badge.generation === selectedGen))
         : sortDistributionBadges(badges);
+    const visibleBadgePointRange = visibleBadges.reduce<{ min: number; max: number } | null>((range, badge) => {
+        if (!range) return { min: badge.base_points, max: badge.base_points };
+        return {
+            min: Math.min(range.min, badge.base_points),
+            max: Math.max(range.max, badge.base_points),
+        };
+    }, null);
     const attachedBadgeCount = Object.values(attachedBadgesByDistributionId).reduce((total, item) => total + item.length, 0);
     const attachedBadgePoints = Object.values(attachedBadgesByDistributionId).reduce((total, item) => total + sumBadgePoints(item), 0);
 
@@ -452,10 +461,22 @@ export default function PokedexContent({
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2 text-center sm:min-w-[360px]">
+                    <div className="grid grid-cols-2 gap-2 text-center sm:min-w-[520px] sm:grid-cols-5">
                         <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
                             <p className="text-lg font-bold text-white">{visibleBadges.length}</p>
                             <p className="text-[11px] text-white/45">本頁證章</p>
+                        </div>
+                        <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                            <p className="text-lg font-bold text-white/70">
+                                {visibleBadgePointRange ? visibleBadgePointRange.min.toLocaleString() : "—"}
+                            </p>
+                            <p className="text-[11px] text-white/45">最低點數</p>
+                        </div>
+                        <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+                            <p className="text-lg font-bold text-rose-300">
+                                {visibleBadgePointRange ? visibleBadgePointRange.max.toLocaleString() : "—"}
+                            </p>
+                            <p className="text-[11px] text-white/45">最高點數</p>
                         </div>
                         <div className="rounded-lg border border-white/10 bg-white/5 px-3 py-2">
                             <p className="text-lg font-bold text-amber-300">{attachedBadgeCount}</p>
@@ -469,28 +490,37 @@ export default function PokedexContent({
                 </div>
 
                 <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
-                    {visibleBadges.map((badge) => (
-                        <div
-                            key={badge.id}
-                            className={`min-w-[180px] rounded-lg border px-3 py-2 ${badgeRarityMeta[badge.rarity].className}`}
-                        >
-                            <div className="flex items-center justify-between gap-2">
-                                <div className="flex min-w-0 items-center gap-2">
-                                    <DistributionBadgeIcon badge={badge} className="h-6 w-6" />
-                                    <p className="truncate text-sm font-semibold">{badge.name}</p>
+                    {visibleBadges.map((badge) => {
+                        const pointTier = badgePointTierMeta[getDistributionBadgePointTier(badge.base_points)];
+
+                        return (
+                            <div
+                                key={badge.id}
+                                className={`min-w-[190px] rounded-lg border px-3 py-2 ${badgeRarityMeta[badge.rarity].className}`}
+                            >
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="flex min-w-0 items-center gap-2">
+                                        <DistributionBadgeIcon badge={badge} className="h-6 w-6" />
+                                        <p className="truncate text-sm font-semibold">{badge.name}</p>
+                                    </div>
+                                    <span className="shrink-0 text-[10px]">{badge.category === "mark" ? "證章" : "緞帶"}</span>
                                 </div>
-                                <span className="shrink-0 text-[10px]">{badge.category === "mark" ? "證章" : "緞帶"}</span>
+                                <div className="mt-1 flex items-center justify-between text-[11px] opacity-80">
+                                    <span>第{badge.generation}世代</span>
+                                    <span>{badge.release_year || "年份未定"}</span>
+                                </div>
+                                <div className="mt-1 flex items-center justify-between text-[11px]">
+                                    <span>{badgeRarityMeta[badge.rarity].label}</span>
+                                    <span className="font-mono">+{badge.base_points.toLocaleString()}</span>
+                                </div>
+                                <div className="mt-2">
+                                    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[10px] ${pointTier.className}`}>
+                                        {pointTier.label} · {pointTier.rangeLabel}
+                                    </span>
+                                </div>
                             </div>
-                            <div className="mt-1 flex items-center justify-between text-[11px] opacity-80">
-                                <span>第{badge.generation}世代</span>
-                                <span>{badge.release_year || "年份未定"}</span>
-                            </div>
-                            <div className="mt-1 flex items-center justify-between text-[11px]">
-                                <span>{badgeRarityMeta[badge.rarity].label}</span>
-                                <span className="font-mono">+{badge.base_points.toLocaleString()}</span>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                     {visibleBadges.length === 0 && (
                         <p className="text-sm text-white/45">目前沒有符合此世代的證章資料</p>
                     )}
@@ -687,6 +717,7 @@ export default function PokedexContent({
                                     {compatibleBadges.map((badge) => {
                                         const isAttached = attachedBadges.some(item => item.id === badge.id);
                                         const isBadgeLoading = togglingBadgeId === `${dist.id}:${badge.id}`;
+                                        const pointTier = badgePointTierMeta[getDistributionBadgePointTier(badge.base_points)];
 
                                         return (
                                             <button
@@ -706,9 +737,9 @@ export default function PokedexContent({
                                                     </span>
                                                     <span className="shrink-0 font-mono">+{badge.base_points.toLocaleString()}</span>
                                                 </span>
-                                                <span className="mt-0.5 flex items-center justify-between gap-2 text-[10px] opacity-70">
-                                                    <span>{badgeRarityMeta[badge.rarity].label} · {badge.release_year || "年份未定"}</span>
-                                                    <span>{isAttached ? "已附加" : "可附加"}</span>
+                                                <span className="mt-0.5 grid grid-cols-2 gap-2 text-[10px] opacity-70">
+                                                    <span className="truncate">{badgeRarityMeta[badge.rarity].label} · {badge.release_year || "年份未定"}</span>
+                                                    <span className="truncate text-right">{pointTier.label} · {pointTier.rangeLabel} · {isAttached ? "已附加" : "可附加"}</span>
                                                 </span>
                                             </button>
                                         );

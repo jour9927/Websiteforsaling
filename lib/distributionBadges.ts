@@ -8,6 +8,13 @@ export type DistributionBadgeRarity =
     | "legendary"
     | "mythic";
 
+export type DistributionBadgePointTier =
+    | "lowest"
+    | "low"
+    | "mid"
+    | "high"
+    | "highest";
+
 export interface DistributionBadge {
     id: string;
     name: string;
@@ -69,6 +76,52 @@ export const badgeRarityMeta: Record<DistributionBadgeRarity, {
         className: "border-rose-400/30 bg-rose-500/15 text-rose-300",
     },
 };
+
+export const badgePointTierMeta: Record<DistributionBadgePointTier, {
+    label: string;
+    rangeLabel: string;
+    rank: number;
+    className: string;
+}> = {
+    lowest: {
+        label: "最低級距",
+        rangeLabel: "500-99,999",
+        rank: 1,
+        className: "border-white/15 bg-white/10 text-white/65",
+    },
+    low: {
+        label: "低點級距",
+        rangeLabel: "100,000-499,999",
+        rank: 2,
+        className: "border-emerald-400/25 bg-emerald-500/15 text-emerald-300",
+    },
+    mid: {
+        label: "中點級距",
+        rangeLabel: "500,000-999,999",
+        rank: 3,
+        className: "border-sky-400/25 bg-sky-500/15 text-sky-300",
+    },
+    high: {
+        label: "高點級距",
+        rangeLabel: "1,000,000-1,999,999",
+        rank: 4,
+        className: "border-amber-400/30 bg-amber-500/15 text-amber-300",
+    },
+    highest: {
+        label: "最高級距",
+        rangeLabel: "2,000,000-3,000,000",
+        rank: 5,
+        className: "border-rose-400/30 bg-rose-500/15 text-rose-300",
+    },
+};
+
+export function getDistributionBadgePointTier(basePoints: number): DistributionBadgePointTier {
+    if (basePoints >= 2000000) return "highest";
+    if (basePoints >= 1000000) return "high";
+    if (basePoints >= 500000) return "mid";
+    if (basePoints >= 100000) return "low";
+    return "lowest";
+}
 
 export function isBadgeCompatibleWithDistribution(
     badge: DistributionBadge,
