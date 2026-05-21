@@ -1,5 +1,28 @@
 # Changelog
 
+## [2026-05-21] Documentation and git cleanup
+
+### Documentation
+- Rebuilt `README.md` as the primary human and agent entrypoint, including project purpose, current status, quick start, command index, directory map, environment variable index, document index, and recommended reading order.
+- Added `docs/ARCHITECTURE.md` with the scanned Next.js/Supabase/Vercel architecture, module map, data flow, control flow, cron flow, Supabase migration notes, high-risk areas, extension points, and known limitations.
+- Rebuilt `AGENTS.md` as the operational handoff guide for future AI agents, including required reading, validation rules, git discipline, protected areas, and handoff expectations.
+
+### Git hygiene
+- Expanded `.gitignore` coverage for generated output, local caches, logs, Supabase local state, Vercel local state, and environment files.
+- Allowed `.env.example` to be tracked as the safe environment template; the existing file contains only empty public Supabase placeholders.
+- Existing git repository was preserved; no new repository initialization was needed.
+- Existing pre-task dirty files were not staged or modified as part of this documentation cleanup.
+- Identified tracked generated/local-state artifacts under `.next_broken_1773844706` and `supabase/.temp`; these should be untracked in a separate focused cleanup after human review.
+
+### Validation
+- Verified with `git diff --check`, `npm run lint`, `npm run build`, and final `git status`.
+- `npm run lint` and `npm run build` passed with pre-existing React hook dependency warnings.
+- No formal test script was detected in `package.json` at scan time.
+
+### Notes
+- This pass intentionally did not implement product features, deploy to Vercel, push to GitHub, or write to Supabase production data.
+- Several legacy documents remain useful historical references but may be stale compared with current routes and migrations.
+
 ## [2026-05-04]
 
 ### Maintenance
