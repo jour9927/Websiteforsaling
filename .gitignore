@@ -37,7 +37,8 @@ supabase/.temp/
 tmp/
 temp/
 .cache/
-.codex-task/verification/*.log
+.codex-task/
+.codex-task-contract.md
 .claude/worktrees/
 
 # OS and editor files
