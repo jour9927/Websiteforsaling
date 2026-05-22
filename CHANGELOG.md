@@ -3,6 +3,7 @@
 ## [2026-05-22] Distribution dex
 
 ### Added
+- Added a Supabase migration for the 8 `Kiyu` Eevee evolution entries: Vaporeon, Jolteon, Flareon, Espeon, Umbreon, Leafeon, Glaceon, and Sylveon.
 - Added a Supabase migration for `Kiyu 的伊布`, a Gen 9 site catalog Eevee entry with sprite/artwork URLs and 5,000 distribution points.
 
 ## [2026-05-21] Documentation and git cleanup
