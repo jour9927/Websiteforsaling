@@ -103,7 +103,7 @@ npm run start
 ## 主要模組提示
 
 - 活動與報名：`app/events/`、`app/admin/events/`、`app/admin/registrations/`、`app/api/events/`
-- 競標：`app/auctions/`、`app/admin/auctions/`、`hooks/useSimulatedAuction.ts`、`lib/globalLinkV2VirtualBids.ts`
+- 競標：`app/auctions/`、`app/admin/auctions/`、`hooks/useSimulatedAuction.ts`、`lib/globalLinkV2VirtualBids.ts`、`docs/AUCTION_SCHEDULING_PRESETS.md`
 - 委託：`app/commissions/`、`app/commission-chats/`、`lib/commissions.ts`
 - 商店與購物車：`app/store/`、`app/shop/`、`components/CartSidebar.tsx`、`lib/cart.tsx`
 - 配布圖鑑與證章：`app/pokedex/page.tsx`、`components/PokedexContent.tsx`、`lib/distributionBadges.ts`、`supabase/migrations/*distribution_badge*`

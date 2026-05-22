@@ -93,7 +93,7 @@ Event Glass 是一個 Next.js 14 App Router 應用，使用 Supabase 作為 Auth
 
 ### Auctions
 
-競標主要在 `app/auctions/` 與 `app/admin/auctions/`。相關 helper 包含 `hooks/useSimulatedAuction.ts`、`lib/globalLinkV2VirtualBids.ts`、`lib/auctionFallbackPool.ts`。多個 2026-05 migration 處理 Global Link V2、auto-follow、anti-snipe 與 increment 規則。
+競標主要在 `app/auctions/` 與 `app/admin/auctions/`。相關 helper 包含 `hooks/useSimulatedAuction.ts`、`lib/globalLinkV2VirtualBids.ts`、`lib/auctionFallbackPool.ts`。多個 2026-05 migration 處理 Global Link V2、auto-follow、anti-snipe 與 increment 規則。可重用的批次排程與價格 preset 記錄在 `docs/AUCTION_SCHEDULING_PRESETS.md`；該文件目前只保存尚未執行的 setup，不代表已建立實際競標資料。
 
 ### Commissions
 
@@ -214,4 +214,3 @@ AI 內容產生 route 包含 `app/api/generate-homepage-comment/route.ts`、`app
 6. 跑 `npm run lint` 與必要的 `npm run build`。
 7. 更新相關文件與 changelog。
 8. 只 stage/commit 本輪檔案，留下清楚交接。
-

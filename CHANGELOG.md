@@ -1,5 +1,12 @@
 # Changelog
 
+## [2026-05-22] Auction scheduling presets
+
+### Documentation
+- Added `docs/AUCTION_SCHEDULING_PRESETS.md` to preserve the reusable Kiyu-style rolling auction setup without creating live auction rows.
+- Documented the saved preset values: `starting_price` 500, `min_increment` 100, virtual target range 8,000 to 18,000, 24-hour duration, 10-minute batch interval, 10-day schedule window, and 3 items per batch.
+- Linked the preset document from `README.md`, `AGENTS.md`, and `docs/ARCHITECTURE.md`.
+
 ## [2026-05-22] Distribution dex
 
 ### Added

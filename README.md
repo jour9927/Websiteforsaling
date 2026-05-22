@@ -94,6 +94,7 @@ npm run start
 | [docs/配布點數計算系統.md](./docs/配布點數計算系統.md) | 配布點數系統說明，部分數值需與程式/migration 比對 |
 | [docs/配布資料缺失報告.md](./docs/配布資料缺失報告.md) | 配布資料修補紀錄 |
 | [docs/競標系統強化詳細文檔.md](./docs/競標系統強化詳細文檔.md) | 競標強化歷史設計 |
+| [docs/AUCTION_SCHEDULING_PRESETS.md](./docs/AUCTION_SCHEDULING_PRESETS.md) | 競標批次排程與價格 preset，包含尚未執行的 Kiyu-style rolling auction setup |
 | [docs/虛擬留言模板池注意事項.md](./docs/虛擬留言模板池注意事項.md) | 虛擬留言模板池維護注意事項 |
 
 ## 新開發者 / 新 Agent 閱讀順序
