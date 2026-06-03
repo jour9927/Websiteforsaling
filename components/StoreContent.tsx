@@ -11,6 +11,7 @@ interface ShopProduct {
   image_url: string;
   category: string;
   stock: number;
+  sold_count: number;
   is_active: boolean;
   seller_name: string | null;
   interested_count: number;
@@ -206,12 +207,15 @@ export default function StoreContent() {
 
                       {/* 庫存 + 價格 */}
                       <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/10">
-                        <div>
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-xs text-white/50">
+                            已售出 {product.sold_count || 0}
+                          </span>
                           {product.stock === -1 ? (
-                            <span className="text-xs text-emerald-400/80">無限庫存</span>
+                            <span className="text-xs text-emerald-400/80">剩餘 無限</span>
                           ) : product.stock > 0 ? (
                             <span className="text-xs text-white/50">
-                              庫存 {product.stock}
+                              剩餘 {product.stock}
                             </span>
                           ) : (
                             <span className="text-xs text-red-400/80">已售罄</span>
@@ -315,7 +319,12 @@ export default function StoreContent() {
 
                         {/* 價格 */}
                         <div className="flex items-center justify-between mt-4 pt-3 border-t border-white/5">
-                          <span className="text-xs text-red-400/60">已售罄</span>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="text-xs text-white/30">
+                              已售出 {product.sold_count || 0}
+                            </span>
+                            <span className="text-xs text-red-400/60">剩餘 0</span>
+                          </div>
                           <span className="text-lg font-bold text-amber-400/60">
                             {formatPrice(product.price)}
                           </span>
@@ -392,7 +401,11 @@ export default function StoreContent() {
                 </span>
               </div>
               <div className="flex justify-between py-2 border-b border-white/10">
-                <span className="text-white/50">庫存</span>
+                <span className="text-white/50">已售出</span>
+                <span className="text-white">{selectedItem.sold_count || 0} 件</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-white/10">
+                <span className="text-white/50">剩餘</span>
                 <span className="text-white">
                   {selectedItem.stock === -1
                     ? "無限"

@@ -10,13 +10,14 @@ interface ShopProduct {
   image_url: string;
   category: string;
   stock: number;
+  sold_count: number;
   is_active: boolean;
   seller_name: string | null;
   interested_count: number;
   liked_count: number;
 }
 
-const CATEGORIES = ["一般", "道具", "收藏品", "服飾", "票券", "特殊"];
+const CATEGORIES = ["一般", "道具", "收藏品", "服飾", "票券", "特殊", "成員自辦"];
 
 const SELLER_NAMES = [
   "神奇寶貝收藏家 小智", "寶可夢獵人 J", "阿羅拉訓練家 瑪奧",
@@ -46,6 +47,7 @@ export default function AdminStorePage() {
     image_url: "",
     category: "一般",
     stock: 1,
+    sold_count: 0,
     is_active: true,
     seller_name: "",
     interested_count: 0,
@@ -71,6 +73,7 @@ export default function AdminStorePage() {
       image_url: "",
       category: "一般",
       stock: 1,
+      sold_count: 0,
       is_active: true,
       seller_name: "",
       interested_count: 0,
@@ -88,6 +91,7 @@ export default function AdminStorePage() {
       image_url: product.image_url,
       category: product.category,
       stock: product.stock,
+      sold_count: product.sold_count || 0,
       is_active: product.is_active,
       seller_name: product.seller_name || "",
       interested_count: product.interested_count || 0,
@@ -206,7 +210,7 @@ export default function AdminStorePage() {
               </div>
               <div>
                 <label className="block text-xs text-white/60 mb-1">
-                  庫存 (1~3)
+                  剩餘數量
                 </label>
                 <input
                   type="number"
@@ -214,6 +218,16 @@ export default function AdminStorePage() {
                   onChange={(e) => setForm({ ...form, stock: Number(e.target.value) })}
                   className="w-full px-3 py-2 rounded-lg bg-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
                   min={-1}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-white/60 mb-1">已售出</label>
+                <input
+                  type="number"
+                  value={form.sold_count}
+                  onChange={(e) => setForm({ ...form, sold_count: Number(e.target.value) })}
+                  className="w-full px-3 py-2 rounded-lg bg-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+                  min={0}
                 />
               </div>
               <div>
@@ -368,7 +382,10 @@ export default function AdminStorePage() {
                 <div className="flex items-center gap-4 mt-1 text-xs text-white/40">
                   <span>NT$ {product.price.toLocaleString()}</span>
                   <span>
-                    庫存: {product.stock === -1 ? "無限" : product.stock}
+                    已售出: {product.sold_count || 0}
+                  </span>
+                  <span>
+                    剩餘: {product.stock === -1 ? "無限" : product.stock}
                   </span>
                   {product.seller_name && (
                     <span>👤 {product.seller_name}</span>

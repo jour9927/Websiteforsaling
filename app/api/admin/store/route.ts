@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   const supabase = createAdminSupabaseClient();
 
   const body = await req.json();
-  const { name, description, price, image_url, category, stock, is_active, seller_name, interested_count, liked_count } = body;
+  const { name, description, price, image_url, category, stock, sold_count, is_active, seller_name, interested_count, liked_count } = body;
 
   if (!name || price == null) {
     return NextResponse.json(
@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
       image_url: image_url ?? "",
       category: category ?? "一般",
       stock: stock != null ? Number(stock) : 1,
+      sold_count: sold_count != null ? Number(sold_count) : 0,
       is_active: is_active ?? true,
       seller_name: seller_name || null,
       interested_count: Number(interested_count) || 0,
