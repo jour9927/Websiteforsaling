@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/auth";
 import RegisterButton from "./RegisterButton";
 import { ShareLinkButton } from "./ShareLinkButton";
-import EventComments from "./EventComments";
 import InviteCodeCopyButton from "./InviteCodeCopyButton";
 
 type EventPageProps = {
@@ -358,9 +357,6 @@ export default async function EventPage({ params }: EventPageProps) {
           )}
         </aside>
       </section>
-
-      {/* 假象 Bug 留言區 */}
-      <EventComments eventTitle={event.title} />
     </div>
   );
 }
