@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/lib/cart";
+import { calculateStoreRebatePayableAmount } from "@/lib/rewardExchange";
 
 function formatPrice(price: number) {
   return `NT$ ${price.toLocaleString()}`;
@@ -11,8 +12,11 @@ function formatPrice(price: number) {
 
 type CouponItem = {
   id: string;
+  item_type: string;
   item_name: string;
+  discount_percent: number;
   created_at: string;
+  expires_at: string | null;
 };
 
 export default function CheckoutPage() {
@@ -25,8 +29,9 @@ export default function CheckoutPage() {
   const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null);
   const [loadingCoupons, setLoadingCoupons] = useState(true);
 
-  const discountedAmount = selectedCouponId
-    ? Math.round(totalAmount * 0.5)
+  const selectedCoupon = coupons.find((coupon) => coupon.id === selectedCouponId) ?? null;
+  const discountedAmount = selectedCoupon
+    ? calculateStoreRebatePayableAmount(totalAmount, selectedCoupon.discount_percent)
     : totalAmount;
 
   useEffect(() => {
@@ -152,10 +157,10 @@ export default function CheckoutPage() {
         </div>
       </section>
 
-      {/* 50% 折價券 */}
+      {/* 消費券 */}
       {!loadingCoupons && coupons.length > 0 && (
         <section className="glass-card p-6">
-          <h2 className="text-sm font-semibold text-white/70 mb-3">🎫 折價券</h2>
+          <h2 className="text-sm font-semibold text-white/70 mb-3">🎫 消費券</h2>
           {coupons.map((c) => (
             <label
               key={c.id}
@@ -175,7 +180,7 @@ export default function CheckoutPage() {
               <div className="flex-1">
                 <p className="text-sm font-medium text-white">{c.item_name}</p>
                 <p className="text-xs text-white/40">
-                  結帳金額享 50% 折扣
+                  結帳金額最高報銷 {c.discount_percent}%，本次實付 {formatPrice(calculateStoreRebatePayableAmount(totalAmount, c.discount_percent))}
                 </p>
               </div>
               {selectedCouponId === c.id && (

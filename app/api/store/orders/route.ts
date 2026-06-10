@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient, createAdminSupabaseClient } from "@/lib/auth";
+import {
+  calculateStoreRebatePayableAmount,
+  getBackpackStoreRebatePercent,
+} from "@/lib/rewardExchange";
 
 // POST /api/store/orders — 建立訂單
 export async function POST(req: NextRequest) {
@@ -25,11 +29,11 @@ export async function POST(req: NextRequest) {
   let discountedAmount = Number(total_amount);
   let couponNote = "";
 
-  // 處理 50% 抵用券
+  // 處理商店消費報銷券
   if (coupon_item_id) {
     const { data: coupon } = await adminClient
       .from("backpack_items")
-      .select("id, item_type, item_name, is_active")
+      .select("id, item_type, item_name, is_active, expires_at")
       .eq("id", coupon_item_id)
       .eq("user_id", user.id)
       .maybeSingle();
@@ -39,15 +43,21 @@ export async function POST(req: NextRequest) {
     }
 
     if (!coupon.is_active) {
-      return NextResponse.json({ error: "該折價券已使用" }, { status: 400 });
+      return NextResponse.json({ error: "該折價券已使用或已停用" }, { status: 400 });
     }
 
-    if (coupon.item_name !== "商店消費報銷券（50%）") {
+    if (coupon.expires_at && new Date(coupon.expires_at).getTime() <= Date.now()) {
+      return NextResponse.json({ error: "該折價券已過期" }, { status: 400 });
+    }
+
+    const discountPercent = getBackpackStoreRebatePercent(coupon.item_type, coupon.item_name);
+
+    if (discountPercent === null) {
       return NextResponse.json({ error: "該折價券不適用於商店消費" }, { status: 400 });
     }
 
-    discountedAmount = Math.round(Number(total_amount) * 0.5);
-    couponNote = `（使用 50% 商店報銷券，原價 NT$ ${Number(total_amount).toLocaleString()}）`;
+    discountedAmount = calculateStoreRebatePayableAmount(Number(total_amount), discountPercent);
+    couponNote = `（使用 ${discountPercent}% 商店消費報銷券，原價 NT$ ${Number(total_amount).toLocaleString()}，實付 NT$ ${discountedAmount.toLocaleString()}）`;
 
     // 標記折價券為已使用
     await adminClient

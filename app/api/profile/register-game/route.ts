@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 const VALID_GAMES = ["sword_shield", "scarlet_violet", "legends_arceus", "bdsp", "lets_go"];
+const GAME_NAME_REWARD_POINTS_PER_REGISTRATION = 1;
 
 export async function POST(request: Request) {
   const supabase = createServerSupabaseClient();
@@ -54,36 +55,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "登記失敗：" + updateError.message }, { status: 500 });
   }
 
-  // 5/30 前發放獎勵
-  const deadline = new Date("2026-05-30T23:59:59+08:00");
-  const now = new Date();
+  const adminClient = createAdminSupabaseClient();
+  const { data: rewardRows, error: rewardError } = await adminClient.rpc(
+    "grant_game_name_reward_points",
+    {
+      p_user_id: userId,
+      p_points: GAME_NAME_REWARD_POINTS_PER_REGISTRATION,
+    },
+  );
+
   let rewardMessage = "";
+  if (rewardError) {
+    rewardMessage = " 登記已完成，但獎勵點發放失敗，請聯繫管理員確認。";
+  } else {
+    const rewardResult = Array.isArray(rewardRows) ? rewardRows[0] : rewardRows;
+    const grantedPoints = rewardResult?.granted_points ?? 0;
+    const availablePoints = rewardResult?.available_points ?? 0;
 
-  if (now <= deadline) {
-    const rewardPoints = 5000;
-
-    const { error: itemError } = await supabase.from("user_items").insert({
-      user_id: userId,
-      name: `🎮 遊戲登記獎勵 (${game_id})`,
-      quantity: 1,
-      notes: `5/30 前登記遊戲版本獎勵 (${rewardPoints.toLocaleString()} 點)`,
-    });
-
-    if (!itemError) {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("fortune_points")
-        .eq("id", userId)
-        .single();
-
-      const currentPoints = profileData?.fortune_points || 0;
-      await supabase
-        .from("profiles")
-        .update({ fortune_points: currentPoints + rewardPoints })
-        .eq("id", userId);
-
-      rewardMessage = ` 🎉 獲得 ${rewardPoints.toLocaleString()} 點獎勵！`;
-    }
+    rewardMessage =
+      grantedPoints > 0
+        ? ` 獲得 ${grantedPoints} 點遊戲名稱獎勵點，目前可用 ${availablePoints} 點。`
+        : ` 遊戲名稱獎勵點已達 10 點上限，目前可用 ${availablePoints} 點。`;
   }
 
   return NextResponse.json({

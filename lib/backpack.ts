@@ -1,3 +1,13 @@
+import { STORE_REBATE_REWARDS } from "@/lib/rewardExchange";
+
+const STORE_REBATE_BACKPACK_OPTIONS = STORE_REBATE_REWARDS.map((reward) => ({
+  type: reward.itemType,
+  name: reward.name,
+  description: `${reward.description} ${reward.example}`,
+  icon: "🎫",
+  badgeClass: "bg-emerald-500/20 text-emerald-200",
+}));
+
 export const BACKPACK_ITEM_OPTIONS = [
   {
     type: "blindbox_discount_500",
@@ -48,6 +58,7 @@ export const BACKPACK_ITEM_OPTIONS = [
     icon: "🎁",
     badgeClass: "bg-emerald-500/20 text-emerald-200",
   },
+  ...STORE_REBATE_BACKPACK_OPTIONS,
 ] as const;
 
 export type BackpackItemType = (typeof BACKPACK_ITEM_OPTIONS)[number]["type"];

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 
@@ -324,9 +325,17 @@ export default function ProfileForm({ user, profile, isRealNameSubmitted }: Prof
         <div className="flex items-center gap-2 mb-1">
           <h2 className="text-lg font-semibold text-emerald-300">🎮 遊戲版本登記</h2>
         </div>
-        <p className="text-xs text-emerald-200/60 mb-4">
-          每個遊戲版本可各登記一次。5/30 前完成登記可獲得獎勵！
-        </p>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs leading-5 text-emerald-200/60">
+            每個遊戲版本可各登記一次。每次成功登記可獲得 1 點遊戲名稱獎勵點，最多累積 10 點。
+          </p>
+          <Link
+            href="/rewards"
+            className="rounded-lg border border-emerald-300/30 px-3 py-1.5 text-xs font-semibold text-emerald-100 transition hover:bg-emerald-400/10"
+          >
+            前往獎勵兌換
+          </Link>
+        </div>
 
         <div className="space-y-3">
           {GAMES.map((game) => {

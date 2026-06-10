@@ -162,7 +162,7 @@ export async function POST(request: NextRequest) {
       ? "blindbox_discount_500"
       : choice === "pokemon_choice_5"
           ? "pokemon_choice_5"
-          : "auction_fee_rebate_40";
+          : "store_rebate_50";
   const { error: insertError } = await adminSupabase
     .from("backpack_items")
     .insert({
