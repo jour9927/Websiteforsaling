@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { MemberOnlyBlock } from "@/components/MemberOnlyBlock";
 import { MaintenanceOverlay } from "@/components/MaintenanceOverlay";
 import { useMaintenanceMode } from "@/components/MaintenanceContext";
+import { CHECK_IN_RESET_NOTICE } from "@/lib/checkInWindow";
 import Image from "next/image";
 
 type Distribution = {
@@ -195,6 +196,9 @@ export default function CheckInPage() {
                     <p className="mt-1 text-sm text-white/60">
                         每日簽到累積幸運點數，連續簽到獎勵更多！
                     </p>
+                    <p className="mt-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/90">
+                        {CHECK_IN_RESET_NOTICE}
+                    </p>
                 </header>
                 <MemberOnlyBlock
                     title="會員專屬功能"
@@ -331,6 +335,9 @@ export default function CheckInPage() {
                     <h1 className="text-2xl font-semibold text-white/90">每日簽到</h1>
                     <p className="mt-1 text-sm text-white/60">
                         累積簽到天數和幸運點數，解鎖珍貴的寶可夢配布獎勵！
+                    </p>
+                    <p className="mt-2 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs text-amber-100/90">
+                        {CHECK_IN_RESET_NOTICE}
                     </p>
                 </header>
 
@@ -596,6 +603,7 @@ export default function CheckInPage() {
                 <div className="glass-card p-4">
                     <h3 className="text-sm font-semibold text-white/80">📌 簽到規則</h3>
                     <ul className="mt-2 space-y-1 text-xs text-white/60">
+                        <li>• {CHECK_IN_RESET_NOTICE}</li>
                         <li>• 每日簽到可獲得幸運點數（有 10% 機率獲得雙倍！🎰）</li>
                         <li>• 連續簽到天數越多，每日獲得的點數越多（最多 7 點/天）</li>
                         <li>• <span className="text-emerald-400">12 天</span>：可選第 9 世代寶可夢</li>

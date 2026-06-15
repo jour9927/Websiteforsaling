@@ -1,21 +1,18 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/auth";
+import {
+    canCheckInForTaipeiDay,
+    createTaipeiCheckInResetDate,
+    getCheckInDaysBetween,
+    hasCheckedInForTaipeiDay,
+} from "@/lib/checkInWindow";
 
 export const dynamic = "force-dynamic";
 
-const CHECK_IN_DEBT_RESET_START_DATE = new Date(2026, 4, 14);
-
-// 計算某日期距今多少天
-function daysBetween(date1: Date, date2: Date): number {
-    const d1 = new Date(date1);
-    const d2 = new Date(date2);
-    d1.setHours(0, 0, 0, 0);
-    d2.setHours(0, 0, 0, 0);
-    return Math.floor((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24));
-}
+const CHECK_IN_DEBT_RESET_START_DATE = createTaipeiCheckInResetDate(2026, 4, 14);
 
 function isBeforeDebtReset(date: Date): boolean {
-    return daysBetween(date, CHECK_IN_DEBT_RESET_START_DATE) > 0;
+    return getCheckInDaysBetween(date, CHECK_IN_DEBT_RESET_START_DATE) > 0;
 }
 
 function getEffectiveDebt(currentDebt: number | null | undefined, lastCheckIn: string | null | undefined): number {
@@ -71,18 +68,7 @@ export async function GET() {
         });
     }
 
-    // 檢查今天是否已簽到
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const lastCheckIn = profile.last_check_in ? new Date(profile.last_check_in) : null;
-    let canCheckIn = true;
-
-    if (lastCheckIn) {
-        const lastCheckInDate = new Date(lastCheckIn);
-        lastCheckInDate.setHours(0, 0, 0, 0);
-        canCheckIn = lastCheckInDate.getTime() < today.getTime();
-    }
+    const canCheckIn = canCheckInForTaipeiDay(profile.last_check_in);
 
     // 查詢目標寶可夢資訊
     let goalDistribution = null;
@@ -137,20 +123,13 @@ export async function POST() {
         .single();
 
     const now = new Date();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
     // 檢查今天是否已簽到
-    if (profile?.last_check_in) {
-        const lastCheckInDate = new Date(profile.last_check_in);
-        lastCheckInDate.setHours(0, 0, 0, 0);
-
-        if (lastCheckInDate.getTime() >= today.getTime()) {
-            return NextResponse.json(
-                { error: "今天已經簽到過了！" },
-                { status: 400 }
-            );
-        }
+    if (hasCheckedInForTaipeiDay(profile?.last_check_in, now)) {
+        return NextResponse.json(
+            { error: "今天已經簽到過了！" },
+            { status: 400 }
+        );
     }
 
     // 計算連續簽到天數和補簽債務
@@ -162,7 +141,7 @@ export async function POST() {
 
     if (profile?.last_check_in) {
         const lastCheckIn = new Date(profile.last_check_in);
-        const daysSinceLastCheckIn = daysBetween(lastCheckIn, today);
+        const daysSinceLastCheckIn = getCheckInDaysBetween(lastCheckIn, now);
 
         if (daysSinceLastCheckIn === 1) {
             // 昨天有簽到，正常處理
@@ -176,7 +155,7 @@ export async function POST() {
         } else if (daysSinceLastCheckIn > 1) {
             // 斷簽了！計算債務
             const missedDays = isBeforeDebtReset(lastCheckIn)
-                ? daysBetween(CHECK_IN_DEBT_RESET_START_DATE, today)
+                ? getCheckInDaysBetween(CHECK_IN_DEBT_RESET_START_DATE, now)
                 : daysSinceLastCheckIn - 1;
             newDebt += missedDays * 2;  // 每斷 1 天加 2 天債務
             newStreak = 1;  // 連續天數重置為 1

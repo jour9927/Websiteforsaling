@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/auth";
+import { canCheckInForTaipeiDay } from "@/lib/checkInWindow";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import ProfileForm from "./ProfileForm";
@@ -75,15 +76,7 @@ export default async function ProfilePage() {
   const collectionPercent =
     collectionTotal > 0 ? Math.round((collectionOwned / collectionTotal) * 100) : 0;
 
-  // 計算今天是否可簽到
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  let canCheckIn = true;
-  if (profile?.last_check_in) {
-    const lastCheckIn = new Date(profile.last_check_in);
-    lastCheckIn.setHours(0, 0, 0, 0);
-    canCheckIn = lastCheckIn.getTime() < today.getTime();
-  }
+  const canCheckIn = canCheckInForTaipeiDay(profile?.last_check_in);
 
   const quickLinks = [
     { label: "📚 圖鑑", href: "/collection" as const, color: "from-amber-500 to-orange-500" },
