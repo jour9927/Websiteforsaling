@@ -37,6 +37,7 @@ export default async function EventsListPage() {
   const { data: recentEvents } = await supabase
     .from('events')
     .select('*')
+    .eq('status', 'published')
     .lt('end_date', now)
     .order('end_date', { ascending: false })
     .limit(6);
