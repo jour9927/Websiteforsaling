@@ -19,6 +19,8 @@ type CouponItem = {
   expires_at: string | null;
 };
 
+type PaymentMethod = "pay_now" | "deferred";
+
 export default function CheckoutPage() {
   const { items, totalAmount, clearCart } = useCart();
   const router = useRouter();
@@ -28,6 +30,7 @@ export default function CheckoutPage() {
   const [coupons, setCoupons] = useState<CouponItem[]>([]);
   const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null);
   const [loadingCoupons, setLoadingCoupons] = useState(true);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pay_now");
 
   const selectedCoupon = coupons.find((coupon) => coupon.id === selectedCouponId) ?? null;
   const discountedAmount = selectedCoupon
@@ -81,6 +84,7 @@ export default function CheckoutPage() {
           notes,
           total_amount: totalAmount,
           coupon_item_id: selectedCouponId || null,
+          payment_method: paymentMethod,
         }),
       });
 
@@ -199,6 +203,61 @@ export default function CheckoutPage() {
         </section>
       )}
 
+      {/* 付款方式 */}
+      <section className="glass-card p-6">
+        <h2 className="text-sm font-semibold text-white/70 mb-3">付款方式</h2>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label
+            className={`cursor-pointer rounded-xl border p-4 transition ${
+              paymentMethod === "pay_now"
+                ? "border-amber-400/60 bg-amber-500/10"
+                : "border-white/10 bg-white/5 hover:border-white/20"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <input
+                type="radio"
+                name="payment_method"
+                value="pay_now"
+                checked={paymentMethod === "pay_now"}
+                onChange={() => setPaymentMethod("pay_now")}
+                className="mt-1 accent-amber-400"
+              />
+              <div>
+                <p className="text-sm font-semibold text-white">立即付款</p>
+                <p className="mt-1 text-xs leading-relaxed text-white/45">
+                  下單後依照一般付款流程處理。
+                </p>
+              </div>
+            </div>
+          </label>
+          <label
+            className={`cursor-pointer rounded-xl border p-4 transition ${
+              paymentMethod === "deferred"
+                ? "border-sky-400/60 bg-sky-500/10"
+                : "border-white/10 bg-white/5 hover:border-white/20"
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <input
+                type="radio"
+                name="payment_method"
+                value="deferred"
+                checked={paymentMethod === "deferred"}
+                onChange={() => setPaymentMethod("deferred")}
+                className="mt-1 accent-sky-400"
+              />
+              <div>
+                <p className="text-sm font-semibold text-white">延遲付款</p>
+                <p className="mt-1 text-xs leading-relaxed text-white/45">
+                  預算暫時不足也能先送出訂單卡位，後續由管理員確認付款期限。
+                </p>
+              </div>
+            </div>
+          </label>
+        </div>
+      </section>
+
       {/* 備註 */}
       <section className="glass-card p-6">
         <h2 className="text-sm font-semibold text-white/70 mb-3">訂單備註（選填）</h2>
@@ -230,7 +289,7 @@ export default function CheckoutPage() {
           disabled={submitting}
           className="flex-1 rounded-xl bg-amber-500 py-3 text-sm font-bold text-black hover:bg-amber-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {submitting ? "處理中..." : "確認下單"}
+          {submitting ? "處理中..." : paymentMethod === "deferred" ? "確認下單並卡位" : "確認下單"}
         </button>
       </div>
     </div>

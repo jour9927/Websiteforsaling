@@ -5,6 +5,9 @@ import {
   getBackpackStoreRebatePercent,
 } from "@/lib/rewardExchange";
 
+const PAYMENT_METHODS = ["pay_now", "deferred"] as const;
+type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
 // POST /api/store/orders — 建立訂單
 export async function POST(req: NextRequest) {
   const supabase = createServerSupabaseClient();
@@ -18,6 +21,9 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json();
   const { items, notes, total_amount, coupon_item_id } = body;
+  const paymentMethod = PAYMENT_METHODS.includes(body.payment_method as PaymentMethod)
+    ? (body.payment_method as PaymentMethod)
+    : "pay_now";
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: "購物車為空" }, { status: 400 });
@@ -28,6 +34,10 @@ export async function POST(req: NextRequest) {
 
   let discountedAmount = Number(total_amount);
   let couponNote = "";
+  const paymentNote =
+    paymentMethod === "deferred"
+      ? "（付款方式：延遲付款，已先保留卡位，付款期限待管理員確認）"
+      : "（付款方式：立即付款）";
 
   // 處理商店消費報銷券
   if (coupon_item_id) {
@@ -73,7 +83,8 @@ export async function POST(req: NextRequest) {
       user_id: user.id,
       status: "pending",
       total_amount: discountedAmount,
-      notes: [notes ?? "", couponNote].filter(Boolean).join(" ").trim(),
+      payment_method: paymentMethod,
+      notes: [notes ?? "", couponNote, paymentNote].filter(Boolean).join(" ").trim(),
     })
     .select()
     .single();

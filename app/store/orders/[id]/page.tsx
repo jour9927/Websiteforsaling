@@ -14,6 +14,7 @@ interface OrderItem {
 interface Order {
   id: string;
   status: string;
+  payment_method: "pay_now" | "deferred" | null;
   total_amount: number;
   notes: string;
   created_at: string;
@@ -40,6 +41,19 @@ const statusLabels: Record<string, { label: string; color: string }> = {
   paid: { label: "已付款", color: "text-emerald-400 bg-emerald-400/10 border-emerald-400/20" },
   delivered: { label: "已交付", color: "text-blue-400 bg-blue-400/10 border-blue-400/20" },
   cancelled: { label: "已取消", color: "text-red-400 bg-red-400/10 border-red-400/20" },
+};
+
+const paymentMethodLabels: Record<string, { label: string; color: string; description: string }> = {
+  pay_now: {
+    label: "立即付款",
+    color: "text-amber-300 bg-amber-400/10 border-amber-400/20",
+    description: "請依照一般付款流程完成付款。",
+  },
+  deferred: {
+    label: "延遲付款",
+    color: "text-sky-300 bg-sky-400/10 border-sky-400/20",
+    description: "已先保留卡位，付款期限將由管理員後續確認。",
+  },
 };
 
 export default function OrderDetailPage() {
@@ -86,6 +100,7 @@ export default function OrderDetailPage() {
   }
 
   const status = statusLabels[order.status] ?? statusLabels.pending;
+  const paymentMethod = paymentMethodLabels[order.payment_method ?? "pay_now"];
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -118,6 +133,15 @@ export default function OrderDetailPage() {
             <span className="text-white/50">下單時間</span>
             <span className="text-white/70">{formatDateTime(order.created_at)}</span>
           </div>
+          <div className="flex items-center justify-between gap-3 py-2 border-b border-white/5">
+            <span className="text-white/50">付款方式</span>
+            <span className={`rounded-full border px-3 py-1 text-xs font-medium ${paymentMethod.color}`}>
+              {paymentMethod.label}
+            </span>
+          </div>
+          <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs leading-relaxed text-white/50">
+            {paymentMethod.description}
+          </p>
           {order.notes && (
             <div className="flex justify-between py-2 border-b border-white/5">
               <span className="text-white/50">備註</span>
