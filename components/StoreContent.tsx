@@ -22,6 +22,36 @@ function formatPrice(price: number) {
   return `NT$ ${price.toLocaleString()}`;
 }
 
+function renderDescriptionLine(line: string) {
+  const parts = line.split(/(~~.+?~~)/g);
+
+  return parts.map((part, index) => {
+    if (part.startsWith("~~") && part.endsWith("~~")) {
+      return (
+        <span key={index} className="text-white/40 line-through decoration-2">
+          {part.slice(2, -2)}
+        </span>
+      );
+    }
+
+    return <span key={index}>{part}</span>;
+  });
+}
+
+function FormattedDescription({ text }: { text: string }) {
+  return (
+    <div className="mt-4 space-y-1.5 text-sm leading-relaxed text-white/70">
+      {text.split("\n").map((line, index) =>
+        line.trim() ? (
+          <p key={`${line}-${index}`}>{renderDescriptionLine(line)}</p>
+        ) : (
+          <div key={`blank-${index}`} className="h-2" aria-hidden="true" />
+        ),
+      )}
+    </div>
+  );
+}
+
 export default function StoreContent() {
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -159,7 +189,7 @@ export default function StoreContent() {
                 >
                   <div className="p-5 bg-gradient-to-br from-white/[0.03] to-white/[0.01]">
                     {/* 商品圖片 */}
-                    <div className="relative w-full h-40 rounded-xl bg-white/5 flex items-center justify-center mb-4 overflow-hidden">
+                    <div className="relative w-full aspect-square rounded-xl bg-white/5 flex items-center justify-center mb-4 overflow-hidden">
                       {product.image_url ? (
                         <img
                           src={product.image_url}
@@ -266,7 +296,7 @@ export default function StoreContent() {
                   >
                     <div className="p-5 bg-gradient-to-br from-white/[0.03] to-white/[0.01]">
                       {/* 商品圖片 + 售罄標籤 */}
-                      <div className="relative w-full h-40 rounded-xl bg-white/5 flex items-center justify-center mb-4 overflow-hidden">
+                      <div className="relative w-full aspect-square rounded-xl bg-white/5 flex items-center justify-center mb-4 overflow-hidden">
                         {product.image_url ? (
                           <img
                             src={product.image_url}
@@ -368,7 +398,7 @@ export default function StoreContent() {
             </button>
 
             {/* 圖片 */}
-            <div className="w-full h-48 rounded-xl bg-white/5 flex items-center justify-center mb-6 overflow-hidden">
+            <div className="w-full aspect-square rounded-xl bg-white/5 flex items-center justify-center mb-6 overflow-hidden">
               {selectedItem.image_url ? (
                 <img
                   src={selectedItem.image_url}
@@ -388,9 +418,7 @@ export default function StoreContent() {
             </span>
 
             {selectedItem.description && (
-              <p className="text-white/70 text-sm mt-4 leading-relaxed">
-                {selectedItem.description}
-              </p>
+              <FormattedDescription text={selectedItem.description} />
             )}
 
             <div className="space-y-2 mt-6 text-sm">
