@@ -29,6 +29,7 @@ export interface DistributionBadge {
     icon_url?: string | null;
     description?: string | null;
     sort_order?: number | null;
+    restricted_pokemon?: string[] | null;
 }
 
 export interface AttachedDistributionBadge extends DistributionBadge {
@@ -126,8 +127,26 @@ export function getDistributionBadgePointTier(basePoints: number): DistributionB
 export function isBadgeCompatibleWithDistribution(
     badge: DistributionBadge,
     distributionGeneration: number,
+    pokemonName?: string,
+    pokemonNameEn?: string,
 ): boolean {
-    return distributionGeneration >= badge.min_generation && distributionGeneration <= badge.max_generation;
+    // 世代範圍檢查
+    if (distributionGeneration < badge.min_generation || distributionGeneration > badge.max_generation) {
+        return false;
+    }
+
+    // 如果沒有寶可夢限制，通過世代檢查即可
+    if (!badge.restricted_pokemon || badge.restricted_pokemon.length === 0) {
+        return true;
+    }
+
+    // 有寶可夢限制：檢查是否符合白名單
+    if (!pokemonName && !pokemonNameEn) return false;
+
+    if (pokemonName && badge.restricted_pokemon.includes(pokemonName)) return true;
+    if (pokemonNameEn && badge.restricted_pokemon.includes(pokemonNameEn)) return true;
+
+    return false;
 }
 
 export function sortDistributionBadges<T extends DistributionBadge>(badges: T[]): T[] {

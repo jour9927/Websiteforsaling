@@ -189,8 +189,8 @@ export default function PokedexContent({
         return sortDistributionBadges(attachedBadgesByDistributionId[distributionId] || []);
     }
 
-    function getCompatibleBadges(distributionGeneration: number): DistributionBadge[] {
-        return sortDistributionBadges(badges.filter(badge => isBadgeCompatibleWithDistribution(badge, distributionGeneration)));
+    function getCompatibleBadges(distributionGeneration: number, pokemonName: string, pokemonNameEn?: string): DistributionBadge[] {
+        return sortDistributionBadges(badges.filter(badge => isBadgeCompatibleWithDistribution(badge, distributionGeneration, pokemonName, pokemonNameEn)));
     }
 
     function getTotalPoints(dist: Distribution): number {
@@ -272,7 +272,7 @@ export default function PokedexContent({
 
     async function toggleBadge(dist: Distribution, badge: DistributionBadge) {
         if (!isLoggedIn || !userId) return;
-        if (!isBadgeCompatibleWithDistribution(badge, dist.generation)) return;
+        if (!isBadgeCompatibleWithDistribution(badge, dist.generation, dist.pokemon_name, dist.pokemon_name_en)) return;
 
         const userDistribution = getUserDistributionRecord(dist.id);
         if (!userDistribution) return;
@@ -533,7 +533,7 @@ export default function PokedexContent({
                     const isCollected = collected.includes(dist.id);
                     const isLoading = isToggling === dist.id;
                     const attachedBadges = getAttachedBadges(dist.id);
-                    const compatibleBadges = getCompatibleBadges(dist.generation);
+                    const compatibleBadges = getCompatibleBadges(dist.generation, dist.pokemon_name, dist.pokemon_name_en);
                     const isBadgePanelOpen = activeBadgeDistributionId === dist.id;
 
                     return (
