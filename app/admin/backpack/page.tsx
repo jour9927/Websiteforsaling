@@ -212,7 +212,7 @@ export default function AdminBackpackPage() {
       <header className="glass-card p-6">
         <h1 className="text-2xl font-semibold text-white">會員背包管理</h1>
         <p className="mt-1 text-sm text-white/60">
-          發放盲盒折抵券與競標報銷券到指定會員背包，並可留下獲得原因備註。
+          發放抵用券、盲盒折抵券與競標報銷券到指定會員背包，並可留下獲得原因備註。
         </p>
       </header>
 

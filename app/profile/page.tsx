@@ -195,8 +195,8 @@ export default async function ProfilePage() {
                 <div className="flex items-center gap-3">
                 <span className="text-2xl">🎫</span>
                 <div>
-                    <p className="text-sm font-medium text-white">$1000 盲盒抵用券</p>
-                    <p className="text-xs text-white/50">購買精選盲盒時折抵使用</p>
+                    <p className="text-sm font-medium text-white">1000 元抵用券</p>
+                    <p className="text-xs text-white/50">可於指定消費時折抵使用</p>
                 </div>
                 </div>
                 <p className="text-2xl font-bold text-cyan-400">

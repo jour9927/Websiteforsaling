@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient, createAdminSupabaseClient } from "@/lib/auth";
-import { getBackpackStoreRebatePercent } from "@/lib/rewardExchange";
+import { getBackpackStoreCouponDiscount } from "@/lib/rewardExchange";
 
 export const dynamic = "force-dynamic";
 
@@ -32,12 +32,19 @@ export async function GET() {
   const now = Date.now();
   const coupons = (data ?? [])
     .filter((coupon) => !coupon.expires_at || new Date(coupon.expires_at).getTime() > now)
-    .map((coupon) => ({
-      ...coupon,
-      discount_percent: getBackpackStoreRebatePercent(coupon.item_type, coupon.item_name),
-    }))
-    .filter((coupon) => coupon.discount_percent !== null)
-    .sort((a, b) => Number(b.discount_percent) - Number(a.discount_percent));
+    .map((coupon) => {
+      const discount = getBackpackStoreCouponDiscount(coupon.item_type, coupon.item_name);
+
+      return {
+        ...coupon,
+        discount_kind: discount?.kind ?? null,
+        discount_value: discount?.value ?? null,
+        discount_percent: discount?.kind === "percent" ? discount.value : null,
+        discount_amount: discount?.kind === "amount" ? discount.value : null,
+      };
+    })
+    .filter((coupon) => coupon.discount_kind !== null && coupon.discount_value !== null)
+    .sort((a, b) => Number(b.discount_value) - Number(a.discount_value));
 
   return NextResponse.json(coupons);
 }

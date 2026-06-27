@@ -59,6 +59,38 @@ export function getBackpackStoreRebatePercent(itemType: string, itemName?: strin
   return null;
 }
 
+export function getBackpackStoreFixedDiscountAmount(itemType: string, itemName?: string | null) {
+  if (itemType === "blindbox_discount_1000") {
+    return 1000;
+  }
+
+  if (itemName === "1000 元抵用券") {
+    return 1000;
+  }
+
+  return null;
+}
+
+export function getBackpackStoreCouponDiscount(itemType: string, itemName?: string | null) {
+  const discountPercent = getBackpackStoreRebatePercent(itemType, itemName);
+  if (discountPercent !== null) {
+    return {
+      kind: "percent" as const,
+      value: discountPercent,
+    };
+  }
+
+  const discountAmount = getBackpackStoreFixedDiscountAmount(itemType, itemName);
+  if (discountAmount !== null) {
+    return {
+      kind: "amount" as const,
+      value: discountAmount,
+    };
+  }
+
+  return null;
+}
+
 export function isStoreRebateItemType(itemType: string): itemType is StoreRebateItemType {
   return STORE_REBATE_ITEM_TYPES.includes(itemType as StoreRebateItemType);
 }
@@ -67,4 +99,10 @@ export function calculateStoreRebatePayableAmount(totalAmount: number, discountP
   const normalizedTotal = Math.max(0, Number(totalAmount) || 0);
   const normalizedDiscount = Math.min(100, Math.max(0, Number(discountPercent) || 0));
   return Math.round(normalizedTotal * ((100 - normalizedDiscount) / 100));
+}
+
+export function calculateStoreFixedDiscountPayableAmount(totalAmount: number, discountAmount: number) {
+  const normalizedTotal = Math.max(0, Number(totalAmount) || 0);
+  const normalizedDiscount = Math.max(0, Number(discountAmount) || 0);
+  return Math.max(0, Math.round(normalizedTotal - normalizedDiscount));
 }

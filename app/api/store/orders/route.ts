@@ -1,14 +1,61 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient, createAdminSupabaseClient } from "@/lib/auth";
 import {
+  calculateStoreFixedDiscountPayableAmount,
   calculateStoreRebatePayableAmount,
-  getBackpackStoreRebatePercent,
+  getBackpackStoreCouponDiscount,
 } from "@/lib/rewardExchange";
 
 const PAYMENT_METHODS = ["pay_now", "deferred"] as const;
 type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 const DEFERRED_PAYMENT_MONTHS = [1, 2] as const;
 type DeferredPaymentMonths = (typeof DEFERRED_PAYMENT_MONTHS)[number];
+type StoreCouponDiscount = NonNullable<ReturnType<typeof getBackpackStoreCouponDiscount>>;
+
+function getRequestedCouponIds(body: Record<string, unknown>) {
+  const rawCouponIds = Array.isArray(body.coupon_item_ids)
+    ? body.coupon_item_ids
+    : body.coupon_item_id
+      ? [body.coupon_item_id]
+      : [];
+
+  return Array.from(
+    new Set(
+      rawCouponIds.filter((id): id is string => typeof id === "string" && id.trim().length > 0),
+    ),
+  );
+}
+
+function validateCouponCombination(discounts: StoreCouponDiscount[]) {
+  if (discounts.length > 2) {
+    return false;
+  }
+
+  const percentDiscounts = discounts.filter((discount) => discount.kind === "percent");
+  const amountDiscounts = discounts.filter((discount) => discount.kind === "amount");
+
+  if (percentDiscounts.length > 1 || amountDiscounts.length > 1) {
+    return false;
+  }
+
+  if (discounts.length === 2) {
+    return percentDiscounts[0]?.value === 50 && amountDiscounts[0]?.value === 1000;
+  }
+
+  return true;
+}
+
+function applyCouponDiscounts(totalAmount: number, discounts: StoreCouponDiscount[]) {
+  return discounts
+    .sort((a, b) => (a.kind === b.kind ? 0 : a.kind === "percent" ? -1 : 1))
+    .reduce((amount, discount) => {
+      if (discount.kind === "percent") {
+        return calculateStoreRebatePayableAmount(amount, discount.value);
+      }
+
+      return calculateStoreFixedDiscountPayableAmount(amount, discount.value);
+    }, Number(totalAmount));
+}
 
 // POST /api/store/orders — 建立訂單
 export async function POST(req: NextRequest) {
@@ -22,7 +69,8 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { items, notes, total_amount, coupon_item_id } = body;
+  const { items, notes, total_amount } = body;
+  const couponItemIds = getRequestedCouponIds(body);
   const paymentMethod = PAYMENT_METHODS.includes(body.payment_method as PaymentMethod)
     ? (body.payment_method as PaymentMethod)
     : "pay_now";
@@ -50,41 +98,56 @@ export async function POST(req: NextRequest) {
       ? `（付款方式：延遲付款 ${deferredPaymentMonths} 個月，已先保留卡位）`
       : "（付款方式：立即付款）";
 
-  // 處理商店消費報銷券
-  if (coupon_item_id) {
-    const { data: coupon } = await adminClient
+  if (couponItemIds.length > 0) {
+    const { data: coupons, error: couponError } = await adminClient
       .from("backpack_items")
       .select("id, item_type, item_name, is_active, expires_at")
-      .eq("id", coupon_item_id)
       .eq("user_id", user.id)
-      .maybeSingle();
+      .in("id", couponItemIds);
 
-    if (!coupon) {
+    if (couponError) {
+      return NextResponse.json({ error: couponError.message }, { status: 500 });
+    }
+
+    if (!coupons || coupons.length !== couponItemIds.length) {
       return NextResponse.json({ error: "找不到該折價券" }, { status: 400 });
     }
 
-    if (!coupon.is_active) {
-      return NextResponse.json({ error: "該折價券已使用或已停用" }, { status: 400 });
+    const couponDiscounts: StoreCouponDiscount[] = [];
+
+    for (const coupon of coupons) {
+      if (!coupon.is_active) {
+        return NextResponse.json({ error: "該折價券已使用或已停用" }, { status: 400 });
+      }
+
+      if (coupon.expires_at && new Date(coupon.expires_at).getTime() <= Date.now()) {
+        return NextResponse.json({ error: "該折價券已過期" }, { status: 400 });
+      }
+
+      const discount = getBackpackStoreCouponDiscount(coupon.item_type, coupon.item_name);
+
+      if (discount === null) {
+        return NextResponse.json({ error: "該折價券不適用於商店消費" }, { status: 400 });
+      }
+
+      couponDiscounts.push(discount);
     }
 
-    if (coupon.expires_at && new Date(coupon.expires_at).getTime() <= Date.now()) {
-      return NextResponse.json({ error: "該折價券已過期" }, { status: 400 });
+    if (!validateCouponCombination(couponDiscounts)) {
+      return NextResponse.json({ error: "這些折價券不可同時使用" }, { status: 400 });
     }
 
-    const discountPercent = getBackpackStoreRebatePercent(coupon.item_type, coupon.item_name);
+    discountedAmount = applyCouponDiscounts(Number(total_amount), couponDiscounts);
+    couponNote = `（使用消費券，原價 NT$ ${Number(total_amount).toLocaleString()}，實付 NT$ ${discountedAmount.toLocaleString()}）`;
 
-    if (discountPercent === null) {
-      return NextResponse.json({ error: "該折價券不適用於商店消費" }, { status: 400 });
-    }
-
-    discountedAmount = calculateStoreRebatePayableAmount(Number(total_amount), discountPercent);
-    couponNote = `（使用 ${discountPercent}% 商店消費報銷券，原價 NT$ ${Number(total_amount).toLocaleString()}，實付 NT$ ${discountedAmount.toLocaleString()}）`;
-
-    // 標記折價券為已使用
-    await adminClient
+    const { error: couponUpdateError } = await adminClient
       .from("backpack_items")
       .update({ is_active: false })
-      .eq("id", coupon_item_id);
+      .in("id", couponItemIds);
+
+    if (couponUpdateError) {
+      return NextResponse.json({ error: couponUpdateError.message }, { status: 500 });
+    }
   }
 
   // 建立訂單

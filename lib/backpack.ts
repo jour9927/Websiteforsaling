@@ -18,8 +18,8 @@ export const BACKPACK_ITEM_OPTIONS = [
   },
   {
     type: "blindbox_discount_1000",
-    name: "盲盒折抵券 1000",
-    description: "購買盲盒可折抵 1000",
+    name: "1000 元抵用券",
+    description: "指定消費可折抵 1000 元",
     icon: "🎫",
     badgeClass: "bg-cyan-500/20 text-cyan-200",
   },
