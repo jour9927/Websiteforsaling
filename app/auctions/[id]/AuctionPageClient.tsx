@@ -114,6 +114,9 @@ export function AuctionPageClient({
 
     // Realtime 訂閱偵測競標狀態與真實出價變更
     useEffect(() => {
+        // 非 active 時不建立訂閱（節省資源）
+        if (!isActiveState) return;
+
         let cancelled = false;
         let cleanup: (() => void) | null = null;
 
@@ -181,7 +184,7 @@ export function AuctionPageClient({
             cancelled = true;
             cleanup?.();
         };
-    }, [auctionId]);
+    }, [auctionId, isActiveState]);
 
     const handleHighestChange = useCallback((amount: number, bidderName: string | null) => {
         // 取模擬和真實中較高的價格
@@ -213,6 +216,7 @@ export function AuctionPageClient({
             endTime={endTime}
             bidActivity={(liveRealBids.length || 0) + bidCount}
             automationMode={automationMode}
+            automationTargetMin={automationTargetMin}
         >
             {children}
 
@@ -297,6 +301,7 @@ export function AuctionPageClient({
                     simulatedBids={simulatedBids}
                     automationMode={automationMode}
                     automationStopSeconds={automationStopSeconds}
+                    isActiveState={isActiveState}
                 />,
                 bidButtonSlot
             )}

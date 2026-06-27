@@ -4,6 +4,7 @@ import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/aut
 import { AuctionPageClient } from "./AuctionPageClient";
 import { getEstimatedBidCount } from "@/lib/simulatedBidCount";
 import { getGlobalLinkV2VirtualHighest } from "@/lib/globalLinkV2VirtualBids";
+import type { AuctionAutomationMode } from "@/hooks/useSimulatedAuction";
 import CountdownTimer from "./CountdownTimer";
 
 type AuctionPageProps = {
@@ -11,6 +12,10 @@ type AuctionPageProps = {
 };
 
 export const dynamic = 'force-dynamic';
+
+function isGlobalLinkV2Mode(mode: string | null | undefined) {
+    return mode === 'global_link_v2_c' || mode === 'global_link_v2_d' || mode === 'global_link_v2_b1';
+}
 
 export default async function AuctionPage({ params }: AuctionPageProps) {
     const supabase = createServerSupabaseClient();
@@ -30,7 +35,7 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
 
     if (
         currentAuction.status === 'active' &&
-        currentAuction.automation_mode === 'global_link_v2' &&
+        isGlobalLinkV2Mode(currentAuction.automation_mode) &&
         new Date(currentAuction.end_time) <= new Date()
     ) {
         const adminSupabase = createAdminSupabaseClient();
@@ -47,6 +52,7 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
             endTime: currentAuction.end_time,
             startingPrice: currentAuction.starting_price,
             currentTime: new Date(currentAuction.end_time),
+            mode: currentAuction.automation_mode,
             targetMin: currentAuction.automation_target_min ?? 39000,
             targetMax: currentAuction.automation_target_max ?? 45000,
             stopSeconds: currentAuction.automation_stop_seconds ?? 1,
@@ -133,10 +139,10 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
         realCurrentPrice: sessionCurrentPrice,
         realHighestBidder: highestBid?.profiles?.[0]?.full_name || highestBid?.profiles?.[0]?.email?.split('@')[0] || null,
         bidCount: sessionBids.length,
-        automationMode: currentAuction.automation_mode === 'global_link_v2' ? 'global_link_v2' as const : 'legacy' as const,
+        automationMode: currentAuction.automation_mode as AuctionAutomationMode,
         automationTargetMin: currentAuction.automation_target_min ?? 39000,
         automationTargetMax: currentAuction.automation_target_max ?? 45000,
-        automationStopSeconds: currentAuction.automation_mode === 'global_link_v2'
+        automationStopSeconds: isGlobalLinkV2Mode(currentAuction.automation_mode)
             ? Math.max(1, currentAuction.automation_stop_seconds ?? 1)
             : currentAuction.automation_stop_seconds ?? 30
     };
@@ -237,7 +243,7 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
                         <CountdownTimer
                             endTime={currentAuction.end_time}
                             isEnded={isEnded}
-                            disableExtension={currentAuction.automation_mode === 'global_link_v2'}
+                            disableExtension={isGlobalLinkV2Mode(currentAuction.automation_mode)}
                         />
 
                         {/* 目前最高價 - 由 Client 控制 */}

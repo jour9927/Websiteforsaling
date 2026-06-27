@@ -71,7 +71,7 @@ export default function AuctionComments({
     currentUserName,
     currentPrice = 0,
     endTime = '',
-    automationMode = 'legacy'
+    automationMode = 'legacy_b'
 }: AuctionCommentsProps & { currentPrice?: number, endTime?: string | null }) {
     const [comments, setComments] = useState<Comment[]>([]);
     const [simulatedComments, setSimulatedComments] = useState<Comment[]>([]);
@@ -79,7 +79,7 @@ export default function AuctionComments({
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [user, setUser] = useState<{ id: string; name: string } | null>(null);
     const commentsEndRef = useRef<HTMLDivElement>(null);
-    const isGlobalLinkV2 = automationMode === 'global_link_v2';
+    const isGlobalLinkV2 = automationMode === 'global_link_v2_c' || automationMode === 'global_link_v2_d' || automationMode === 'global_link_v2_b1';
 
     // 追蹤已回覆的真實用戶（每人回覆次數限制）
     const repliedUsersRef = useRef<Map<string, number>>(new Map());

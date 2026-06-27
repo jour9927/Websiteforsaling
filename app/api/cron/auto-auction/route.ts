@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/auth";
 import { getGlobalLinkV2VirtualHighest } from "@/lib/globalLinkV2VirtualBids";
 
+type GlobalLinkV2Mode = "global_link_v2_c" | "global_link_v2_d" | "global_link_v2_b1";
+
 type AuctionRow = {
   id: string;
   start_time: string;
@@ -11,6 +13,7 @@ type AuctionRow = {
   automation_target_min: number | null;
   automation_target_max: number | null;
   automation_stop_seconds: number | null;
+  automation_mode: GlobalLinkV2Mode;
 };
 
 export async function GET(request: NextRequest) {
@@ -26,9 +29,9 @@ export async function GET(request: NextRequest) {
 
   const { data: auctions, error: auctionsError } = await supabase
     .from("auctions")
-    .select("id, start_time, end_time, starting_price, min_increment, automation_target_min, automation_target_max, automation_stop_seconds")
+    .select("id, start_time, end_time, starting_price, min_increment, automation_target_min, automation_target_max, automation_stop_seconds, automation_mode")
     .eq("status", "active")
-    .eq("automation_mode", "global_link_v2")
+    .in("automation_mode", ["global_link_v2_c", "global_link_v2_d", "global_link_v2_b1"])
     .lte("end_time", now.toISOString())
     .limit(20);
 
@@ -57,6 +60,7 @@ export async function GET(request: NextRequest) {
       endTime: auction.end_time,
       startingPrice: auction.starting_price,
       currentTime: new Date(auction.end_time),
+      mode: auction.automation_mode,
       targetMin: auction.automation_target_min ?? 39000,
       targetMax: auction.automation_target_max ?? 45000,
       stopSeconds: auction.automation_stop_seconds ?? 1,

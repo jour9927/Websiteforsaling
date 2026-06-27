@@ -28,7 +28,15 @@ export interface SimulatedBid {
     is_simulated: true;
 }
 
-export type AuctionAutomationMode = 'legacy' | 'global_link_v2';
+/**
+ * Legacy + Global Link v2 模擬競標模式：
+ * A (legacy_a) — Legacy 基本型：無種子、固定基底100×倍率、20筆、結束前30秒停止、無counter-bid
+ * B (legacy_b) — Legacy counter-bid 回擊型：A + 真實玩家出價反應式回擊 + 連續5次讓步
+ * B1 (legacy_b1) — Legacy counter-bid 強化型：未達8000前counter-bid永不讓步，超過8000回歸B的5次讓步。target範圍8000-12000
+ * C (global_link_v2_c) — Global Link v2 基本型：確定性種子、easedProgress推價、到target停止
+ * D (global_link_v2_d) — Global Link v2 高強度型：C + 超過target持續推 + auto-follow真實玩家
+ */
+export type AuctionAutomationMode = 'legacy_a' | 'legacy_b' | 'legacy_b1' | 'global_link_v2_c' | 'global_link_v2_d' | 'global_link_v2_b1';
 
 // 確定性隨機數生成器（基於種子）
 function seededRandom(seed: number) {
@@ -53,7 +61,7 @@ function generateDeterministicBids(
     minIncrement: number,
     currentTime: Date,
     auctionTitle?: string,  // 新增：競標標題，用於判斷是否為特殊寶可夢
-    automationMode: AuctionAutomationMode = 'legacy',
+    automationMode: AuctionAutomationMode = 'legacy_b',
     targetMin = 35000,
     targetMax = 40000,
     stopSeconds?: number,
@@ -72,7 +80,8 @@ function generateDeterministicBids(
 
     const bids: SimulatedBid[] = [];
     let currentPrice = startingPrice;
-    const isGlobalLinkV2 = automationMode === 'global_link_v2';
+    const isGlobalLinkV2 = automationMode === 'global_link_v2_c' || automationMode === 'global_link_v2_d' || automationMode === 'global_link_v2_b1';
+    const isLegacyBasic = automationMode === 'legacy_a';
     const initialDelay = isGlobalLinkV2
         ? 800 + seededRandom(seed) * 800
         : 10000 + seededRandom(seed) * 20000;
@@ -126,14 +135,24 @@ function generateDeterministicBids(
                 ? [1, 5, 10, 20, 30, 50][bidIndex % 6]
                 : [10, 20, 30, 50, 70, 90, 120, 160][bidIndex % 8];
 
-            currentPrice = realHighestAtBidTime >= currentPrice
-                ? realHighestAtBidTime + pressureIncrement
-                : currentPrice >= targetPrice
-                ? currentPrice + sustainIncrement
-                : Math.min(
-                    targetPrice,
-                    Math.max(currentPrice + rhythmIncrement, plannedPrice)
-                );
+            // v2-b1: 低於 threshold 時無視真實用戶，強制用基底節奏推價
+            if (automationMode === 'global_link_v2_b1') {
+                currentPrice = currentPrice >= targetPrice
+                    ? currentPrice + sustainIncrement
+                    : Math.min(
+                        targetPrice,
+                        Math.max(currentPrice + rhythmIncrement, plannedPrice)
+                    );
+            } else {
+                currentPrice = realHighestAtBidTime >= currentPrice
+                    ? realHighestAtBidTime + pressureIncrement
+                    : currentPrice >= targetPrice
+                    ? currentPrice + sustainIncrement
+                    : Math.min(
+                        targetPrice,
+                        Math.max(currentPrice + rhythmIncrement, plannedPrice)
+                    );
+            }
         } else {
             // 模擬出價使用固定基底增幅（不受 DB min_increment 影響）
             const simBaseIncrement = 100;
@@ -204,7 +223,7 @@ export function useSimulatedBids({
     endTime,
     isActive,
     auctionTitle,
-    automationMode = 'legacy',
+    automationMode = 'legacy_b',
     automationTargetMin = 35000,
     automationTargetMax = 40000,
     automationStopSeconds,
@@ -220,16 +239,29 @@ export function useSimulatedBids({
     const counterBidTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const counterBidIndexRef = useRef(0);       // counter-bid 索引（用於生成唯一名稱）
 
-    // 每秒更新當前時間（觸發重新計算）
+    // 每秒更新當前時間（觸發重新計算）- 非 active 時強制停止
     useEffect(() => {
-        if (!isActive) return;
+        if (!isActive) {
+            setCurrentTime(new Date(endTime));
+            return;
+        }
+
+        setCurrentTime(new Date()); // 立即設為現在
 
         const interval = setInterval(() => {
             setCurrentTime(new Date());
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [isActive]);
+    }, [isActive, endTime]);
+
+    // 使用 ref 追蹤 realBids 最新值（避免陣列 reference 變動觸發 effect）
+    const realBidsRef = useRef(realBids);
+    realBidsRef.current = realBids;
+
+    // 使用 ref 追蹤 counterBids 最新值（同上）
+    const counterBidsRef = useRef(counterBids);
+    counterBidsRef.current = counterBids;
 
     // 使用確定性算法生成模擬出價（基底出價）
     const baseBids = useMemo(() => {
@@ -251,27 +283,49 @@ export function useSimulatedBids({
     }, [auctionId, startTime, endTime, startingPrice, minIncrement, currentTime, isActive, auctionTitle, automationMode, automationTargetMin, automationTargetMax, automationStopSeconds, realBids]);
 
     // === 偵測真實出價 → 生成 counter-bid ===
+    // 只監聽 realBids.length 和 isActive，用 refs 讀取實際陣列值
     useEffect(() => {
-        if (automationMode === 'global_link_v2') return;
-        if (!isActive || realBids.length === 0) return;
+        if (automationMode === 'global_link_v2_c' || automationMode === 'global_link_v2_d' || automationMode === 'global_link_v2_b1') return;
+        // A (legacy_basic) 不做 counter-bid
+        if (automationMode === 'legacy_a') return;
+        if (!isActive) {
+            // 非 active 時清理所有 timer
+            if (counterBidTimerRef.current) {
+                clearTimeout(counterBidTimerRef.current);
+                counterBidTimerRef.current = null;
+            }
+            return;
+        }
+
+        const currentRealBids = realBidsRef.current;
+        if (currentRealBids.length === 0) return;
+
+        // B-1: 計算當前最高價（含模擬出價 + counter-bid + 真實出價）
+        const isB1 = automationMode === 'legacy_b1';
+        const currentAllBids = [...(baseBids ?? []), ...(counterBidsRef.current ?? []), ...currentRealBids];
+        const currentHighest = currentAllBids.reduce((max, b) => Math.max(max, b.amount), startingPrice);
+        const isAboveThreshold = currentHighest >= 8000;
 
         // 偵測新的真實出價
-        if (realBids.length > lastRealBidCountRef.current) {
-            const newBidsCount = realBids.length - lastRealBidCountRef.current;
-            lastRealBidCountRef.current = realBids.length;
+        if (currentRealBids.length > lastRealBidCountRef.current) {
+            const newBidsCount = currentRealBids.length - lastRealBidCountRef.current;
+            lastRealBidCountRef.current = currentRealBids.length;
 
             // 增加連續真實出價計數
             consecutiveRealRef.current += newBidsCount;
 
-            // 連續 5 次 → 虛擬讓步
+            // 連續 5 次 → 決定是否讓步
             if (consecutiveRealRef.current >= 5) {
-                yieldedRef.current = true;
-                // 清除待執行的 counter-bid timer
-                if (counterBidTimerRef.current) {
-                    clearTimeout(counterBidTimerRef.current);
-                    counterBidTimerRef.current = null;
+                // B-1: 低於 8000 時不讓步，繼續回擊
+                if (!(isB1 && !isAboveThreshold)) {
+                    yieldedRef.current = true;
+                    // 清除待執行的 counter-bid timer
+                    if (counterBidTimerRef.current) {
+                        clearTimeout(counterBidTimerRef.current);
+                        counterBidTimerRef.current = null;
+                    }
+                    return;
                 }
-                return;
             }
 
             // 尚未讓步 → 排程 counter-bid
@@ -283,19 +337,24 @@ export function useSimulatedBids({
 
                 // 3~8 秒後回擊
                 const delay = 3000 + Math.random() * 5000;
-                const latestRealBid = realBids.reduce((max, bid) =>
-                    bid.amount > max.amount ? bid : max, realBids[0]);
+                const latestRealBid = currentRealBids.reduce((max, bid) =>
+                    bid.amount > max.amount ? bid : max, currentRealBids[0]);
+
+                // 用 ref 讀取當前 baseBids/counterBids（避免 dep）
+                const currentBaseBids = baseBids; // closure 中的值，因依賴是 stable
+                const currentCounterBids = counterBidsRef.current;
+                const currentStartingPrice = startingPrice;
 
                 // 計算「前一次最高價」以確定真實用戶實際加了多少
                 // 取所有模擬出價（base + 之前的 counter-bid）的最高價
-                const allSimHighest = [...baseBids, ...counterBids].reduce(
-                    (max, b) => Math.max(max, b.amount), startingPrice
+                const allSimHighest = [...currentBaseBids, ...currentCounterBids].reduce(
+                    (max, b) => Math.max(max, b.amount), currentStartingPrice
                 );
                 // 也考慮前一筆真實出價（倒數第二高的真實出價）
-                const sortedReal = [...realBids].sort((a, b) => b.amount - a.amount);
+                const sortedReal = [...currentRealBids].sort((a, b) => b.amount - a.amount);
                 const previousHighest = Math.max(
                     allSimHighest,
-                    sortedReal.length > 1 ? sortedReal[1].amount : startingPrice
+                    sortedReal.length > 1 ? sortedReal[1].amount : currentStartingPrice
                 );
 
                 counterBidTimerRef.current = setTimeout(() => {
@@ -324,16 +383,7 @@ export function useSimulatedBids({
                 }, delay);
             }
         }
-    }, [realBids.length, isActive, auctionId, minIncrement, startingPrice, auctionTitle, realBids, baseBids, counterBids, automationMode]);
-
-    // 清除 timer on unmount
-    useEffect(() => {
-        return () => {
-            if (counterBidTimerRef.current) {
-                clearTimeout(counterBidTimerRef.current);
-            }
-        };
-    }, []);
+    }, [realBids.length, isActive, auctionId, minIncrement, startingPrice, auctionTitle, automationMode]);
 
     // 合併基底出價 + counter-bid
     const simulatedBids = useMemo(() => {
@@ -376,6 +426,7 @@ interface UseSimulatedViewersProps {
     endTime: string;
     bidActivity: number;
     automationMode?: AuctionAutomationMode;
+    automationTargetMin?: number;
 }
 
 export function useSimulatedViewers({
@@ -383,86 +434,171 @@ export function useSimulatedViewers({
     isActive,
     endTime,
     bidActivity,
-    automationMode = 'legacy'
+    automationMode = 'legacy_b',
+    automationTargetMin = 39000
 }: UseSimulatedViewersProps) {
-    const isGlobalLinkV2 = automationMode === 'global_link_v2';
+    const isGlobalLinkV2 = automationMode === 'global_link_v2_c' || automationMode === 'global_link_v2_d' || automationMode === 'global_link_v2_b1';
+    const isLegacyBasic = automationMode === 'legacy_a';
+    const viewerTier = isGlobalLinkV2
+        ? automationTargetMin >= 30000 ? 'high' as const
+        : automationTargetMin >= 10000 ? 'medium' as const
+        : 'low' as const
+        : 'legacy' as const;
     const auctionSeed = getAuctionSeed(auctionId);
     const [viewerCount, setViewerCount] = useState(
         isGlobalLinkV2
-            ? 320 + Math.floor(seededRandom(auctionSeed + 701) * 120)
+            ? (viewerTier === 'low'
+                ? 4 + Math.floor(seededRandom(auctionSeed + 701) * 6)
+                : viewerTier === 'medium'
+                ? 40 + Math.floor(seededRandom(auctionSeed + 701) * 30)
+                : 320 + Math.floor(seededRandom(auctionSeed + 701) * 120))
             : 5 + Math.floor(Math.random() * 4)
     );
-    const [stayDuration, setStayDuration] = useState(0);
+    const stayDurationRef = useRef(0);
 
-    // 每秒更新停留時間
+    // 每秒更新停留時間（使用 ref 避免觸發 re-render）
     useEffect(() => {
-        if (!isActive) return;
-
-        const stayInterval = setInterval(() => {
-            setStayDuration(prev => prev + 1);
-        }, 1000);
-
-        return () => clearInterval(stayInterval);
-    }, [isActive]);
-
-    // 根據規則更新在線人數
-    useEffect(() => {
-        if (!isActive) return;
-
-        const endDate = new Date(endTime);
-        const now = new Date();
-        const remainingMs = endDate.getTime() - now.getTime();
-
-        if (isGlobalLinkV2) {
-            let baseViewers = 280 + Math.floor(seededRandom(auctionSeed + 701) * 160); // 280-439
-
-            if (stayDuration > 180) {
-                baseViewers += 70 + Math.floor(Math.random() * 45);
-            } else if (stayDuration > 60) {
-                baseViewers += 45 + Math.floor(Math.random() * 35);
-            } else if (stayDuration > 30) {
-                baseViewers += 25 + Math.floor(Math.random() * 25);
-            }
-
-            if (remainingMs < 60000 && remainingMs > 0) {
-                baseViewers += 95 + Math.floor(Math.random() * 75);
-            }
-
-            baseViewers += Math.min(bidActivity * 5, 95);
-
-            const pulse = Math.floor(Math.random() * 21) - 10;
-            setViewerCount(Math.max(260, Math.min(680, baseViewers + pulse)));
+        if (!isActive) {
+            stayDurationRef.current = 0;
             return;
         }
 
-        let baseViewers = 5;
+        const stayInterval = setInterval(() => {
+            stayDurationRef.current += 1;
+        }, 1000);
 
-        // 停留時間加成
-        if (stayDuration > 180) { // > 3 分鐘
-            baseViewers += 10 + Math.floor(Math.random() * 5); // 15-20
-        } else if (stayDuration > 60) { // > 1 分鐘
-            baseViewers += 7 + Math.floor(Math.random() * 5); // 12-17
-        } else if (stayDuration > 30) { // > 30 秒
-            baseViewers += 3 + Math.floor(Math.random() * 4); // 8-12
+        return () => {
+            clearInterval(stayInterval);
+            stayDurationRef.current = 0;
+        };
+    }, [isActive]);
+
+    // 根據規則更新在線人數（每 5 秒檢查一次，移除 stayDuration dep）
+    useEffect(() => {
+        if (!isActive) {
+            setViewerCount(isGlobalLinkV2
+                ? (viewerTier === 'low'
+                    ? 4 + Math.floor(seededRandom(auctionSeed + 701) * 6)
+                    : viewerTier === 'medium'
+                    ? 40 + Math.floor(seededRandom(auctionSeed + 701) * 30)
+                    : 320 + Math.floor(seededRandom(auctionSeed + 701) * 120))
+                : 5 + Math.floor(Math.random() * 4));
+            return;
         }
 
-        // 最後 1 分鐘激增
-        if (remainingMs < 60000 && remainingMs > 0) {
-            baseViewers += 5 + Math.floor(Math.random() * 10);
-        }
+        const syncUpdate = () => {
+            const endDate = new Date(endTime);
+            const now = new Date();
+            const remainingMs = endDate.getTime() - now.getTime();
+            const stayDuration = stayDurationRef.current;
 
-        // 出價活動加成
-        baseViewers += Math.min(bidActivity, 5);
+            if (isGlobalLinkV2) {
+                if (viewerTier === 'low') {
+                    let baseViewers = 4 + Math.floor(seededRandom(auctionSeed + 701) * 6);
 
-        setViewerCount(baseViewers);
-    }, [isActive, endTime, stayDuration, bidActivity, isGlobalLinkV2, auctionSeed]);
+                    if (stayDuration > 180) {
+                        baseViewers += 4 + Math.floor(Math.random() * 3);
+                    } else if (stayDuration > 60) {
+                        baseViewers += 2 + Math.floor(Math.random() * 3);
+                    } else if (stayDuration > 30) {
+                        baseViewers += 1 + Math.floor(Math.random() * 2);
+                    }
 
-    // 小幅波動（每 3-8 秒）
+                    if (remainingMs < 60000 && remainingMs > 0) {
+                        baseViewers += 3 + Math.floor(Math.random() * 5);
+                    }
+
+                    baseViewers += Math.min(bidActivity, 3);
+
+                    const pulse = Math.floor(Math.random() * 5) - 2;
+                    setViewerCount(Math.max(4, Math.min(25, baseViewers + pulse)));
+                    return;
+                }
+
+                if (viewerTier === 'medium') {
+                    let baseViewers = 40 + Math.floor(seededRandom(auctionSeed + 701) * 30);
+
+                    if (stayDuration > 180) {
+                        baseViewers += 15 + Math.floor(Math.random() * 10);
+                    } else if (stayDuration > 60) {
+                        baseViewers += 8 + Math.floor(Math.random() * 8);
+                    } else if (stayDuration > 30) {
+                        baseViewers += 4 + Math.floor(Math.random() * 6);
+                    }
+
+                    if (remainingMs < 60000 && remainingMs > 0) {
+                        baseViewers += 20 + Math.floor(Math.random() * 25);
+                    }
+
+                    baseViewers += Math.min(bidActivity * 2, 30);
+
+                    const pulse = Math.floor(Math.random() * 11) - 5;
+                    setViewerCount(Math.max(30, Math.min(150, baseViewers + pulse)));
+                    return;
+                }
+
+                let baseViewers = 280 + Math.floor(seededRandom(auctionSeed + 701) * 160);
+
+                if (stayDuration > 180) {
+                    baseViewers += 70 + Math.floor(Math.random() * 45);
+                } else if (stayDuration > 60) {
+                    baseViewers += 45 + Math.floor(Math.random() * 35);
+                } else if (stayDuration > 30) {
+                    baseViewers += 25 + Math.floor(Math.random() * 25);
+                }
+
+                if (remainingMs < 60000 && remainingMs > 0) {
+                    baseViewers += 95 + Math.floor(Math.random() * 75);
+                }
+
+                baseViewers += Math.min(bidActivity * 5, 95);
+
+                const pulse = Math.floor(Math.random() * 21) - 10;
+                setViewerCount(Math.max(260, Math.min(680, baseViewers + pulse)));
+                return;
+            }
+
+            let baseViewers = 5;
+
+            if (stayDuration > 180) {
+                baseViewers += 10 + Math.floor(Math.random() * 5);
+            } else if (stayDuration > 60) {
+                baseViewers += 7 + Math.floor(Math.random() * 5);
+            } else if (stayDuration > 30) {
+                baseViewers += 3 + Math.floor(Math.random() * 4);
+            }
+
+            if (remainingMs < 60000 && remainingMs > 0) {
+                baseViewers += 5 + Math.floor(Math.random() * 10);
+            }
+
+            baseViewers += Math.min(bidActivity, 5);
+            setViewerCount(baseViewers);
+        };
+
+        // 立即執行一次
+        syncUpdate();
+
+        // 每 5 秒更新（而非每次 stayDuration 變動）
+        const syncInterval = setInterval(syncUpdate, 5000);
+        return () => clearInterval(syncInterval);
+    }, [isActive, endTime, bidActivity, isGlobalLinkV2, auctionSeed]);
+
+    // 小幅波動（每 3-8 秒）- 只 active 時跑
     useEffect(() => {
         if (!isActive) return;
 
         const fluctuateInterval = setInterval(() => {
+            if (!isActive) return; // 額外 guard 防止 stale closure
             setViewerCount(prev => {
+                if (viewerTier === 'low') {
+                    const change = Math.floor(Math.random() * 5) - 2;
+                    return Math.min(25, Math.max(4, prev + change));
+                }
+                if (viewerTier === 'medium') {
+                    const change = Math.floor(Math.random() * 9) - 4;
+                    return Math.min(150, Math.max(30, prev + change));
+                }
                 const change = isGlobalLinkV2
                     ? Math.floor(Math.random() * 15) - 7
                     : Math.floor(Math.random() * 3) - 1;
@@ -473,10 +609,10 @@ export function useSimulatedViewers({
         }, 3000 + Math.random() * 5000);
 
         return () => clearInterval(fluctuateInterval);
-    }, [isActive, isGlobalLinkV2]);
+    }, [isActive, isGlobalLinkV2, viewerTier]);
 
     return {
         viewerCount,
-        stayDuration
+        stayDuration: stayDurationRef.current
     };
 }

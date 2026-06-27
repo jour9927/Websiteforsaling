@@ -16,6 +16,7 @@ type BidButtonProps = {
     simulatedBids?: SimulatedBid[];
     automationMode?: AuctionAutomationMode;
     automationStopSeconds?: number;
+    isActiveState?: boolean;   // 拍賣是否進行中
 };
 
 type AutoFollowSetting = {
@@ -52,11 +53,12 @@ export default function BidButton({
     endTime,
     simulatedHighest = 0,
     simulatedBids = [],
-    automationMode = "legacy",
-    automationStopSeconds = 30
+    automationMode = "legacy_b",
+    automationStopSeconds = 30,
+    isActiveState
 }: BidButtonProps) {
     const router = useRouter();
-    const isGlobalLinkV2 = automationMode === "global_link_v2";
+    const isGlobalLinkV2 = automationMode === "global_link_v2_c" || automationMode === "global_link_v2_d" || automationMode === "global_link_v2_b1";
 
     // 計算有效最高價（真實 vs 模擬取大者）
     const effectiveHighest = Math.max(currentPrice, simulatedHighest, startingPrice);
@@ -359,6 +361,7 @@ export default function BidButton({
 
     useEffect(() => {
         if (!isGlobalLinkV2 || !autoFollowEnabled || autoFollowLoading || loading) return;
+        if (isActiveState === false) return; // 拍賣已結束，不設定 timer
 
         const endMs = new Date(endTime).getTime();
         if (!Number.isFinite(endMs)) return;
@@ -389,7 +392,8 @@ export default function BidButton({
         finalizeAutoFollow,
         automationStopSeconds,
         isGlobalLinkV2,
-        loading
+        loading,
+        isActiveState
     ]);
 
     const handleQuickBid = (extra: number) => {

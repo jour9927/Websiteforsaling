@@ -16,12 +16,25 @@ function getAuctionSeed(auctionId: string) {
   return seed;
 }
 
-export function getGlobalLinkV2VirtualHighest({
+/**
+ * A/B/C/D/B1 五種模式的虛擬最高出價計算引擎。
+ *
+ * A = legacy_basic（無種子、固定基底100×倍率、20筆、結束前30秒停止）
+ * B = legacy_counter（A + 真實玩家出價反應式回擊 + 讓步機制）
+ *     注意：B 的 counter-bid 在 useSimulatedAuction.ts 處理，此處回傳 0（視同無最高價）
+ * C = global_link_v2_basic（確定性種子、easedProgress推價、到target停止）
+ * D = global_link_v2_intense（C + 超過target持續推 + auto-follow真實玩家）
+ * B1 = global_link_v2_b1（D 強度，搭配獨立競標排程）
+ *
+ * 僅 mode C、D 和 B1 使用此引擎計算最高虛擬價。
+ */
+export function getVirtualHighest({
   auctionId,
   startTime,
   endTime,
   startingPrice,
   currentTime,
+  mode = 'global_link_v2_d',
   targetMin = 39000,
   targetMax = 45000,
   stopSeconds = 1,
@@ -32,6 +45,7 @@ export function getGlobalLinkV2VirtualHighest({
   endTime: string;
   startingPrice: number;
   currentTime: Date;
+  mode?: 'global_link_v2_c' | 'global_link_v2_d' | 'global_link_v2_b1';
   targetMin?: number;
   targetMax?: number;
   stopSeconds?: number;
@@ -63,7 +77,11 @@ export function getGlobalLinkV2VirtualHighest({
   let realHighestAtBidTime = startingPrice;
   const stopTime = Math.min(currentTime.getTime(), end.getTime() - stopBufferMs);
 
-  while (bidTime < stopTime && bidIndex < 1500) {
+  // mode C: 最多 360 筆，到 target 就 break
+  // mode D/B1: 最多 1500 筆，超過 target 持續推
+  const maxBids = mode === 'global_link_v2_c' ? 360 : 1500;
+
+  while (bidTime < stopTime && bidIndex < maxBids) {
     const thisSeed = seed + bidIndex * 1000;
 
     while (realBidCursor < realBidTimeline.length && realBidTimeline[realBidCursor].time <= bidTime) {
@@ -89,6 +107,9 @@ export function getGlobalLinkV2VirtualHighest({
           Math.max(currentPrice + rhythmIncrement, plannedPrice)
         );
 
+    // mode C: 達到 target 就停止
+    if (mode === 'global_link_v2_c' && currentPrice >= targetPrice) break;
+
     const interval = 450 + seededRandom(thisSeed + 3) * 450;
     bidTime += interval;
     bidIndex++;
@@ -96,3 +117,6 @@ export function getGlobalLinkV2VirtualHighest({
 
   return currentPrice;
 }
+
+// 保留舊名稱兼容性
+export const getGlobalLinkV2VirtualHighest = getVirtualHighest;

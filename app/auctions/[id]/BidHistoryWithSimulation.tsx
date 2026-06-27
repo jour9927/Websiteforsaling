@@ -24,6 +24,16 @@ const ViewerContext = createContext<ViewerContextType>({
     stayDuration: 0
 });
 
+interface ViewerProviderProps {
+    children: ReactNode;
+    auctionId: string;
+    isActive: boolean;
+    endTime: string;
+    bidActivity: number;
+    automationMode?: AuctionAutomationMode;
+    automationTargetMin?: number;
+}
+
 // 在線人數 Provider
 export function ViewerProvider({
     children,
@@ -31,21 +41,16 @@ export function ViewerProvider({
     isActive,
     endTime,
     bidActivity,
-    automationMode
-}: {
-    children: ReactNode;
-    auctionId: string;
-    isActive: boolean;
-    endTime: string;
-    bidActivity: number;
-    automationMode?: AuctionAutomationMode;
-}) {
+    automationMode,
+    automationTargetMin
+}: ViewerProviderProps) {
     const { viewerCount, stayDuration } = useSimulatedViewers({
         auctionId,
         isActive,
         endTime,
         bidActivity,
-        automationMode
+        automationMode,
+        automationTargetMin
     });
 
     return (
@@ -95,6 +100,11 @@ export function BidHistoryWithSimulation({
     onSimulatedHighestChange,
     onSimulatedBidsChange
 }: BidHistoryWithSimulationProps) {
+    const stableRealBids = useMemo(
+        () => realBids.map(b => ({ id: b.id, amount: b.amount, created_at: b.created_at })),
+        [realBids]
+    );
+
     const { simulatedBids } = useSimulatedBids({
         auctionId,
         startTime,
@@ -107,7 +117,7 @@ export function BidHistoryWithSimulation({
         automationTargetMin,
         automationTargetMax,
         automationStopSeconds,
-        realBids: realBids.map(b => ({ id: b.id, amount: b.amount, created_at: b.created_at }))
+        realBids: stableRealBids
     });
 
     const combinedBids = useMemo(() => {
