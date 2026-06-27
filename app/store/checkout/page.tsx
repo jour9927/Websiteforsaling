@@ -20,6 +20,41 @@ type CouponItem = {
 };
 
 type PaymentMethod = "pay_now" | "deferred";
+type DeferredPaymentMonths = 1 | 2;
+
+const paymentOptions: Array<{
+  method: PaymentMethod;
+  deferredMonths: DeferredPaymentMonths | null;
+  title: string;
+  description: string;
+  activeClass: string;
+  accentClass: string;
+}> = [
+  {
+    method: "pay_now",
+    deferredMonths: null,
+    title: "立即付款",
+    description: "下單後依照一般付款流程處理。",
+    activeClass: "border-amber-400/60 bg-amber-500/10",
+    accentClass: "accent-amber-400",
+  },
+  {
+    method: "deferred",
+    deferredMonths: 1,
+    title: "延遲付款 1 個月",
+    description: "先送出訂單卡位，預計於 1 個月內完成付款。",
+    activeClass: "border-sky-400/60 bg-sky-500/10",
+    accentClass: "accent-sky-400",
+  },
+  {
+    method: "deferred",
+    deferredMonths: 2,
+    title: "延遲付款 2 個月",
+    description: "先送出訂單卡位，預計於 2 個月內完成付款。",
+    activeClass: "border-violet-400/60 bg-violet-500/10",
+    accentClass: "accent-violet-400",
+  },
+];
 
 export default function CheckoutPage() {
   const { items, totalAmount, clearCart } = useCart();
@@ -31,6 +66,7 @@ export default function CheckoutPage() {
   const [selectedCouponId, setSelectedCouponId] = useState<string | null>(null);
   const [loadingCoupons, setLoadingCoupons] = useState(true);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("pay_now");
+  const [deferredPaymentMonths, setDeferredPaymentMonths] = useState<DeferredPaymentMonths>(1);
 
   const selectedCoupon = coupons.find((coupon) => coupon.id === selectedCouponId) ?? null;
   const discountedAmount = selectedCoupon
@@ -85,6 +121,8 @@ export default function CheckoutPage() {
           total_amount: totalAmount,
           coupon_item_id: selectedCouponId || null,
           payment_method: paymentMethod,
+          deferred_payment_months:
+            paymentMethod === "deferred" ? deferredPaymentMonths : null,
         }),
       });
 
@@ -206,55 +244,46 @@ export default function CheckoutPage() {
       {/* 付款方式 */}
       <section className="glass-card p-6">
         <h2 className="text-sm font-semibold text-white/70 mb-3">付款方式</h2>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label
-            className={`cursor-pointer rounded-xl border p-4 transition ${
-              paymentMethod === "pay_now"
-                ? "border-amber-400/60 bg-amber-500/10"
-                : "border-white/10 bg-white/5 hover:border-white/20"
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <input
-                type="radio"
-                name="payment_method"
-                value="pay_now"
-                checked={paymentMethod === "pay_now"}
-                onChange={() => setPaymentMethod("pay_now")}
-                className="mt-1 accent-amber-400"
-              />
-              <div>
-                <p className="text-sm font-semibold text-white">立即付款</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/45">
-                  下單後依照一般付款流程處理。
-                </p>
-              </div>
-            </div>
-          </label>
-          <label
-            className={`cursor-pointer rounded-xl border p-4 transition ${
-              paymentMethod === "deferred"
-                ? "border-sky-400/60 bg-sky-500/10"
-                : "border-white/10 bg-white/5 hover:border-white/20"
-            }`}
-          >
-            <div className="flex items-start gap-3">
-              <input
-                type="radio"
-                name="payment_method"
-                value="deferred"
-                checked={paymentMethod === "deferred"}
-                onChange={() => setPaymentMethod("deferred")}
-                className="mt-1 accent-sky-400"
-              />
-              <div>
-                <p className="text-sm font-semibold text-white">延遲付款</p>
-                <p className="mt-1 text-xs leading-relaxed text-white/45">
-                  預算暫時不足也能先送出訂單卡位，後續由管理員確認付款期限。
-                </p>
-              </div>
-            </div>
-          </label>
+        <div className="grid gap-3 md:grid-cols-3">
+          {paymentOptions.map((option) => {
+            const selected =
+              paymentMethod === option.method &&
+              (option.method === "pay_now" ||
+                deferredPaymentMonths === option.deferredMonths);
+
+            return (
+              <label
+                key={`${option.method}-${option.deferredMonths ?? "now"}`}
+                className={`cursor-pointer rounded-xl border p-4 transition ${
+                  selected
+                    ? option.activeClass
+                    : "border-white/10 bg-white/5 hover:border-white/20"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <input
+                    type="radio"
+                    name="payment_method"
+                    value={`${option.method}-${option.deferredMonths ?? "now"}`}
+                    checked={selected}
+                    onChange={() => {
+                      setPaymentMethod(option.method);
+                      if (option.deferredMonths) {
+                        setDeferredPaymentMonths(option.deferredMonths);
+                      }
+                    }}
+                    className={`mt-1 ${option.accentClass}`}
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-white">{option.title}</p>
+                    <p className="mt-1 text-xs leading-relaxed text-white/45">
+                      {option.description}
+                    </p>
+                  </div>
+                </div>
+              </label>
+            );
+          })}
         </div>
       </section>
 
@@ -289,7 +318,11 @@ export default function CheckoutPage() {
           disabled={submitting}
           className="flex-1 rounded-xl bg-amber-500 py-3 text-sm font-bold text-black hover:bg-amber-400 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {submitting ? "處理中..." : paymentMethod === "deferred" ? "確認下單並卡位" : "確認下單"}
+          {submitting
+            ? "處理中..."
+            : paymentMethod === "deferred"
+              ? `確認下單並卡位（${deferredPaymentMonths}個月）`
+              : "確認下單"}
         </button>
       </div>
     </div>

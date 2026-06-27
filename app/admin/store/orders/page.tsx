@@ -19,6 +19,7 @@ interface Order {
   user_id: string;
   status: string;
   payment_method: "pay_now" | "deferred" | null;
+  deferred_payment_months: number | null;
   total_amount: number;
   notes: string;
   created_at: string;
@@ -52,6 +53,22 @@ const paymentMethodLabels: Record<string, { label: string; color: string }> = {
   pay_now: { label: "立即付款", color: "bg-amber-400/10 text-amber-300 border-amber-400/20" },
   deferred: { label: "延遲付款", color: "bg-sky-400/10 text-sky-300 border-sky-400/20" },
 };
+
+function getPaymentMethodLabel(order: Order) {
+  if (order.payment_method === "deferred") {
+    const months = order.deferred_payment_months === 2 ? 2 : 1;
+    return {
+      label: `延遲 ${months} 個月`,
+      color: "bg-sky-400/10 text-sky-300 border-sky-400/20",
+      months,
+    };
+  }
+
+  return {
+    ...paymentMethodLabels.pay_now,
+    months: null,
+  };
+}
 
 export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -141,6 +158,7 @@ export default function AdminOrdersPage() {
         <div className="space-y-3">
           {filtered.map((order) => {
             const status = statusOptions.find((s) => s.value === order.status);
+            const paymentMethod = getPaymentMethodLabel(order);
             const displayName =
               order.user?.full_name || order.user?.email || "未知用戶";
 
@@ -171,10 +189,10 @@ export default function AdminOrdersPage() {
                     <div className="flex items-center gap-3 shrink-0">
                       <span
                         className={`px-2 py-1 rounded-full text-[10px] font-medium border ${
-                          paymentMethodLabels[order.payment_method ?? "pay_now"].color
+                          paymentMethod.color
                         }`}
                       >
-                        {paymentMethodLabels[order.payment_method ?? "pay_now"].label}
+                        {paymentMethod.label}
                       </span>
                       <span className="text-amber-400 font-semibold text-sm">
                         {formatPrice(order.total_amount)}
@@ -223,7 +241,7 @@ export default function AdminOrdersPage() {
 
                       {order.payment_method === "deferred" && (
                         <p className="rounded-lg border border-sky-400/20 bg-sky-400/10 px-3 py-2 text-xs text-sky-200/90">
-                          此訂單選擇延遲付款：使用者已先卡位，請人工確認付款期限與後續通知。
+                          此訂單選擇延遲付款 {paymentMethod.months ?? 1} 個月：使用者已先卡位，請人工確認付款期限與後續通知。
                         </p>
                       )}
 

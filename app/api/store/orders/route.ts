@@ -7,6 +7,8 @@ import {
 
 const PAYMENT_METHODS = ["pay_now", "deferred"] as const;
 type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+const DEFERRED_PAYMENT_MONTHS = [1, 2] as const;
+type DeferredPaymentMonths = (typeof DEFERRED_PAYMENT_MONTHS)[number];
 
 // POST /api/store/orders — 建立訂單
 export async function POST(req: NextRequest) {
@@ -24,6 +26,15 @@ export async function POST(req: NextRequest) {
   const paymentMethod = PAYMENT_METHODS.includes(body.payment_method as PaymentMethod)
     ? (body.payment_method as PaymentMethod)
     : "pay_now";
+  const requestedDeferredPaymentMonths = Number(body.deferred_payment_months);
+  const deferredPaymentMonths: DeferredPaymentMonths | null =
+    paymentMethod === "deferred"
+      ? DEFERRED_PAYMENT_MONTHS.includes(
+          requestedDeferredPaymentMonths as DeferredPaymentMonths,
+        )
+        ? (requestedDeferredPaymentMonths as DeferredPaymentMonths)
+        : 1
+      : null;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
     return NextResponse.json({ error: "購物車為空" }, { status: 400 });
@@ -36,7 +47,7 @@ export async function POST(req: NextRequest) {
   let couponNote = "";
   const paymentNote =
     paymentMethod === "deferred"
-      ? "（付款方式：延遲付款，已先保留卡位，付款期限待管理員確認）"
+      ? `（付款方式：延遲付款 ${deferredPaymentMonths} 個月，已先保留卡位）`
       : "（付款方式：立即付款）";
 
   // 處理商店消費報銷券
@@ -84,6 +95,7 @@ export async function POST(req: NextRequest) {
       status: "pending",
       total_amount: discountedAmount,
       payment_method: paymentMethod,
+      deferred_payment_months: deferredPaymentMonths,
       notes: [notes ?? "", couponNote, paymentNote].filter(Boolean).join(" ").trim(),
     })
     .select()

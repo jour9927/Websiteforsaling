@@ -15,6 +15,7 @@ interface Order {
   id: string;
   status: string;
   payment_method: "pay_now" | "deferred" | null;
+  deferred_payment_months: number | null;
   total_amount: number;
   notes: string;
   created_at: string;
@@ -55,6 +56,19 @@ const paymentMethodLabels: Record<string, { label: string; color: string; descri
     description: "已先保留卡位，付款期限將由管理員後續確認。",
   },
 };
+
+function getPaymentMethodLabel(order: Order) {
+  if (order.payment_method === "deferred") {
+    const months = order.deferred_payment_months === 2 ? 2 : 1;
+    return {
+      label: `延遲付款 ${months} 個月`,
+      color: "text-sky-300 bg-sky-400/10 border-sky-400/20",
+      description: `已先保留卡位，請於 ${months} 個月內完成付款，實際付款安排以管理員後續確認為準。`,
+    };
+  }
+
+  return paymentMethodLabels.pay_now;
+}
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -100,7 +114,7 @@ export default function OrderDetailPage() {
   }
 
   const status = statusLabels[order.status] ?? statusLabels.pending;
-  const paymentMethod = paymentMethodLabels[order.payment_method ?? "pay_now"];
+  const paymentMethod = getPaymentMethodLabel(order);
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
