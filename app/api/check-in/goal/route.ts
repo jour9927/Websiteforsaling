@@ -30,6 +30,61 @@ const REWARD_TIERS = {
 
 type TierKey = keyof typeof REWARD_TIERS;
 
+type RewardDistribution = {
+    id: string;
+    pokemon_name: string;
+    pokemon_name_en?: string | null;
+    pokemon_sprite_url?: string | null;
+    is_shiny?: boolean | null;
+    generation?: number | null;
+    original_trainer?: string | null;
+    event_name?: string | null;
+    points?: number | null;
+};
+
+const VIRTUAL_REWARD_IDS = new Set([
+    "00000000-0000-0000-0000-000000000001",
+    "00000000-0000-0000-0000-000000000002"
+]);
+const SOLD_OUT_REWARD_LABEL = "已被選完";
+const GEN9_HIGH_VALUE_POINT_THRESHOLD = 4000;
+const GEN9_HIGH_VALUE_EVENT_KEYWORDS = [
+    "異色的樂園守護龍",
+    "異色的災禍之寶",
+    "生日的寶可夢",
+    "幻之寶可夢",
+    "寶可夢中心25週年"
+];
+const COROCORO_EVENT_KEYWORDS = ["corocoro", "coro coro", "colocolo", "コロコロ"];
+
+function includesKeyword(value: string | null | undefined, keywords: string[]) {
+    const normalized = (value || "").toLowerCase();
+    return keywords.some((keyword) => normalized.includes(keyword.toLowerCase()));
+}
+
+function isSoldOutReward(distribution: RewardDistribution) {
+    if (VIRTUAL_REWARD_IDS.has(distribution.id)) return false;
+    if (distribution.generation !== 9) return false;
+
+    const eventName = distribution.event_name || "";
+    const isEevee = distribution.pokemon_name === "伊布";
+    const isCorocoro = includesKeyword(eventName, COROCORO_EVENT_KEYWORDS);
+    const isHighPoint = (distribution.points || 0) >= GEN9_HIGH_VALUE_POINT_THRESHOLD;
+    const isHighValueSeries = includesKeyword(eventName, GEN9_HIGH_VALUE_EVENT_KEYWORDS);
+
+    return isEevee || isCorocoro || isHighPoint || isHighValueSeries;
+}
+
+function withSelectionStatus(distribution: RewardDistribution) {
+    const selectionExhausted = isSoldOutReward(distribution);
+
+    return {
+        ...distribution,
+        selection_exhausted: selectionExhausted,
+        selection_status_label: selectionExhausted ? SOLD_OUT_REWARD_LABEL : null
+    };
+}
+
 // GET: 取得各層級狀態和可選配布
 export async function GET(request: Request) {
     const supabase = createServerSupabaseClient();
@@ -101,7 +156,7 @@ export async function GET(request: Request) {
         const tierConfig = REWARD_TIERS[tier];
         const { data } = await supabase
             .from("distributions")
-            .select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny, generation, original_trainer, event_name")
+            .select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny, generation, original_trainer, event_name, points")
             .in("generation", tierConfig.allowedGenerations)
             .order("generation", { ascending: true })
             .order("pokemon_name", { ascending: true });
@@ -110,14 +165,14 @@ export async function GET(request: Request) {
         
         // 方案 B：手動從 Distributions 撈出新增的卷虛擬物件，並視 tier 插入前排
         if (tier === 'tier_12') {
-             const { data: ticket } = await supabase.from('distributions').select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny, generation, original_trainer, event_name").eq('id', '00000000-0000-0000-0000-000000000001');
+             const { data: ticket } = await supabase.from('distributions').select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny, generation, original_trainer, event_name, points").eq('id', '00000000-0000-0000-0000-000000000001');
              if(ticket && ticket.length > 0) allDistributions = [...ticket, ...allDistributions];
         } else if (tier === 'tier_points') {
-             const { data: coupon } = await supabase.from('distributions').select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny, generation, original_trainer, event_name").eq('id', '00000000-0000-0000-0000-000000000002');
+             const { data: coupon } = await supabase.from('distributions').select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny, generation, original_trainer, event_name, points").eq('id', '00000000-0000-0000-0000-000000000002');
              if(coupon && coupon.length > 0) allDistributions = [...coupon, ...allDistributions];
         }
 
-        distributions = allDistributions;
+        distributions = allDistributions.map(withSelectionStatus);
     }
 
     // 查詢已設定的目標寶可夢詳情
@@ -217,7 +272,7 @@ export async function POST(request: Request) {
         // 檢查配布是否存在且世代符合
         const { data: distribution, error: distError } = await supabase
             .from("distributions")
-            .select("id, pokemon_name, generation")
+            .select("id, pokemon_name, generation, event_name, points")
             .eq("id", distributionId)
             .single();
 
@@ -228,6 +283,13 @@ export async function POST(request: Request) {
         if (!tierConfig.allowedGenerations.includes(distribution.generation)) {
             return NextResponse.json(
                 { error: `此層級只能選擇第 ${tierConfig.allowedGenerations.join('、')} 世代的寶可夢` },
+                { status: 400 }
+            );
+        }
+
+        if (isSoldOutReward(distribution)) {
+            return NextResponse.json(
+                { error: `${distribution.pokemon_name} 已被選完，請選擇其他獎勵。` },
                 { status: 400 }
             );
         }

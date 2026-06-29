@@ -16,6 +16,8 @@ type Distribution = {
     generation?: number;
     original_trainer?: string;
     event_name?: string;
+    selection_exhausted?: boolean;
+    selection_status_label?: string | null;
 };
 
 type TierStatus = {
@@ -634,6 +636,9 @@ export default function CheckInPage() {
                                 <p className="text-xs text-red-400 mt-1">
                                     ⚠️ 選定後無法變更，請謹慎選擇
                                 </p>
+                                <p className="text-xs text-white/45 mt-1">
+                                    標示「已被選完」的項目僅保留紀錄，無法再選擇。
+                                </p>
                             </div>
 
                             {/* 世代篩選 */}
@@ -663,8 +668,16 @@ export default function CheckInPage() {
                                     {filteredDistributions.map((dist) => (
                                         <button
                                             key={dist.id}
-                                            onClick={() => handleSetGoal(dist.id)}
-                                            className="flex items-center gap-2 p-2 rounded-lg bg-white/5 hover:bg-white/10 transition text-left"
+                                            type="button"
+                                            onClick={() => {
+                                                if (!dist.selection_exhausted) handleSetGoal(dist.id);
+                                            }}
+                                            disabled={dist.selection_exhausted}
+                                            className={`flex items-center gap-2 rounded-lg p-2 text-left transition ${
+                                                dist.selection_exhausted
+                                                    ? "cursor-not-allowed border border-white/5 bg-white/[0.03] opacity-55"
+                                                    : "bg-white/5 hover:bg-white/10"
+                                            }`}
                                         >
                                             {dist.pokemon_sprite_url && (
                                                 <Image
@@ -683,6 +696,11 @@ export default function CheckInPage() {
                                                 <p className="text-[10px] text-amber-400/70 truncate">
                                                     {dist.event_name || dist.original_trainer || "配布"}
                                                 </p>
+                                                {dist.selection_exhausted && (
+                                                    <span className="mt-1 inline-flex rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-200">
+                                                        {dist.selection_status_label || "已被選完"}
+                                                    </span>
+                                                )}
                                             </div>
                                         </button>
                                     ))}
