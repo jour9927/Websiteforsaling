@@ -18,6 +18,8 @@ type Distribution = {
     event_name?: string;
     selection_exhausted?: boolean;
     selection_status_label?: string | null;
+    selected_count?: number;
+    remaining_count?: number;
 };
 
 type TierStatus = {
@@ -664,6 +666,11 @@ export default function CheckInPage() {
 
                             {/* 配布列表 */}
                             <div className="p-3 max-h-[50vh] overflow-y-auto">
+                                {tiers[selectedTier].allowedGenerations.includes(9) && (
+                                    <p className="mb-3 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300 animate-pulse">
+                                        當前所有伊布系列的劇烈漲幅，導致管理層無法負擔伊布的高額成本，敬請見諒
+                                    </p>
+                                )}
                                 <div className="grid grid-cols-2 gap-2">
                                     {filteredDistributions.map((dist) => (
                                         <button
@@ -695,6 +702,11 @@ export default function CheckInPage() {
                                                 </p>
                                                 <p className="text-[10px] text-amber-400/70 truncate">
                                                     {dist.event_name || dist.original_trainer || "配布"}
+                                                </p>
+                                                <p className={`mt-1 text-[10px] font-medium ${
+                                                    dist.selection_exhausted ? "text-red-200/80" : "text-emerald-200/80"
+                                                }`}>
+                                                    已選 {Math.min(dist.selected_count || 0, 3)} / 剩餘 {dist.selection_exhausted ? 0 : Math.max(dist.remaining_count || 0, 0)}
                                                 </p>
                                                 {dist.selection_exhausted && (
                                                     <span className="mt-1 inline-flex rounded-full bg-red-500/15 px-2 py-0.5 text-[10px] font-semibold text-red-200">

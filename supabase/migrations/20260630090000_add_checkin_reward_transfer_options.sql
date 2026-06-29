@@ -1,0 +1,96 @@
+-- Add virtual check-in reward options for transferring earned points.
+-- These rows are intentionally stored in distributions so existing reward goal
+-- foreign keys can lock the user's choice without adding another schema path.
+
+ALTER TABLE public.distributions
+  ADD COLUMN IF NOT EXISTS pokemon_sprite_url TEXT,
+  ADD COLUMN IF NOT EXISTS event_name TEXT,
+  ADD COLUMN IF NOT EXISTS points INTEGER DEFAULT 0;
+
+INSERT INTO public.distributions (
+  id,
+  pokemon_name,
+  pokemon_name_en,
+  pokemon_dex_number,
+  generation,
+  game_titles,
+  original_trainer,
+  trainer_id,
+  level,
+  distribution_method,
+  distribution_period_start,
+  distribution_period_end,
+  region,
+  image_url,
+  wiki_url,
+  is_shiny,
+  pokemon_sprite_url,
+  special_move,
+  event_name,
+  points
+)
+VALUES
+  (
+    '00000000-0000-0000-0000-000000000003',
+    '點數轉移至更高級別',
+    'Point Transfer - Higher Tier',
+    NULL,
+    9,
+    ARRAY['網站獎勵']::TEXT[],
+    '管理層',
+    NULL,
+    NULL,
+    'Check-in reward transfer',
+    NULL,
+    NULL,
+    'Event Glass',
+    NULL,
+    NULL,
+    FALSE,
+    NULL,
+    '轉移申請',
+    '把點數轉移至下一個更高級別的選擇上',
+    0
+  ),
+  (
+    '00000000-0000-0000-0000-000000000004',
+    '點數轉移至下一季活動',
+    'Point Transfer - Next Season',
+    NULL,
+    9,
+    ARRAY['網站獎勵']::TEXT[],
+    '管理層',
+    NULL,
+    NULL,
+    'Check-in reward transfer',
+    NULL,
+    NULL,
+    'Event Glass',
+    NULL,
+    NULL,
+    FALSE,
+    NULL,
+    '轉移申請',
+    '把點數轉移至下一季的開放活動',
+    0
+  )
+ON CONFLICT (id) DO UPDATE SET
+  pokemon_name = EXCLUDED.pokemon_name,
+  pokemon_name_en = EXCLUDED.pokemon_name_en,
+  pokemon_dex_number = EXCLUDED.pokemon_dex_number,
+  generation = EXCLUDED.generation,
+  game_titles = EXCLUDED.game_titles,
+  original_trainer = EXCLUDED.original_trainer,
+  trainer_id = EXCLUDED.trainer_id,
+  level = EXCLUDED.level,
+  distribution_method = EXCLUDED.distribution_method,
+  distribution_period_start = EXCLUDED.distribution_period_start,
+  distribution_period_end = EXCLUDED.distribution_period_end,
+  region = EXCLUDED.region,
+  image_url = EXCLUDED.image_url,
+  wiki_url = EXCLUDED.wiki_url,
+  is_shiny = EXCLUDED.is_shiny,
+  pokemon_sprite_url = EXCLUDED.pokemon_sprite_url,
+  special_move = EXCLUDED.special_move,
+  event_name = EXCLUDED.event_name,
+  points = EXCLUDED.points;
