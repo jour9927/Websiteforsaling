@@ -610,9 +610,9 @@ export default function CheckInPage() {
                         <li>• {CHECK_IN_RESET_NOTICE}</li>
                         <li>• 每日簽到可獲得幸運點數（有 10% 機率獲得雙倍！🎰）</li>
                         <li>• 連續簽到天數越多，每日獲得的點數越多（最多 7 點/天）</li>
-                        <li>• <span className="text-emerald-400">12 天</span>：可選第 9 世代寶可夢</li>
+                        <li>• <span className="text-emerald-400">12 天</span>：可選第 9 世代寶可夢或點數轉移方案</li>
                         <li>• <span className="text-amber-400">40 天</span>：可選第 7-9 世代寶可夢</li>
-                        <li>• <span className="text-purple-400">120 點</span>：可選第 6-9 世代寶可夢</li>
+                        <li>• <span className="text-purple-400">120 點</span>：可選第 6-9 世代寶可夢或點數轉移方案</li>
                         <li>• ⚠️ 目標一旦選定<span className="text-red-400">無法變更</span>，請謹慎選擇</li>
                         <li>• 斷簽一天需要額外簽到兩天才能恢復進度</li>
                     </ul>

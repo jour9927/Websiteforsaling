@@ -10,7 +10,7 @@ const REWARD_TIERS = {
         requiredStreak: 12,
         requiredPoints: null,
         allowedGenerations: [9],
-        description: "連續簽到 12 天可選擇第 9 世代寶可夢"
+        description: "連續簽到 12 天可選擇第 9 世代寶可夢或點數轉移方案"
     },
     tier_40: {
         name: "40天獎勵",
@@ -54,12 +54,15 @@ const SOLD_OUT_VIRTUAL_REWARD_IDS = new Set([
     "00000000-0000-0000-0000-000000000001",
     "00000000-0000-0000-0000-000000000002"
 ]);
-const TIER_12_EXTRA_REWARD_IDS: string[] = [];
-const TIER_40_EXTRA_REWARD_IDS: string[] = [];
-const TIER_POINTS_EXTRA_REWARD_IDS = [
+const LOTTERY_TICKET_REWARD_ID = "00000000-0000-0000-0000-000000000001";
+const BLINDBOX_COUPON_REWARD_ID = "00000000-0000-0000-0000-000000000002";
+const TRANSFER_REWARD_IDS = [
     "00000000-0000-0000-0000-000000000003",
     "00000000-0000-0000-0000-000000000004"
 ];
+const TIER_12_EXTRA_REWARD_IDS = [LOTTERY_TICKET_REWARD_ID, ...TRANSFER_REWARD_IDS];
+const TIER_40_EXTRA_REWARD_IDS: string[] = [];
+const TIER_POINTS_EXTRA_REWARD_IDS = [BLINDBOX_COUPON_REWARD_ID, ...TRANSFER_REWARD_IDS];
 const TIER_EXTRA_REWARD_IDS: Record<TierKey, string[]> = {
     tier_12: TIER_12_EXTRA_REWARD_IDS,
     tier_40: TIER_40_EXTRA_REWARD_IDS,
@@ -102,12 +105,9 @@ function isHiddenReward(distribution: RewardDistribution) {
 }
 
 function isHiddenForTier(distribution: RewardDistribution, tier: TierKey) {
-    if (SOLD_OUT_VIRTUAL_REWARD_IDS.has(distribution.id)) return true;
     if (TIER_SCOPED_REWARD_IDS.has(distribution.id)) {
         return !TIER_EXTRA_REWARD_IDS[tier].includes(distribution.id);
     }
-    if (distribution.generation === 9 && !GEN9_AVAILABLE_REWARD_IDS.has(distribution.id)) return true;
-
     return isHiddenReward(distribution);
 }
 
@@ -165,15 +165,31 @@ function getDisplayedSelectedCount(distributionId: string, selectionCounts: Rewa
     return Math.min(selectionCounts[distributionId] || 0, REWARD_ITEM_STOCK_LIMIT);
 }
 
-function getRemainingCount(distribution: RewardDistribution, selectionCounts: RewardSelectionCounts) {
-    if (isSoldOutReward(distribution)) return 0;
+function isUnavailableForSelection(distribution: RewardDistribution, tier: TierKey) {
+    return !isAllowedForTier(distribution, tier) || isSoldOutReward(distribution);
+}
+
+function getDisplayedSelectedCountForTier(
+    distribution: RewardDistribution,
+    tier: TierKey,
+    selectionCounts: RewardSelectionCounts
+) {
+    const selectedCount = getDisplayedSelectedCount(distribution.id, selectionCounts);
+    if (isUnavailableForSelection(distribution, tier)) {
+        return Math.max(selectedCount, REWARD_ITEM_STOCK_LIMIT);
+    }
+    return selectedCount;
+}
+
+function getRemainingCount(distribution: RewardDistribution, tier: TierKey, selectionCounts: RewardSelectionCounts) {
+    if (isUnavailableForSelection(distribution, tier)) return 0;
     return Math.max(0, REWARD_ITEM_STOCK_LIMIT - getDisplayedSelectedCount(distribution.id, selectionCounts));
 }
 
-function withSelectionStatus(distribution: RewardDistribution, selectionCounts: RewardSelectionCounts) {
-    const selectedCount = getDisplayedSelectedCount(distribution.id, selectionCounts);
-    const remainingCount = getRemainingCount(distribution, selectionCounts);
-    const selectionExhausted = isSoldOutReward(distribution) || remainingCount <= 0;
+function withSelectionStatus(distribution: RewardDistribution, tier: TierKey, selectionCounts: RewardSelectionCounts) {
+    const selectedCount = getDisplayedSelectedCountForTier(distribution, tier, selectionCounts);
+    const remainingCount = getRemainingCount(distribution, tier, selectionCounts);
+    const selectionExhausted = remainingCount <= 0;
 
     return {
         ...distribution,
@@ -283,7 +299,7 @@ export async function GET(request: Request) {
 
         distributions = allDistributions
             .filter((distribution) => !isHiddenForTier(distribution, tier))
-            .map((distribution) => withSelectionStatus(distribution, selectionCounts));
+            .map((distribution) => withSelectionStatus(distribution, tier, selectionCounts));
     }
 
     // 查詢已設定的目標寶可夢詳情
@@ -416,7 +432,7 @@ export async function POST(request: Request) {
             .from("profiles")
             .select("reward_tier_12_goal_id, reward_tier_40_goal_id, reward_tier_points_goal_id");
         const selectionCounts = countRewardSelections(rewardGoals);
-        if (getRemainingCount(distribution, selectionCounts) <= 0) {
+        if (getRemainingCount(distribution, tier, selectionCounts) <= 0) {
             return NextResponse.json(
                 { error: `${distribution.pokemon_name} 已被選完，請選擇其他獎勵。` },
                 { status: 400 }
