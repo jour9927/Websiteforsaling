@@ -49,6 +49,9 @@ type RewardGoalSelections = {
 };
 
 type RewardSelectionCounts = Record<string, number>;
+type ForcedSoldOutRewardIds = Set<string>;
+
+const REWARD_DISTRIBUTION_SELECT = "id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny, generation, original_trainer, event_name, points";
 
 const SOLD_OUT_VIRTUAL_REWARD_IDS = new Set([
     "00000000-0000-0000-0000-000000000001",
@@ -81,6 +84,8 @@ const GEN9_AVAILABLE_REWARD_IDS = new Set([
 ]);
 const SOLD_OUT_REWARD_LABEL = "已被選完";
 const REWARD_ITEM_STOCK_LIMIT = 3;
+const LOW_STOCK_GENERATIONS = new Set([6, 7]);
+const LOW_STOCK_AVAILABLE_RATIO = 0.1;
 const GEN9_SELECTABLE_POINT_CEILING = 2160;
 const GEN9_HIGH_VALUE_EVENT_KEYWORDS = [
     "異色的樂園守護龍",
@@ -92,6 +97,7 @@ const GEN9_HIGH_VALUE_EVENT_KEYWORDS = [
 const GEN9_HIDDEN_REWARD_POKEMON_NAMES = ["海兔獸"];
 const GEN9_HIDDEN_REWARD_EVENT_KEYWORDS = ["Eduardo的海兔獸"];
 const COROCORO_EVENT_KEYWORDS = ["corocoro", "coro coro", "colocolo", "コロコロ"];
+const EMPTY_FORCED_SOLD_OUT_IDS: ForcedSoldOutRewardIds = new Set();
 
 function includesKeyword(value: string | null | undefined, keywords: string[]) {
     const normalized = (value || "").toLowerCase();
@@ -111,7 +117,41 @@ function isHiddenForTier(distribution: RewardDistribution, tier: TierKey) {
     return isHiddenReward(distribution);
 }
 
-function isAllowedForTier(distribution: RewardDistribution, tier: TierKey) {
+function compareRewardDistributions(a: RewardDistribution, b: RewardDistribution) {
+    const pointDiff = (a.points ?? Number.MAX_SAFE_INTEGER) - (b.points ?? Number.MAX_SAFE_INTEGER);
+    if (pointDiff !== 0) return pointDiff;
+
+    const nameDiff = a.pokemon_name.localeCompare(b.pokemon_name, "zh-Hant");
+    if (nameDiff !== 0) return nameDiff;
+
+    return a.id.localeCompare(b.id);
+}
+
+function buildLowStockSoldOutIds(distributions: RewardDistribution[]) {
+    const forcedSoldOutIds: ForcedSoldOutRewardIds = new Set();
+
+    for (const generation of LOW_STOCK_GENERATIONS) {
+        const generationRewards = distributions
+            .filter((distribution) => distribution.generation === generation && !TIER_SCOPED_REWARD_IDS.has(distribution.id))
+            .sort(compareRewardDistributions);
+
+        if (generationRewards.length === 0) continue;
+
+        const availableCount = Math.max(1, Math.ceil(generationRewards.length * LOW_STOCK_AVAILABLE_RATIO));
+        for (const distribution of generationRewards.slice(availableCount)) {
+            forcedSoldOutIds.add(distribution.id);
+        }
+    }
+
+    return forcedSoldOutIds;
+}
+
+function isAllowedForTier(
+    distribution: RewardDistribution,
+    tier: TierKey,
+    forcedSoldOutIds: ForcedSoldOutRewardIds = EMPTY_FORCED_SOLD_OUT_IDS
+) {
+    if (forcedSoldOutIds.has(distribution.id)) return false;
     if (SOLD_OUT_VIRTUAL_REWARD_IDS.has(distribution.id)) return false;
     if (TIER_SCOPED_REWARD_IDS.has(distribution.id)) {
         return TIER_EXTRA_REWARD_IDS[tier].includes(distribution.id);
@@ -165,30 +205,45 @@ function getDisplayedSelectedCount(distributionId: string, selectionCounts: Rewa
     return Math.min(selectionCounts[distributionId] || 0, REWARD_ITEM_STOCK_LIMIT);
 }
 
-function isUnavailableForSelection(distribution: RewardDistribution, tier: TierKey) {
-    return !isAllowedForTier(distribution, tier) || isSoldOutReward(distribution);
+function isUnavailableForSelection(
+    distribution: RewardDistribution,
+    tier: TierKey,
+    forcedSoldOutIds: ForcedSoldOutRewardIds = EMPTY_FORCED_SOLD_OUT_IDS
+) {
+    return !isAllowedForTier(distribution, tier, forcedSoldOutIds) || isSoldOutReward(distribution);
 }
 
 function getDisplayedSelectedCountForTier(
     distribution: RewardDistribution,
     tier: TierKey,
-    selectionCounts: RewardSelectionCounts
+    selectionCounts: RewardSelectionCounts,
+    forcedSoldOutIds: ForcedSoldOutRewardIds = EMPTY_FORCED_SOLD_OUT_IDS
 ) {
     const selectedCount = getDisplayedSelectedCount(distribution.id, selectionCounts);
-    if (isUnavailableForSelection(distribution, tier)) {
+    if (isUnavailableForSelection(distribution, tier, forcedSoldOutIds)) {
         return Math.max(selectedCount, REWARD_ITEM_STOCK_LIMIT);
     }
     return selectedCount;
 }
 
-function getRemainingCount(distribution: RewardDistribution, tier: TierKey, selectionCounts: RewardSelectionCounts) {
-    if (isUnavailableForSelection(distribution, tier)) return 0;
+function getRemainingCount(
+    distribution: RewardDistribution,
+    tier: TierKey,
+    selectionCounts: RewardSelectionCounts,
+    forcedSoldOutIds: ForcedSoldOutRewardIds = EMPTY_FORCED_SOLD_OUT_IDS
+) {
+    if (isUnavailableForSelection(distribution, tier, forcedSoldOutIds)) return 0;
     return Math.max(0, REWARD_ITEM_STOCK_LIMIT - getDisplayedSelectedCount(distribution.id, selectionCounts));
 }
 
-function withSelectionStatus(distribution: RewardDistribution, tier: TierKey, selectionCounts: RewardSelectionCounts) {
-    const selectedCount = getDisplayedSelectedCountForTier(distribution, tier, selectionCounts);
-    const remainingCount = getRemainingCount(distribution, tier, selectionCounts);
+function withSelectionStatus(
+    distribution: RewardDistribution,
+    tier: TierKey,
+    selectionCounts: RewardSelectionCounts,
+    forcedSoldOutIds: ForcedSoldOutRewardIds = EMPTY_FORCED_SOLD_OUT_IDS
+) {
+    const selectedCount = getDisplayedSelectedCountForTier(distribution, tier, selectionCounts, forcedSoldOutIds);
+    const remainingCount = getRemainingCount(distribution, tier, selectionCounts, forcedSoldOutIds);
     const selectionExhausted = remainingCount <= 0;
 
     return {
@@ -275,7 +330,7 @@ export async function GET(request: Request) {
         const selectionCounts = countRewardSelections(rewardGoals);
         const { data } = await supabase
             .from("distributions")
-            .select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny, generation, original_trainer, event_name, points")
+            .select(REWARD_DISTRIBUTION_SELECT)
             .in("generation", tierConfig.allowedGenerations)
             .order("generation", { ascending: true })
             .order("pokemon_name", { ascending: true });
@@ -287,7 +342,7 @@ export async function GET(request: Request) {
         if (extraRewardIds.length > 0) {
             const { data: rewards } = await supabase
                 .from('distributions')
-                .select("id, pokemon_name, pokemon_name_en, pokemon_sprite_url, is_shiny, generation, original_trainer, event_name, points")
+                .select(REWARD_DISTRIBUTION_SELECT)
                 .in('id', extraRewardIds);
             if (rewards && rewards.length > 0) {
                 const sortedRewards = extraRewardIds
@@ -297,9 +352,10 @@ export async function GET(request: Request) {
             }
         }
 
+        const forcedSoldOutIds = buildLowStockSoldOutIds(allDistributions);
         distributions = allDistributions
             .filter((distribution) => !isHiddenForTier(distribution, tier))
-            .map((distribution) => withSelectionStatus(distribution, tier, selectionCounts));
+            .map((distribution) => withSelectionStatus(distribution, tier, selectionCounts, forcedSoldOutIds));
     }
 
     // 查詢已設定的目標寶可夢詳情
@@ -399,7 +455,7 @@ export async function POST(request: Request) {
         // 檢查配布是否存在且世代符合
         const { data: distribution, error: distError } = await supabase
             .from("distributions")
-            .select("id, pokemon_name, generation, event_name, points")
+            .select(REWARD_DISTRIBUTION_SELECT)
             .eq("id", distributionId)
             .single();
 
@@ -414,16 +470,22 @@ export async function POST(request: Request) {
             );
         }
 
-        if (!isAllowedForTier(distribution, tier)) {
+        const { data: tierDistributions } = await supabase
+            .from("distributions")
+            .select(REWARD_DISTRIBUTION_SELECT)
+            .in("generation", tierConfig.allowedGenerations);
+        const forcedSoldOutIds = buildLowStockSoldOutIds(tierDistributions || []);
+
+        if (forcedSoldOutIds.has(distribution.id) || isSoldOutReward(distribution)) {
             return NextResponse.json(
-                { error: "此獎勵目前不在此層級的可選清單中，請選擇其他獎勵。" },
+                { error: `${distribution.pokemon_name} 已被選完，請選擇其他獎勵。` },
                 { status: 400 }
             );
         }
 
-        if (isSoldOutReward(distribution)) {
+        if (!isAllowedForTier(distribution, tier, forcedSoldOutIds)) {
             return NextResponse.json(
-                { error: `${distribution.pokemon_name} 已被選完，請選擇其他獎勵。` },
+                { error: "此獎勵目前不在此層級的可選清單中，請選擇其他獎勵。" },
                 { status: 400 }
             );
         }
@@ -432,7 +494,7 @@ export async function POST(request: Request) {
             .from("profiles")
             .select("reward_tier_12_goal_id, reward_tier_40_goal_id, reward_tier_points_goal_id");
         const selectionCounts = countRewardSelections(rewardGoals);
-        if (getRemainingCount(distribution, tier, selectionCounts) <= 0) {
+        if (getRemainingCount(distribution, tier, selectionCounts, forcedSoldOutIds) <= 0) {
             return NextResponse.json(
                 { error: `${distribution.pokemon_name} 已被選完，請選擇其他獎勵。` },
                 { status: 400 }
