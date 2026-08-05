@@ -6,6 +6,8 @@ import AuctionCard from "@/components/AuctionCard";
 // import { PopularityWidgetToggle } from "@/components/PopularityWidgetToggle";
 import { CommissionWidget } from "@/components/CommissionWidget";
 import { MaintenanceToggle } from "@/components/MaintenanceToggle";
+import { HomeV2 } from "@/components/v2/HomeV2";
+import { getUiMode } from "@/lib/ui-mode.server";
 // [伊布集點日] 活動已結束
 // import { EeveeDayWidget } from "@/components/EeveeDayWidget";
 // [春節活動] 明年再啟用
@@ -65,8 +67,72 @@ async function HotAuctionsSection() {
   );
 }
 
+/** 取得 v2 首頁用的熱門競標（同 HotAuctionsSection 的條件） */
+async function loadHotAuctions() {
+  const supabase = createServerSupabaseClient();
+  const now = new Date().toISOString();
+  const { data } = await supabase
+    .from("auctions")
+    .select("*, distributions(pokemon_name, pokemon_name_en, pokemon_sprite_url)")
+    .eq("status", "active")
+    .lte("start_time", now)
+    .gt("end_time", now)
+    .order("end_time", { ascending: true })
+    .limit(4);
+  return data ?? [];
+}
+
+/**
+ * v2 首頁的數字與近期活動。
+ * 每個查詢都獨立吞例外——RLS 擋掉或表不存在時就少顯示一塊，不要讓首頁掛掉。
+ */
+async function loadHomeExtras() {
+  const supabase = createServerSupabaseClient();
+
+  const countOf = async (
+    table: string,
+    filter?: { column: string; value: string | boolean },
+  ) => {
+    try {
+      const base = supabase.from(table).select("*", { count: "exact", head: true });
+      const { count, error } = await (filter ? base.eq(filter.column, filter.value) : base);
+      return error ? null : (count ?? null);
+    } catch {
+      return null;
+    }
+  };
+
+  const loadRecentEvents = async () => {
+    try {
+      const { data } = await supabase
+        .from("events")
+        .select("id, title, description, start_date, location, image_url, image_position, price, is_free")
+        .eq("status", "published")
+        .order("start_date", { ascending: false })
+        .limit(3);
+      return data ?? [];
+    } catch {
+      return [];
+    }
+  };
+
+  const [openCommissions, distributions, storeItems, recentEvents] = await Promise.all([
+    // DB 的「刊登中／開放承接」是 active；CommissionsHub 顯示時才映射成 open
+    countOf("commissions", { column: "status", value: "active" }),
+    countOf("distributions"),
+    countOf("shop_products", { column: "is_active", value: true }),
+    loadRecentEvents(),
+  ]);
+
+  return {
+    stats: { openCommissions, distributions, storeItems },
+    recentEvents,
+  };
+}
+
 export default async function HomePage() {
   const supabase = createServerSupabaseClient();
+  const isV2 = getUiMode() === "v2";
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -78,6 +144,19 @@ export default async function HomePage() {
 
   // 未登入用戶顯示登入引導頁 + 熱門競標
   if (!user) {
+    if (isV2) {
+      const [hotAuctions, extras] = await Promise.all([loadHotAuctions(), loadHomeExtras()]);
+      return (
+        <HomeV2
+          isAuthenticated={false}
+          displayName="訪客"
+          hotAuctions={hotAuctions}
+          recentEvents={extras.recentEvents}
+          stats={extras.stats}
+        />
+      );
+    }
+
     return (
       <div className="flex flex-col gap-8 py-12">
         <section className="glass-card max-w-lg mx-auto p-8 text-center">
@@ -308,6 +387,50 @@ export default async function HomePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recentVisitors = [...realVisitors, ...cronVisitors, ...fallbackVisitors] as any;
 
+  const personalSpace = (
+    <PersonalSpaceContent
+      user={user}
+      profile={profile}
+      wishlists={wishlists || []}
+      comments={comments || []}
+      userItems={userItems || []}
+      allEvents={allEvents || []}
+      isOwnProfile={true}
+      currentUserId={user.id}
+      publicImage={publicImage}
+      publicPerceptions={publicPerceptions || []}
+      distributionStats={distributionStats}
+      topDistributions={topDistributions}
+      registrations={userRegistrations || []}
+      recentVisitors={recentVisitors}
+    />
+  );
+
+  if (isV2) {
+    const [hotAuctions, extras] = await Promise.all([loadHotAuctions(), loadHomeExtras()]);
+    const name =
+      (profile as { full_name?: string } | null)?.full_name || user.email || "訓練家";
+
+    return (
+      <>
+        <MaintenanceToggle />
+        <HomeV2
+          isAuthenticated
+          displayName={name}
+          hotAuctions={hotAuctions}
+          recentEvents={extras.recentEvents}
+          stats={extras.stats}
+          legacyContent={
+            <div className="flex flex-col gap-6">
+              <CommissionWidget />
+              {personalSpace}
+            </div>
+          }
+        />
+      </>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-8">
       {/* 管理員維護過罩開關 */}
@@ -331,22 +454,7 @@ export default async function HomePage() {
       <CommissionWidget />
 
       {/* 個人空間內容 */}
-      <PersonalSpaceContent
-        user={user}
-        profile={profile}
-        wishlists={wishlists || []}
-        comments={comments || []}
-        userItems={userItems || []}
-        allEvents={allEvents || []}
-        isOwnProfile={true}
-        currentUserId={user.id}
-        publicImage={publicImage}
-        publicPerceptions={publicPerceptions || []}
-        distributionStats={distributionStats}
-        topDistributions={topDistributions}
-        registrations={userRegistrations || []}
-        recentVisitors={recentVisitors}
-      />
+      {personalSpace}
     </div>
   );
 }

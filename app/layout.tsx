@@ -1,8 +1,13 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./ui-v2.css";
 import { ReactNode } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
+import { SiteHeaderV2 } from "@/components/v2/SiteHeaderV2";
+import { SiteFooterV2 } from "@/components/v2/SiteFooterV2";
+import { UiModeToggle } from "@/components/v2/UiModeToggle";
+import { getUiMode } from "@/lib/ui-mode.server";
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { MaintenanceProvider } from "@/components/MaintenanceContext";
 import GlobalAnnouncementOverlay from "@/components/GlobalAnnouncementOverlay";
@@ -51,11 +56,14 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = {
-  themeColor: "#0a0a0f",
-  width: "device-width",
-  initialScale: 1,
-};
+export function generateViewport(): Viewport {
+  // 手機瀏覽器的網址列顏色要跟著版本走，不然新版白底配黑色瀏海很怪
+  return {
+    themeColor: getUiMode() === "v2" ? "#ffffff" : "#0a0a0f",
+    width: "device-width",
+    initialScale: 1,
+  };
+}
 
 type RootLayoutProps = {
   children: ReactNode;
@@ -113,9 +121,31 @@ async function resolveUserContext(): Promise<UserContext> {
 
 export default async function RootLayout({ children }: RootLayoutProps) {
   const { displayName, isAuthenticated, isAdmin } = await resolveUserContext();
+  const uiMode = getUiMode();
+  const isV2 = uiMode === "v2";
+
+  // 只有外殼（header / 容器 / footer）跟著版本換，
+  // 全域的公告、購物車、Toast 兩個版本共用。
+  const shell = isV2 ? (
+    <>
+      <SiteHeaderV2 displayName={displayName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
+      <main className="flex-1">
+        <div className="eg-shell py-10 md:py-14">{children}</div>
+      </main>
+      <SiteFooterV2 />
+    </>
+  ) : (
+    <>
+      <SiteHeader displayName={displayName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
+      <main className="flex-1">
+        <div className="mx-auto w-full max-w-5xl px-4 py-10 md:px-6 md:py-12">{children}</div>
+      </main>
+      <SiteFooter />
+    </>
+  );
 
   return (
-    <html lang="zh-Hant">
+    <html lang="zh-Hant" data-ui={uiMode}>
       <body className="min-h-screen antialiased">
         <GlobalAnnouncementOverlay />
         <GlobalBackpackToast isAuthenticated={isAuthenticated} />
@@ -125,15 +155,10 @@ export default async function RootLayout({ children }: RootLayoutProps) {
           <CartProvider>
             <CartSidebar />
             <CheckInReminder />
-            <div className="flex min-h-screen flex-col">
-              <SiteHeader displayName={displayName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
-              <main className="flex-1">
-                <div className="mx-auto w-full max-w-5xl px-4 py-10 md:px-6 md:py-12">{children}</div>
-              </main>
-              <SiteFooter />
-            </div>
+            <div className="flex min-h-screen flex-col">{shell}</div>
           </CartProvider>
         </MaintenanceProvider>
+        <UiModeToggle mode={uiMode} />
       </body>
     </html>
   );

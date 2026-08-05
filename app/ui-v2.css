@@ -1,0 +1,640 @@
+/* =========================================================================
+   Event Glass — UI v2「明亮清爽」設計系統
+   =========================================================================
+   全部規則都掛在 [data-ui="v2"] 底下，v1 完全不受影響。
+   純 CSS（不用 @apply），這層跟 Tailwind 解耦，之後要抽出去也容易。
+
+   用法：版面用 Tailwind utility（flex / grid / gap / 間距），
+        外觀用這裡的 .eg-* 語意類別。
+   ========================================================================= */
+
+[data-ui="v2"] {
+  color-scheme: light;
+
+  /* ---- 色彩 ---- */
+  --eg-bg: #ffffff;
+  --eg-bg-subtle: #fafafa;
+  --eg-bg-muted: #f4f4f5;
+  --eg-bg-inset: #ebebed;
+
+  --eg-border: #e6e6e9;
+  --eg-border-strong: #d4d4d8;
+
+  --eg-ink: #18181b;
+  --eg-ink-2: #52525b;
+  --eg-ink-3: #8b8b93;
+  --eg-ink-4: #b4b4bb;
+
+  --eg-accent: #2563eb;
+  --eg-accent-hover: #1d4ed8;
+  --eg-accent-soft: #eff6ff;
+  --eg-accent-border: #bfdbfe;
+
+  --eg-success: #15803d;
+  --eg-success-soft: #f0fdf4;
+  --eg-success-border: #bbf7d0;
+
+  --eg-danger: #dc2626;
+  --eg-danger-soft: #fef2f2;
+  --eg-danger-border: #fecaca;
+
+  --eg-warn: #b45309;
+  --eg-warn-soft: #fffbeb;
+  --eg-warn-border: #fde68a;
+
+  /* ---- 形狀 ---- */
+  --eg-r-sm: 6px;
+  --eg-r: 10px;
+  --eg-r-lg: 14px;
+  --eg-r-xl: 18px;
+
+  /* ---- 陰影：極克制，主要靠邊框分層 ---- */
+  --eg-shadow-sm: 0 1px 2px rgba(24, 24, 27, 0.05);
+  --eg-shadow: 0 2px 4px rgba(24, 24, 27, 0.04), 0 4px 12px rgba(24, 24, 27, 0.06);
+  --eg-shadow-lg: 0 8px 24px rgba(24, 24, 27, 0.09), 0 2px 6px rgba(24, 24, 27, 0.04);
+
+  /* ---- 字體 ---- */
+  --eg-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC",
+    "Noto Sans TC", "Microsoft JhengHei", "Helvetica Neue", Arial, sans-serif;
+
+  --eg-shell-max: 1120px;
+}
+
+/* =========================================================================
+   Base — 蓋掉 v1 的深色底
+   ========================================================================= */
+
+[data-ui="v2"] body {
+  background-color: var(--eg-bg);
+  background-image: none;
+  color: var(--eg-ink);
+  font-family: var(--eg-font);
+  font-feature-settings: "tnum" 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 用 :where() 把整條選擇器壓到跟 v1 的 `a { … }` 同權重（0,0,1），
+   靠 import 順序蓋過去；同時讓任何 .eg-* 類別（0,1,0）都能贏過它。
+   若寫成 [data-ui="v2"] a（0,1,1），.eg-btn--primary 的白字會被這條蓋掉，
+   主要按鈕就會變成看不到字的黑方塊。 */
+:where([data-ui="v2"]) a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+[data-ui="v2"] ::selection {
+  background: #dbeafe;
+  color: var(--eg-ink);
+}
+
+[data-ui="v2"] :focus-visible {
+  outline: 2px solid var(--eg-accent);
+  outline-offset: 2px;
+  border-radius: var(--eg-r-sm);
+}
+
+/* 數字一律等寬對齊，價格/點數欄位才不會跳動 */
+[data-ui="v2"] .eg-num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* =========================================================================
+   Layout
+   ========================================================================= */
+
+.eg-shell {
+  width: 100%;
+  max-width: var(--eg-shell-max);
+  margin-inline: auto;
+  padding-inline: 20px;
+}
+
+@media (min-width: 768px) {
+  .eg-shell {
+    padding-inline: 32px;
+  }
+}
+
+/* =========================================================================
+   Typography
+   ========================================================================= */
+
+.eg-eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--eg-ink-3);
+}
+
+.eg-h1 {
+  font-size: 34px;
+  line-height: 1.18;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--eg-ink);
+}
+
+.eg-h2 {
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--eg-ink);
+}
+
+.eg-h3 {
+  font-size: 15px;
+  line-height: 1.4;
+  font-weight: 600;
+  color: var(--eg-ink);
+}
+
+.eg-lead {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--eg-ink-2);
+}
+
+.eg-body {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--eg-ink-2);
+}
+
+.eg-meta {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--eg-ink-3);
+}
+
+@media (min-width: 768px) {
+  .eg-h1 {
+    font-size: 46px;
+  }
+  .eg-h2 {
+    font-size: 22px;
+  }
+}
+
+/* =========================================================================
+   Card
+   ========================================================================= */
+
+.eg-card {
+  background: var(--eg-bg);
+  border: 1px solid var(--eg-border);
+  border-radius: var(--eg-r-lg);
+}
+
+.eg-card--subtle {
+  background: var(--eg-bg-subtle);
+}
+
+/* 可點的卡：hover 才浮起來，靜態時保持平面 */
+.eg-card--interactive {
+  transition: border-color 0.16s ease, box-shadow 0.16s ease, transform 0.16s ease;
+  cursor: pointer;
+}
+
+.eg-card--interactive:hover {
+  border-color: var(--eg-border-strong);
+  box-shadow: var(--eg-shadow);
+  transform: translateY(-2px);
+}
+
+.eg-card--interactive:active {
+  transform: translateY(0);
+  box-shadow: var(--eg-shadow-sm);
+}
+
+/* =========================================================================
+   Button
+   ========================================================================= */
+
+.eg-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 38px;
+  padding-inline: 16px;
+  border-radius: var(--eg-r);
+  border: 1px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+/* 停用態不用降透明度——「已售罄」這種字降到 0.45 會糊得看不清楚。
+   改成實心的灰底灰字，狀態明確、字也還讀得到。 */
+.eg-btn:disabled,
+.eg-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  background: var(--eg-bg-muted);
+  border-color: var(--eg-border);
+  color: var(--eg-ink-3);
+  box-shadow: none;
+}
+
+.eg-btn--primary {
+  background: var(--eg-ink);
+  color: #fff;
+  box-shadow: var(--eg-shadow-sm);
+}
+
+.eg-btn--primary:hover:not(:disabled) {
+  background: #000;
+}
+
+.eg-btn--secondary {
+  background: var(--eg-bg);
+  border-color: var(--eg-border-strong);
+  color: var(--eg-ink);
+}
+
+.eg-btn--secondary:hover:not(:disabled) {
+  background: var(--eg-bg-subtle);
+  border-color: var(--eg-ink-4);
+}
+
+.eg-btn--ghost {
+  background: transparent;
+  color: var(--eg-ink-2);
+}
+
+.eg-btn--ghost:hover:not(:disabled) {
+  background: var(--eg-bg-muted);
+  color: var(--eg-ink);
+}
+
+.eg-btn--sm {
+  height: 32px;
+  padding-inline: 12px;
+  font-size: 13px;
+}
+
+.eg-btn--lg {
+  height: 44px;
+  padding-inline: 22px;
+  font-size: 15px;
+}
+
+.eg-btn--block {
+  width: 100%;
+}
+
+/* =========================================================================
+   Tag / Chip
+   ========================================================================= */
+
+.eg-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding-inline: 8px;
+  border-radius: 999px;
+  border: 1px solid var(--eg-border);
+  background: var(--eg-bg-subtle);
+  color: var(--eg-ink-2);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.eg-tag--accent {
+  background: var(--eg-accent-soft);
+  border-color: var(--eg-accent-border);
+  color: var(--eg-accent);
+}
+
+.eg-tag--success {
+  background: var(--eg-success-soft);
+  border-color: var(--eg-success-border);
+  color: var(--eg-success);
+}
+
+.eg-tag--danger {
+  background: var(--eg-danger-soft);
+  border-color: var(--eg-danger-border);
+  color: var(--eg-danger);
+}
+
+.eg-tag--warn {
+  background: var(--eg-warn-soft);
+  border-color: var(--eg-warn-border);
+  color: var(--eg-warn);
+}
+
+.eg-tag--solid {
+  background: var(--eg-ink);
+  border-color: var(--eg-ink);
+  color: #fff;
+}
+
+/* 「進行中」的呼吸點 */
+.eg-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  flex: none;
+}
+
+.eg-dot--live {
+  animation: eg-pulse 2s ease-in-out infinite;
+}
+
+@keyframes eg-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eg-dot--live {
+    animation: none;
+  }
+  .eg-card--interactive:hover {
+    transform: none;
+  }
+}
+
+/* =========================================================================
+   Form
+   ========================================================================= */
+
+.eg-input {
+  width: 100%;
+  height: 38px;
+  padding-inline: 12px;
+  border-radius: var(--eg-r);
+  border: 1px solid var(--eg-border-strong);
+  background: var(--eg-bg);
+  color: var(--eg-ink);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.eg-input::placeholder {
+  color: var(--eg-ink-4);
+}
+
+.eg-input:focus {
+  outline: none;
+  border-color: var(--eg-accent);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* 分類篩選鈕 */
+.eg-filter {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding-inline: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--eg-border);
+  background: var(--eg-bg);
+  color: var(--eg-ink-2);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.eg-filter:hover {
+  border-color: var(--eg-border-strong);
+  color: var(--eg-ink);
+}
+
+.eg-filter[aria-pressed="true"] {
+  background: var(--eg-ink);
+  border-color: var(--eg-ink);
+  color: #fff;
+}
+
+/* =========================================================================
+   Divider / Section
+   ========================================================================= */
+
+.eg-rule {
+  height: 1px;
+  background: var(--eg-border);
+  border: 0;
+}
+
+.eg-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--eg-border);
+}
+
+.eg-link {
+  color: var(--eg-ink-2);
+  font-size: 13.5px;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.eg-link:hover {
+  color: var(--eg-accent);
+}
+
+/* =========================================================================
+   Skeleton / Empty
+   ========================================================================= */
+
+.eg-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--eg-bg-muted) 25%,
+    var(--eg-bg-inset) 37%,
+    var(--eg-bg-muted) 63%
+  );
+  background-size: 400% 100%;
+  animation: eg-shimmer 1.4s ease infinite;
+  border-radius: var(--eg-r);
+}
+
+@keyframes eg-shimmer {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eg-skeleton {
+    animation: none;
+  }
+}
+
+/* =========================================================================
+   Header / Footer
+   ========================================================================= */
+
+.eg-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: saturate(180%) blur(12px);
+  -webkit-backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--eg-border);
+}
+
+.eg-nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding-inline: 10px;
+  border-radius: var(--eg-r-sm);
+  font-size: 14px;
+  color: var(--eg-ink-2);
+  white-space: nowrap;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.eg-nav-link:hover {
+  color: var(--eg-ink);
+  background: var(--eg-bg-muted);
+}
+
+.eg-nav-link[data-active="true"] {
+  color: var(--eg-ink);
+  font-weight: 500;
+}
+
+/* 只有桌機那條橫向導覽列才畫底線；手機選單同樣用 .eg-nav-link，
+   但它是垂直清單，畫底線會飄在錯的位置。 */
+.eg-nav--bar .eg-nav-link[data-active="true"]::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -16px; /* header 高 64、連結高 34 → 剛好貼在底部框線上 */
+  height: 2px;
+  background: var(--eg-ink);
+  border-radius: 2px;
+}
+
+.eg-footer {
+  border-top: 1px solid var(--eg-border);
+  background: var(--eg-bg-subtle);
+}
+
+/* =========================================================================
+   UI 切換鈕（v1 / v2 都會出現，所以兩種配色都要寫）
+   ========================================================================= */
+
+.eg-ui-toggle {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 60;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding-inline: 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC",
+    "Noto Sans TC", sans-serif;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+/* v1（深色站）上的樣子 */
+[data-ui="v1"] .eg-ui-toggle {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #fff;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+[data-ui="v1"] .eg-ui-toggle:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* v2（亮色站）上的樣子 */
+[data-ui="v2"] .eg-ui-toggle {
+  background: var(--eg-ink);
+  border: 1px solid var(--eg-ink);
+  color: #fff;
+  box-shadow: var(--eg-shadow);
+}
+
+[data-ui="v2"] .eg-ui-toggle:hover {
+  background: #000;
+}
+
+.eg-ui-toggle:hover {
+  transform: translateY(-1px);
+}
+
+.eg-ui-toggle:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+/* =========================================================================
+   相容 shim — 尚未改版的 v1 元件
+   =========================================================================
+   NotificationBell / CommissionChatBell 是 400 行的 v1 元件，觸發鈕寫死
+   text-white + border-white/20，放在亮色 header 上會看不見。
+   這裡只改觸發鈕的顏色，下拉選單維持深色（深色選單配亮色 header 沒問題）。
+   等這兩個元件改版後，整段可以直接刪掉。
+   ========================================================================= */
+
+[data-ui="v2"] .eg-bells > div > button {
+  color: var(--eg-ink-2);
+  border-color: var(--eg-border-strong);
+}
+
+[data-ui="v2"] .eg-bells > div > button:hover {
+  background: var(--eg-bg-muted);
+  color: var(--eg-ink);
+}
+
+/* =========================================================================
+   Legacy 島：還沒改版的 v1 元件包在這裡，維持深色但看起來是刻意的
+   ========================================================================= */
+
+.eg-legacy {
+  border-radius: var(--eg-r-xl);
+  border: 1px solid var(--eg-border);
+  background: #0f1117;
+  padding: 20px;
+  overflow: hidden;
+}
+
+.eg-legacy-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.5);
+}
