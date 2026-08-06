@@ -1,5 +1,8 @@
 import { createServerSupabaseClient } from "@/lib/auth";
 import ShopContent from "@/components/ShopContent";
+import SkinShop from "@/components/skin/SkinShop";
+import { getUiMode } from "@/lib/ui-mode.server";
+import { isSkinMode } from "@/lib/ui-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -27,11 +30,11 @@ export default async function ShopPage() {
         userCollected = userDistributions?.map(d => d.distribution_id as string) || [];
     }
 
-    return (
-        <ShopContent
-            distributions={distributions || []}
-            userCollected={userCollected}
-            isLoggedIn={!!user}
-        />
-    );
+    const props = {
+        distributions: distributions || [],
+        userCollected,
+        isLoggedIn: !!user,
+    };
+
+    return isSkinMode(getUiMode()) ? <SkinShop {...props} /> : <ShopContent {...props} />;
 }
