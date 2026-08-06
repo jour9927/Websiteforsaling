@@ -1,5 +1,8 @@
 import { createServerSupabaseClient } from "@/lib/auth";
 import AuctionCard from "@/components/AuctionCard";
+import { SkinAuctions } from "@/components/skin/SkinAuctions";
+import { getUiMode } from "@/lib/ui-mode.server";
+import { isSkinMode } from "@/lib/ui-mode";
 // [春節活動] 明年再啟用
 // import { SpringFestivalBanner } from "@/components/SpringFestivalBanner";
 
@@ -29,6 +32,17 @@ export default async function AuctionsPage() {
     const endedAuctions = auctions?.filter(a =>
         a.status === 'ended' || (a.status === 'active' && a.end_time <= now)
     ).sort((a, b) => new Date(b.end_time).getTime() - new Date(a.end_time).getTime()) || [];
+
+    if (isSkinMode(getUiMode())) {
+        return (
+            <SkinAuctions
+                activeAuctions={activeAuctions}
+                endedAuctions={endedAuctions.slice(0, 6)}
+                endedTotal={endedAuctions.length}
+                upcomingAuction={upcomingAuction ?? null}
+            />
+        );
+    }
 
     return (
         <div className="flex flex-col gap-8">

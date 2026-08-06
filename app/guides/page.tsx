@@ -1,5 +1,8 @@
 import { createServerSupabaseClient } from "@/lib/auth";
 import GuidesContent from "@/components/GuidesContent";
+import SkinGuides from "@/components/skin/SkinGuides";
+import { getUiMode } from "@/lib/ui-mode.server";
+import { isSkinMode } from "@/lib/ui-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -29,12 +32,12 @@ export default async function GuidesPage() {
             userDistributions?.map((d) => d.distribution_id as string) || [];
     }
 
-    return (
-        <GuidesContent
-            distributions={distributions || []}
-            userCollected={userCollected}
-            isLoggedIn={!!user}
-            userId={user?.id}
-        />
-    );
+    const props = {
+        distributions: distributions || [],
+        userCollected,
+        isLoggedIn: !!user,
+        userId: user?.id,
+    };
+
+    return isSkinMode(getUiMode()) ? <SkinGuides {...props} /> : <GuidesContent {...props} />;
 }
