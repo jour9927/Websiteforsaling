@@ -1,0 +1,337 @@
+/* =========================================================================
+   v1 深色 utility → v2 亮色 token 的相容層
+   =========================================================================
+   為什麼需要這個：
+   全站 73 條路由、約 36,000 行 TSX，樣式是行內 Tailwind 寫死的深色
+   （text-white/60、bg-white/10、border-white/10…）。只有少數頁改成了
+   components/skin 的語意元件，其餘放進 v2 白底外殼會變成白底白字。
+
+   手工重寫全部不切實際，但這些寫法極度集中——6 種 pattern 佔 93%——
+   所以在這裡把它們重新對映到亮色 token，一次涵蓋所有還沒改版的頁面。
+
+   這是過渡設施，不是最終狀態：每有一頁真正改用 skin 元件就少依賴它
+   一點，全部改完後整個檔案可以直接刪掉。
+
+   ⚠️ 只掛 [data-ui="v2"]。v3 本身是深色，白字白框剛好，不能套。
+
+   結構（順序有意義）：
+     1. 無條件把深色 utility 對映成亮色 token
+     2. 最後用更高權重，把「元素自己就有深底或彩底」的情況還原成白字
+
+   為什麼是「先全改、再還原」而不是每條規則都掛 :not() 護欄：
+   護欄用子字串比對會被 variant 前綴騙到——`after:bg-indigo-500` 只是
+   偽元素的底線顏色，卻會讓整個元素被誤判成「有彩色背景」而跳過對映，
+   結果 tab 文字維持白色、在白底上完全看不見（實測對比度 1.0）。
+   還原清單用 [class~=] 精確比對整個 token，就不會有這個問題。
+   ========================================================================= */
+
+/* =========================================================================
+   1. 文字
+   ========================================================================= */
+
+[data-ui="v2"] :is(.text-white, .text-white\/90, .text-white\/85, .text-white\/80) {
+  color: var(--eg-ink);
+}
+
+[data-ui="v2"] :is(.text-white\/75, .text-white\/70, .text-white\/65, .text-white\/60, .text-white\/58, .text-white\/55) {
+  color: var(--eg-ink-2);
+}
+
+[data-ui="v2"] :is(.text-white\/50, .text-white\/45, .text-white\/40) {
+  color: var(--eg-ink-3);
+}
+
+[data-ui="v2"] :is(.text-white\/35, .text-white\/30, .text-white\/20) {
+  color: var(--eg-ink-4);
+}
+
+[data-ui="v2"] :is(.hover\:text-white, .hover\:text-white\/90):hover {
+  color: var(--eg-ink);
+}
+
+[data-ui="v2"] :is(.hover\:text-white\/80, .hover\:text-white\/70, .hover\:text-white\/60):hover {
+  color: var(--eg-ink-2);
+}
+
+/* 其他深色系文字色票 */
+[data-ui="v2"] :is(.text-slate-200, .text-gray-200, .text-gray-300),
+[data-ui="v2"] [class*="text-slate-200\/"] {
+  color: var(--eg-ink-2);
+}
+
+[data-ui="v2"] :is(.text-slate-300, .text-slate-400, .text-gray-400, .text-neutral-400, .text-zinc-400) {
+  color: var(--eg-ink-3);
+}
+
+/* =========================================================================
+   2. 淡色強調色 → 深階
+   =========================================================================
+   v1 大量使用 -100/-200/-300/-400（光 amber-400 就 94 次），這幾階是為
+   深色底挑的，放到白底或淺色 tint 上會整片糊掉（實測對比度 1.1–1.9，
+   遠低於 WCAG AA 的 4.5）。統一換成同色系深階。
+
+   注意：這裡刻意「不」跳過有彩色背景的元素——v1 最常見的組合是
+   `bg-emerald-500/12 text-emerald-100` 這種淺 tint 配淺字，在深色底上
+   成立，在白底上就是淺配淺。真正需要保留白字的實心徽章由第 4 節還原。
+   ========================================================================= */
+
+[data-ui="v2"] :is(.text-amber-100, .text-amber-200, .text-amber-300, .text-amber-400,
+  .text-yellow-100, .text-yellow-200, .text-yellow-300, .text-yellow-400,
+  .text-orange-200, .text-orange-300, .text-orange-400),
+[data-ui="v2"] [class*="text-amber-1"], [data-ui="v2"] [class*="text-amber-2"] {
+  color: #b45309;
+}
+
+[data-ui="v2"] :is(.text-red-200, .text-red-300, .text-red-400,
+  .text-rose-200, .text-rose-300, .text-rose-400,
+  .text-pink-200, .text-pink-300, .text-pink-400) {
+  color: #be123c;
+}
+
+[data-ui="v2"] :is(.text-green-200, .text-green-300, .text-green-400,
+  .text-emerald-100, .text-emerald-200, .text-emerald-300, .text-emerald-400,
+  .text-lime-300, .text-lime-400, .text-teal-200, .text-teal-300, .text-teal-400),
+[data-ui="v2"] [class*="text-emerald-1"], [data-ui="v2"] [class*="text-emerald-2"] {
+  color: #15803d;
+}
+
+[data-ui="v2"] :is(.text-blue-200, .text-blue-300, .text-blue-400,
+  .text-sky-100, .text-sky-200, .text-sky-300, .text-sky-400,
+  .text-cyan-100, .text-cyan-200, .text-cyan-300, .text-cyan-400,
+  .text-indigo-200, .text-indigo-300, .text-indigo-400),
+[data-ui="v2"] [class*="text-cyan-1"], [data-ui="v2"] [class*="text-sky-1"] {
+  color: #1d4ed8;
+}
+
+[data-ui="v2"] :is(.text-purple-200, .text-purple-300, .text-purple-400,
+  .text-violet-200, .text-violet-300, .text-violet-400,
+  .text-fuchsia-300, .text-fuchsia-400) {
+  color: #7e22ce;
+}
+
+/* =========================================================================
+   3. 背景與邊框
+   ========================================================================= */
+
+/* 半透明白在深色底上是「淺一階的面」；在白底上要反過來變成淺灰 */
+[data-ui="v2"] :is(.bg-white\/5, .bg-white\/8) {
+  background-color: var(--eg-bg-subtle);
+}
+
+[data-ui="v2"] :is(.bg-white\/10, .bg-white\/15) {
+  background-color: var(--eg-bg-muted);
+}
+
+[data-ui="v2"] :is(.bg-white, .bg-white\/20, .bg-white\/25, .bg-white\/30, .bg-white\/40, .bg-white\/70, .bg-white\/90) {
+  background-color: var(--eg-bg-inset);
+}
+
+[data-ui="v2"] :is(.hover\:bg-white\/5, .hover\:bg-white\/10):hover {
+  background-color: var(--eg-bg-muted);
+}
+
+[data-ui="v2"] :is(.hover\:bg-white\/15, .hover\:bg-white\/20, .hover\:bg-white\/25,
+  .hover\:bg-white\/30, .hover\:bg-white\/40, .hover\:bg-white):hover {
+  background-color: var(--eg-bg-inset);
+}
+
+[data-ui="v2"] :is(.bg-midnight-900, .bg-midnight-700, .bg-slate-900, .bg-slate-950,
+  .bg-gray-900, .bg-zinc-900, .bg-neutral-900) {
+  background-color: var(--eg-bg);
+}
+
+[data-ui="v2"] :is(.bg-slate-800, .bg-gray-800, .bg-zinc-800, .bg-neutral-800) {
+  background-color: var(--eg-bg-muted);
+}
+
+[data-ui="v2"] :is(.border-white\/5, .border-white\/8, .border-white\/10, .border-white\/12, .border-white\/15) {
+  border-color: var(--eg-border);
+}
+
+[data-ui="v2"] :is(.border-white, .border-white\/20, .border-white\/25, .border-white\/30,
+  .border-white\/40, .border-white\/50, .border-white\/60) {
+  border-color: var(--eg-border-strong);
+}
+
+[data-ui="v2"] :is(.border-slate-950, .border-slate-800, .border-gray-800, .border-zinc-800) {
+  border-color: var(--eg-border);
+}
+
+[data-ui="v2"] :is(.hover\:border-white\/20, .hover\:border-white\/30,
+  .hover\:border-white\/50, .hover\:border-white\/60):hover {
+  border-color: var(--eg-ink-4);
+}
+
+[data-ui="v2"] :is(.focus\:border-white, .focus\:border-white\/30, .focus\:border-white\/40):focus {
+  border-color: var(--eg-accent);
+}
+
+/* v1 的主要卡片樣式。globals.css 定義成 border-white/20 + bg-white/10 +
+   backdrop-blur + shadow-glass，整組在白底上等於隱形。 */
+[data-ui="v2"] .glass-card {
+  background-color: var(--eg-bg);
+  border-color: var(--eg-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: var(--eg-shadow-sm);
+}
+
+[data-ui="v2"] .glass-dark {
+  background-color: var(--eg-bg-subtle);
+  border-color: var(--eg-border);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+[data-ui="v2"] .shadow-glass {
+  box-shadow: var(--eg-shadow-sm);
+}
+
+[data-ui="v2"] :is(input, textarea, select):is(.bg-white\/10, .bg-white\/5) {
+  background-color: var(--eg-bg);
+  border-color: var(--eg-border-strong);
+}
+
+[data-ui="v2"] :is(input, textarea, select)::placeholder {
+  color: var(--eg-ink-4);
+}
+
+[data-ui="v2"] option {
+  background-color: var(--eg-bg);
+  color: var(--eg-ink);
+}
+
+/* =========================================================================
+   4. 還原：元素自己就有深底或實心彩底 → 白字是對的
+   =========================================================================
+   例如圖片上的 `bg-black/70 text-white` 價格徽章、`bg-red-500 text-white`
+   的狀態標籤。這裡權重比上面高（多一層 :is 屬性選擇器），所以會蓋回去。
+
+   彩色實心底用 [class~=] 精確比對整個 token：
+   - 命中 `bg-red-500`（實心，白字要保留）
+   - 不命中 `bg-red-500/12`（淺 tint，字該變深）
+   - 不命中 `after:bg-indigo-500`（偽元素的線，不是自己的背景）
+   ========================================================================= */
+
+[data-ui="v2"] :is(
+  [class*="bg-black"], [class*="bg-gradient"],
+  [class*="bg-\[\#0"], [class*="bg-\[\#1"], [class*="bg-\[\#2"],
+  [class*="bg-midnight"],
+  [class~="bg-slate-800"], [class~="bg-slate-900"], [class~="bg-slate-950"],
+  [class~="bg-gray-800"], [class~="bg-gray-900"],
+  [class~="bg-zinc-800"], [class~="bg-zinc-900"],
+  [class~="bg-red-500"], [class~="bg-red-600"], [class~="bg-rose-500"],
+  [class~="bg-orange-500"], [class~="bg-amber-500"], [class~="bg-amber-600"],
+  [class~="bg-yellow-500"], [class~="bg-lime-500"],
+  [class~="bg-green-500"], [class~="bg-green-600"],
+  [class~="bg-emerald-500"], [class~="bg-emerald-600"],
+  [class~="bg-teal-500"], [class~="bg-cyan-500"],
+  [class~="bg-sky-500"], [class~="bg-sky-600"],
+  [class~="bg-blue-500"], [class~="bg-blue-600"],
+  [class~="bg-indigo-500"], [class~="bg-indigo-600"],
+  [class~="bg-violet-500"], [class~="bg-purple-500"], [class~="bg-purple-600"],
+  [class~="bg-fuchsia-500"], [class~="bg-pink-500"],
+  .eg-keep-light
+):is(.text-white, .text-white\/90, .text-white\/85, .text-white\/80) {
+  color: #ffffff;
+}
+
+[data-ui="v2"] :is(
+  [class*="bg-black"], [class*="bg-gradient"],
+  [class*="bg-\[\#0"], [class*="bg-\[\#1"], [class*="bg-\[\#2"],
+  [class*="bg-midnight"],
+  [class~="bg-slate-800"], [class~="bg-slate-900"], [class~="bg-slate-950"],
+  [class~="bg-gray-800"], [class~="bg-gray-900"],
+  .eg-keep-light
+):is(.text-white\/75, .text-white\/70, .text-white\/65, .text-white\/60,
+  .text-white\/55, .text-white\/50, .text-white\/45, .text-white\/40,
+  .text-white\/35, .text-white\/30) {
+  color: rgba(255, 255, 255, 0.66);
+}
+
+/* 深底容器「裡面」的字也要還原（子元素常常沒有自己的背景 class） */
+[data-ui="v2"] :is([class*="bg-\[\#0"], [class*="bg-\[\#1"], [class*="bg-\[\#2"], [class*="bg-midnight"])
+  :is(.text-white, .text-white\/90, .text-white\/85, .text-white\/80) {
+  color: #ffffff;
+}
+
+[data-ui="v2"] :is([class*="bg-\[\#0"], [class*="bg-\[\#1"], [class*="bg-\[\#2"], [class*="bg-midnight"])
+  :is(.text-white\/75, .text-white\/70, .text-white\/60, .text-white\/50, .text-white\/40, .text-white\/30) {
+  color: rgba(255, 255, 255, 0.66);
+}
+
+/* 深底容器裡若沒有任何顏色 class（顏色靠繼承），至少把預設文字色扳回來 */
+[data-ui="v2"] :is([class*="bg-\[\#0"], [class*="bg-\[\#1"], [class*="bg-\[\#2"]) {
+  color: #ffffff;
+}
+
+/* =========================================================================
+   5. 自訂的深色裝飾容器 → 換成亮色底
+   =========================================================================
+   globals.css 有幾個寫死深色漸層的裝飾容器（30 週年活動的舞台等）。
+   把容器本身換成亮色，裡面的文字就走上面的一般規則，不必寫例外。
+   彩色光暈保留，只是強度降低以配合白底。
+   ========================================================================= */
+
+[data-ui="v2"] .anniversary-shell {
+  border-radius: var(--eg-r-xl);
+  border-color: var(--eg-border);
+  background:
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.1), transparent 32%),
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 30%),
+    radial-gradient(circle at bottom left, rgba(16, 185, 129, 0.07), transparent 28%),
+    var(--eg-bg-subtle);
+  box-shadow: var(--eg-shadow-sm);
+}
+
+/* 裝飾格線在白底上要更淡，不然像方格紙 */
+[data-ui="v2"] .anniversary-shell::before {
+  opacity: 0.3;
+  filter: invert(1);
+}
+
+[data-ui="v2"] :is(.anniversary-stage, .anniversary-display) {
+  background: var(--eg-bg);
+  border-color: var(--eg-border);
+}
+
+/* =========================================================================
+   6. 稀有度色階（配布商店）
+   =========================================================================
+   ShopContent 用 `from-red-500/40 to-orange-500/40` 這種帶 alpha 的漸層
+   當稀有度底色。在深色底上是很淡的一層光暈，疊到白底上卻整個浮出來，
+   變成鮭魚粉／芥末黃（文字仍讀得到，但顏色搶過商品圖）。
+
+   alpha 是寫死在 class 名稱裡的，CSS 改不動，所以直接覆蓋 background-image
+   換成同色系但淡很多的版本。六個階層一一對應。
+   ========================================================================= */
+
+[data-ui="v2"] [class*="from-red-500/40"] {
+  background-image: linear-gradient(to bottom right, rgba(239, 68, 68, 0.11), rgba(249, 115, 22, 0.09));
+}
+
+[data-ui="v2"] [class*="from-amber-500/30"] {
+  background-image: linear-gradient(to bottom right, rgba(245, 158, 11, 0.11), rgba(234, 179, 8, 0.09));
+}
+
+[data-ui="v2"] [class*="from-purple-500/25"] {
+  background-image: linear-gradient(to bottom right, rgba(168, 85, 247, 0.1), rgba(236, 72, 153, 0.08));
+}
+
+[data-ui="v2"] [class*="from-blue-500/20"] {
+  background-image: linear-gradient(to bottom right, rgba(59, 130, 246, 0.1), rgba(6, 182, 212, 0.08));
+}
+
+[data-ui="v2"] [class*="from-emerald-500/15"] {
+  background-image: linear-gradient(to bottom right, rgba(16, 185, 129, 0.1), rgba(34, 197, 94, 0.08));
+}
+
+[data-ui="v2"] [class*="from-white/5"] {
+  background-image: linear-gradient(to bottom right, var(--eg-bg-subtle), var(--eg-bg-subtle));
+}
+
+/* 稀有度徽章是實心漸層（無 alpha），白字要保留 —— 但底色同樣要收斂一點 */
+[data-ui="v2"] [class*="bg-gradient-to-r"][class*="from-red-500"]:not([class*="/40"]) {
+  background-image: linear-gradient(to right, #dc2626, #ea580c);
+}

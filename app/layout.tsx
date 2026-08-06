@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./ui-skins.css";
+// v1 深色 utility → v2 亮色 token 的過渡相容層。
+// 必須排在 ui-skins.css 之後：它要蓋掉 Tailwind 的 utility。
+// 每有一頁真正改用 skin 元件就少依賴它一點，全改完可整個刪掉。
+import "./ui-compat-v1.css";
 import { ReactNode } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
