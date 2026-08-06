@@ -24,7 +24,14 @@ export function GET(req: NextRequest, { params }: { params: { mode: string } }) 
   const target =
     requested && /^\/(?!\/)[\w\-./?=&%#]*$/.test(requested) ? requested : "/";
 
-  const res = NextResponse.redirect(new URL(target, req.nextUrl.origin));
+  // 用相對路徑轉址，不要用 req.nextUrl.origin。
+  // origin 是伺服器自己看到的位址（例如 localhost:3000），隔著 proxy、
+  // 隧道或自訂網域時會把使用者踢到連不到的主機。相對 Location 由瀏覽器
+  // 依實際請求網址解析 —— 從哪個 host 進來就留在哪個 host。
+  const res = new NextResponse(null, {
+    status: 307,
+    headers: { Location: target },
+  });
   res.cookies.set(UI_MODE_COOKIE, mode, {
     path: "/",
     maxAge: UI_MODE_MAX_AGE,
