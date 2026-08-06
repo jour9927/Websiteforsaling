@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/auth";
+import { requireAdmin } from "@/lib/adminGuard";
 
 // GET /api/admin/store — 列出全部商品（含下架）
+// 前台請改用 /api/store/products（只回上架商品、只選公開欄位）
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   const supabase = createAdminSupabaseClient();
 
   const { data, error } = await supabase
@@ -19,6 +24,9 @@ export async function GET() {
 
 // POST /api/admin/store — 新增商品
 export async function POST(req: NextRequest) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   const supabase = createAdminSupabaseClient();
 
   const body = await req.json();

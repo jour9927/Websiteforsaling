@@ -186,7 +186,7 @@ export default function SkinStore() {
 
   useEffect(() => {
     // 維持與 v1 相同的資料來源與過濾條件
-    fetch("/api/admin/store")
+    fetch("/api/store/products")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setProducts(data.filter((p: ShopProduct) => p.is_active));

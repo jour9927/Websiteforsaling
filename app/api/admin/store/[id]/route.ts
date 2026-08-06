@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/auth";
+import { requireAdmin } from "@/lib/adminGuard";
 
 // PUT /api/admin/store/[id] — 更新商品
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   const supabase = createAdminSupabaseClient();
   const body = await req.json();
   const { name, description, price, image_url, category, stock, sold_count, is_active, seller_name, interested_count, liked_count } = body;
@@ -42,6 +46,9 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   const supabase = createAdminSupabaseClient();
 
   const { error } = await supabase

@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/auth";
+import { requireAdmin } from "@/lib/adminGuard";
 
 // GET /api/admin/store/orders — 列出全部訂單（含用戶資訊 + 商品明細）
 export async function GET() {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   const supabase = createAdminSupabaseClient();
 
   const { data: orders, error } = await supabase

@@ -61,7 +61,7 @@ export default function StoreContent() {
   const { addItem } = useCart();
 
   useEffect(() => {
-    fetch("/api/admin/store")
+    fetch("/api/store/products")
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {

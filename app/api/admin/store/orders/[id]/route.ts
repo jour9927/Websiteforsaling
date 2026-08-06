@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminSupabaseClient } from "@/lib/auth";
+import { requireAdmin } from "@/lib/adminGuard";
 
 // PUT /api/admin/store/orders/[id] — 更新訂單狀態
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } },
 ) {
+  const denied = await requireAdmin();
+  if (denied) return denied;
+
   const supabase = createAdminSupabaseClient();
   const body = await req.json();
   const { status } = body;
