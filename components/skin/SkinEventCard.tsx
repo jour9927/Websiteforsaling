@@ -21,7 +21,7 @@ function formatDate(value: string) {
   });
 }
 
-export const EventCardV2: FC<Props> = ({ event, dimmed = false }) => {
+export const SkinEventCard: FC<Props> = ({ event, dimmed = false }) => {
   const { id, title, description, date, location, cover, imagePosition, price, is_free } = event;
   const href = `/events/${id}` as Route;
   const free = is_free || price === 0;

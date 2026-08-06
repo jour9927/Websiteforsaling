@@ -97,15 +97,9 @@ export function LoginWall({
         ))}
       </div>
 
-      {/* 白色漸層蓋住骨架下半，文字區才乾淨 */}
-      <div
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(180deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.95) 45%, #fff 100%)",
-        }}
-        aria-hidden="true"
-      />
+      {/* 漸層蓋住骨架下半，文字區才乾淨。顏色由 --eg-veil 決定，
+          亮色皮是白色漸層、深色皮是墨黑漸層 */}
+      <div className="absolute inset-0" style={{ background: "var(--eg-veil)" }} aria-hidden="true" />
 
       <div className="relative flex flex-col items-center px-6 pb-12 pt-4 text-center">
         <div

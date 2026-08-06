@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import "./ui-v2.css";
+import "./ui-skins.css";
 import { ReactNode } from "react";
 import { SiteHeader } from "@/components/SiteHeader";
 import { SiteFooter } from "@/components/SiteFooter";
-import { SiteHeaderV2 } from "@/components/v2/SiteHeaderV2";
-import { SiteFooterV2 } from "@/components/v2/SiteFooterV2";
-import { UiModeToggle } from "@/components/v2/UiModeToggle";
+import { SkinHeader } from "@/components/skin/SkinHeader";
+import { SkinFooter } from "@/components/skin/SkinFooter";
+import { UiModeToggle } from "@/components/skin/UiModeToggle";
 import { getUiMode } from "@/lib/ui-mode.server";
+import { isSkinMode, type UiMode } from "@/lib/ui-mode";
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { MaintenanceProvider } from "@/components/MaintenanceContext";
 import GlobalAnnouncementOverlay from "@/components/GlobalAnnouncementOverlay";
@@ -56,10 +57,16 @@ export const metadata: Metadata = {
   },
 };
 
+// 手機瀏覽器網址列的顏色要跟著版本走，不然亮色版配黑色瀏海很怪
+const THEME_COLOR: Record<UiMode, string> = {
+  v1: "#0a0a0f",
+  v2: "#ffffff",
+  v3: "#0b0b0e",
+};
+
 export function generateViewport(): Viewport {
-  // 手機瀏覽器的網址列顏色要跟著版本走，不然新版白底配黑色瀏海很怪
   return {
-    themeColor: getUiMode() === "v2" ? "#ffffff" : "#0a0a0f",
+    themeColor: THEME_COLOR[getUiMode()],
     width: "device-width",
     initialScale: 1,
   };
@@ -122,17 +129,18 @@ async function resolveUserContext(): Promise<UserContext> {
 export default async function RootLayout({ children }: RootLayoutProps) {
   const { displayName, isAuthenticated, isAdmin } = await resolveUserContext();
   const uiMode = getUiMode();
-  const isV2 = uiMode === "v2";
+  const skin = isSkinMode(uiMode);
 
   // 只有外殼（header / 容器 / footer）跟著版本換，
-  // 全域的公告、購物車、Toast 兩個版本共用。
-  const shell = isV2 ? (
+  // 全域的公告、購物車、Toast 三個版本共用。
+  // v2 與 v3 共用同一套 skin 元件，外觀差異全在 ui-skins.css 的 token 層。
+  const shell = skin ? (
     <>
-      <SiteHeaderV2 displayName={displayName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
+      <SkinHeader displayName={displayName} isAuthenticated={isAuthenticated} isAdmin={isAdmin} />
       <main className="flex-1">
         <div className="eg-shell py-10 md:py-14">{children}</div>
       </main>
-      <SiteFooterV2 />
+      <SkinFooter />
     </>
   ) : (
     <>
@@ -145,7 +153,9 @@ export default async function RootLayout({ children }: RootLayoutProps) {
   );
 
   return (
-    <html lang="zh-Hant" data-ui={uiMode}>
+    /* data-skin 讓 ui-skins.css 用一條選擇器涵蓋所有新皮，
+       不必每加一套就去補 [data-ui="vN"] 的列舉 */
+    <html lang="zh-Hant" data-ui={uiMode} data-skin={skin ? "" : undefined}>
       <body className="min-h-screen antialiased">
         <GlobalAnnouncementOverlay />
         <GlobalBackpackToast isAuthenticated={isAuthenticated} />

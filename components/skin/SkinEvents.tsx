@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import type { Route } from "next";
-import { EventCardV2 } from "@/components/v2/EventCardV2";
-import { SectionHead, EmptyState, LoginWall } from "@/components/v2/primitives";
+import { SkinEventCard } from "@/components/skin/SkinEventCard";
+import { SectionHead, EmptyState, LoginWall } from "@/components/skin/primitives";
 
 type EventRow = {
   id: string;
@@ -62,7 +62,7 @@ function EventGrid({
   return (
     <div className="grid gap-5 sm:grid-cols-2">
       {events.map((e) => (
-        <EventCardV2 key={e.id} event={toSummary(e, fallbackDescription)} dimmed={dimmed} />
+        <SkinEventCard key={e.id} event={toSummary(e, fallbackDescription)} dimmed={dimmed} />
       ))}
     </div>
   );
@@ -116,7 +116,7 @@ function AnnouncementList({
   );
 }
 
-export function EventsV2({
+export function SkinEvents({
   ongoingEvents,
   upcomingEvents,
   recentEvents,

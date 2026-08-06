@@ -2,8 +2,9 @@ import { createServerSupabaseClient } from "@/lib/auth";
 import { TabSwitcher } from "@/components/TabSwitcher";
 import { EventsContent } from "@/components/EventsContent";
 import { AnnouncementsContent } from "@/components/AnnouncementsContent";
-import { EventsV2 } from "@/components/v2/EventsV2";
+import { SkinEvents } from "@/components/skin/SkinEvents";
 import { getUiMode } from "@/lib/ui-mode.server";
+import { isSkinMode } from "@/lib/ui-mode";
 import Link from "next/link";
 
 export const dynamic = 'force-dynamic';
@@ -52,9 +53,9 @@ export default async function EventsListPage() {
     .order('created_at', { ascending: false });
 
   // 新版 UI：同一份資料換一套呈現，查詢邏輯完全共用
-  if (getUiMode() === "v2") {
+  if (isSkinMode(getUiMode())) {
     return (
-      <EventsV2
+      <SkinEvents
         ongoingEvents={ongoingEvents}
         upcomingEvents={upcomingEvents}
         recentEvents={recentEvents}

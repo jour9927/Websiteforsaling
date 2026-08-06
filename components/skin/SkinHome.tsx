@@ -1,8 +1,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import AuctionCardV2, { type AuctionV2 } from "@/components/v2/AuctionCardV2";
-import { EventCardV2 } from "@/components/v2/EventCardV2";
-import { SectionHead, StatTile, LegacyPanel } from "@/components/v2/primitives";
+import SkinAuctionCard, { type SkinAuction } from "@/components/skin/SkinAuctionCard";
+import { SkinEventCard } from "@/components/skin/SkinEventCard";
+import { SectionHead, StatTile, LegacyPanel } from "@/components/skin/primitives";
 
 type HomeStats = {
   openCommissions: number | null;
@@ -25,7 +25,7 @@ type EventRow = {
 type Props = {
   isAuthenticated: boolean;
   displayName: string;
-  hotAuctions: AuctionV2[];
+  hotAuctions: SkinAuction[];
   recentEvents: EventRow[];
   stats: HomeStats;
   /** 登入後才有：還沒改版的個人空間，包在 legacy 島裡 */
@@ -89,7 +89,7 @@ function StatRow({ stats }: { stats: HomeStats }) {
   );
 }
 
-export function HomeV2({
+export function SkinHome({
   isAuthenticated,
   displayName,
   hotAuctions,
@@ -152,7 +152,7 @@ export function HomeV2({
           />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {hotAuctions.map((a) => (
-              <AuctionCardV2 key={a.id} auction={a} />
+              <SkinAuctionCard key={a.id} auction={a} />
             ))}
           </div>
         </section>
@@ -164,7 +164,7 @@ export function HomeV2({
           <SectionHead title="近期活動" action={{ label: "全部活動", href: "/events" }} />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {recentEvents.map((e) => (
-              <EventCardV2
+              <SkinEventCard
                 key={e.id}
                 event={{
                   id: e.id,

@@ -1,9 +1,10 @@
 import StoreContent from "@/components/StoreContent";
-import StoreV2 from "@/components/v2/StoreV2";
+import SkinStore from "@/components/skin/SkinStore";
 import { getUiMode } from "@/lib/ui-mode.server";
+import { isSkinMode } from "@/lib/ui-mode";
 
 export const dynamic = "force-dynamic";
 
 export default function StorePage() {
-  return getUiMode() === "v2" ? <StoreV2 /> : <StoreContent />;
+  return isSkinMode(getUiMode()) ? <SkinStore /> : <StoreContent />;
 }

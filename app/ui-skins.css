@@ -1,17 +1,27 @@
 /* =========================================================================
-   Event Glass — UI v2「明亮清爽」設計系統
+   Event Glass — 多套皮的設計系統
    =========================================================================
-   全部規則都掛在 [data-ui="v2"] 底下，v1 完全不受影響。
-   純 CSS（不用 @apply），這層跟 Tailwind 解耦，之後要抽出去也容易。
+   一套元件（components/skin/），多套外觀。差別全在下面的 token 層：
 
-   用法：版面用 Tailwind utility（flex / grid / gap / 間距），
-        外觀用這裡的 .eg-* 語意類別。
+     [data-ui="v2"]  明亮清爽 — 白底、大留白、細邊框、墨黑主按鈕
+     [data-ui="v3"]  精品卡牌 — 墨黑底、燙金強調、襯線標題、卡片有厚度與光澤
+
+   v1（原本的深色毛玻璃）不用這個檔案，完全不受影響。
+
+   規則：
+   - 版面用 Tailwind utility（flex / grid / gap / 間距）
+   - 外觀用這裡的 .eg-* 語意類別，顏色一律走 var()，不要寫死色碼
+   - 共用規則掛 [data-skin]（layout 在 v2/v3 時才加這個屬性）
+   - 要再加一套皮：複製一份 token 區塊改值即可，元件不用動
+   ========================================================================= */
+
+/* =========================================================================
+   Token — v2 明亮清爽
    ========================================================================= */
 
 [data-ui="v2"] {
   color-scheme: light;
 
-  /* ---- 色彩 ---- */
   --eg-bg: #ffffff;
   --eg-bg-subtle: #fafafa;
   --eg-bg-muted: #f4f4f5;
@@ -42,60 +52,152 @@
   --eg-warn-soft: #fffbeb;
   --eg-warn-border: #fde68a;
 
-  /* ---- 形狀 ---- */
+  /* 主要按鈕 */
+  --eg-primary-bg: #18181b;
+  --eg-primary-bg-hover: #000000;
+  --eg-primary-fg: #ffffff;
+
+  /* 外殼與遮罩 */
+  --eg-header-bg: rgba(255, 255, 255, 0.82);
+  --eg-scrim: rgba(24, 24, 27, 0.4);
+  --eg-selection-bg: #dbeafe;
+  --eg-legacy-bg: #0f1117;
+  /* 登入牆蓋住骨架的漸層，必須跟卡片底色同一個顏色 */
+  --eg-veil: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0.95) 45%,
+    #ffffff 100%
+  );
+
   --eg-r-sm: 6px;
   --eg-r: 10px;
   --eg-r-lg: 14px;
   --eg-r-xl: 18px;
 
-  /* ---- 陰影：極克制，主要靠邊框分層 ---- */
   --eg-shadow-sm: 0 1px 2px rgba(24, 24, 27, 0.05);
   --eg-shadow: 0 2px 4px rgba(24, 24, 27, 0.04), 0 4px 12px rgba(24, 24, 27, 0.06);
   --eg-shadow-lg: 0 8px 24px rgba(24, 24, 27, 0.09), 0 2px 6px rgba(24, 24, 27, 0.04);
 
-  /* ---- 字體 ---- */
   --eg-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC",
     "Noto Sans TC", "Microsoft JhengHei", "Helvetica Neue", Arial, sans-serif;
+  --eg-font-display: var(--eg-font);
+  --eg-display-weight: 600;
+  --eg-display-tracking: -0.02em;
 
   --eg-shell-max: 1120px;
 }
 
 /* =========================================================================
-   Base — 蓋掉 v1 的深色底
+   Token — v3 精品卡牌
    ========================================================================= */
 
-[data-ui="v2"] body {
+[data-ui="v3"] {
+  color-scheme: dark;
+
+  --eg-bg: #0b0b0e;
+  --eg-bg-subtle: #101016;
+  --eg-bg-muted: #17171f;
+  --eg-bg-inset: #21212b;
+
+  /* 邊框帶一點金，深色底才不會死板 */
+  --eg-border: rgba(201, 162, 39, 0.16);
+  --eg-border-strong: rgba(201, 162, 39, 0.36);
+
+  /* 暖白，不用純白——純白配燙金會太刺 */
+  --eg-ink: #f3ece0;
+  --eg-ink-2: #b9b1a3;
+  --eg-ink-3: #877f72;
+  --eg-ink-4: #5e574d;
+
+  --eg-accent: #c9a227;
+  --eg-accent-hover: #e3c767;
+  --eg-accent-soft: rgba(201, 162, 39, 0.1);
+  --eg-accent-border: rgba(201, 162, 39, 0.38);
+
+  --eg-success: #6ee7a8;
+  --eg-success-soft: rgba(110, 231, 168, 0.1);
+  --eg-success-border: rgba(110, 231, 168, 0.32);
+
+  --eg-danger: #f4918f;
+  --eg-danger-soft: rgba(244, 145, 143, 0.1);
+  --eg-danger-border: rgba(244, 145, 143, 0.32);
+
+  --eg-warn: #e3c767;
+  --eg-warn-soft: rgba(227, 199, 103, 0.1);
+  --eg-warn-border: rgba(227, 199, 103, 0.32);
+
+  /* 主要按鈕：燙金漸層配深字，像壓印上去的 */
+  --eg-primary-bg: linear-gradient(180deg, #e0bc4e 0%, #c9a227 100%);
+  --eg-primary-bg-hover: linear-gradient(180deg, #eccf6c 0%, #d4ad2c 100%);
+  --eg-primary-fg: #14100a;
+
+  --eg-header-bg: rgba(11, 11, 14, 0.78);
+  --eg-scrim: rgba(0, 0, 0, 0.66);
+  --eg-selection-bg: rgba(201, 162, 39, 0.3);
+  --eg-legacy-bg: #101016;
+  --eg-veil: linear-gradient(
+    180deg,
+    rgba(11, 11, 14, 0.45) 0%,
+    rgba(11, 11, 14, 0.92) 45%,
+    #0b0b0e 100%
+  );
+
+  --eg-r-sm: 6px;
+  --eg-r: 10px;
+  --eg-r-lg: 16px;
+  --eg-r-xl: 22px;
+
+  --eg-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --eg-shadow: 0 10px 30px rgba(0, 0, 0, 0.55), 0 2px 6px rgba(0, 0, 0, 0.4);
+  --eg-shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.66), 0 4px 12px rgba(0, 0, 0, 0.45);
+
+  --eg-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC",
+    "Noto Sans TC", "Microsoft JhengHei", "Helvetica Neue", Arial, sans-serif;
+  /* 標題走襯線：中文用宋/明體，西文用 Georgia */
+  --eg-font-display: "Songti TC", "Noto Serif TC", "Source Han Serif TC",
+    "Source Han Serif TC VF", "PMingLiU", Georgia, "Times New Roman", serif;
+  --eg-display-weight: 500;
+  --eg-display-tracking: 0;
+
+  --eg-shell-max: 1120px;
+}
+
+/* =========================================================================
+   Base
+   ========================================================================= */
+
+[data-skin] body {
   background-color: var(--eg-bg);
   background-image: none;
   color: var(--eg-ink);
   font-family: var(--eg-font);
-  font-feature-settings: "tnum" 0;
   -webkit-font-smoothing: antialiased;
 }
 
 /* 用 :where() 把整條選擇器壓到跟 v1 的 `a { … }` 同權重（0,0,1），
    靠 import 順序蓋過去；同時讓任何 .eg-* 類別（0,1,0）都能贏過它。
-   若寫成 [data-ui="v2"] a（0,1,1），.eg-btn--primary 的白字會被這條蓋掉，
-   主要按鈕就會變成看不到字的黑方塊。 */
-:where([data-ui="v2"]) a {
+   若寫成 [data-skin] a（0,1,1），.eg-btn--primary 的字色會被這條蓋掉，
+   主要按鈕就會變成看不到字的方塊。 */
+:where([data-skin]) a {
   color: inherit;
   text-decoration: none;
   transition: color 0.15s ease;
 }
 
-[data-ui="v2"] ::selection {
-  background: #dbeafe;
+[data-skin] ::selection {
+  background: var(--eg-selection-bg);
   color: var(--eg-ink);
 }
 
-[data-ui="v2"] :focus-visible {
+[data-skin] :focus-visible {
   outline: 2px solid var(--eg-accent);
   outline-offset: 2px;
   border-radius: var(--eg-r-sm);
 }
 
 /* 數字一律等寬對齊，價格/點數欄位才不會跳動 */
-[data-ui="v2"] .eg-num {
+[data-skin] .eg-num {
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.01em;
 }
@@ -130,18 +232,20 @@
 }
 
 .eg-h1 {
+  font-family: var(--eg-font-display);
   font-size: 34px;
   line-height: 1.18;
-  font-weight: 600;
-  letter-spacing: -0.02em;
+  font-weight: var(--eg-display-weight);
+  letter-spacing: var(--eg-display-tracking);
   color: var(--eg-ink);
 }
 
 .eg-h2 {
+  font-family: var(--eg-font-display);
   font-size: 20px;
   line-height: 1.3;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-weight: var(--eg-display-weight);
+  letter-spacing: var(--eg-display-tracking);
   color: var(--eg-ink);
 }
 
@@ -179,11 +283,22 @@
   }
 }
 
+/* v3 的襯線標題行高要多給一點，中文明體字面大 */
+[data-ui="v3"] .eg-h1 {
+  line-height: 1.28;
+}
+
+[data-ui="v3"] .eg-eyebrow {
+  color: var(--eg-accent);
+  letter-spacing: 0.2em;
+}
+
 /* =========================================================================
    Card
    ========================================================================= */
 
 .eg-card {
+  position: relative;
   background: var(--eg-bg);
   border: 1px solid var(--eg-border);
   border-radius: var(--eg-r-lg);
@@ -210,6 +325,51 @@
   box-shadow: var(--eg-shadow-sm);
 }
 
+/* --- v3 的卡片厚度與光澤 --- */
+
+/* 上緣一條內光，讓卡片看起來有厚度而不是貼在背景上 */
+[data-ui="v3"] .eg-card {
+  background: linear-gradient(180deg, #14141b 0%, #0e0e13 100%);
+  box-shadow: var(--eg-shadow-sm);
+}
+
+[data-ui="v3"] .eg-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* 光澤：滑鼠移上去時斜掃過卡面 */
+[data-ui="v3"] .eg-card--interactive::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    104deg,
+    transparent 34%,
+    rgba(255, 255, 255, 0.09) 47%,
+    rgba(201, 162, 39, 0.07) 53%,
+    transparent 64%
+  );
+  opacity: 0;
+  transform: translateX(-28%);
+  transition: opacity 0.4s ease, transform 0.6s ease;
+}
+
+[data-ui="v3"] .eg-card--interactive:hover::after {
+  opacity: 1;
+  transform: translateX(28%);
+}
+
+[data-ui="v3"] .eg-card--interactive:hover {
+  box-shadow: var(--eg-shadow), 0 0 0 1px rgba(201, 162, 39, 0.22);
+}
+
 /* =========================================================================
    Button
    ========================================================================= */
@@ -229,7 +389,7 @@
   white-space: nowrap;
   cursor: pointer;
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease,
-    box-shadow 0.15s ease;
+    box-shadow 0.15s ease, filter 0.15s ease;
 }
 
 /* 停用態不用降透明度——「已售罄」這種字降到 0.45 會糊得看不清楚。
@@ -244,13 +404,13 @@
 }
 
 .eg-btn--primary {
-  background: var(--eg-ink);
-  color: #fff;
+  background: var(--eg-primary-bg);
+  color: var(--eg-primary-fg);
   box-shadow: var(--eg-shadow-sm);
 }
 
 .eg-btn--primary:hover:not(:disabled) {
-  background: #000;
+  background: var(--eg-primary-bg-hover);
 }
 
 .eg-btn--secondary {
@@ -288,6 +448,15 @@
 
 .eg-btn--block {
   width: 100%;
+}
+
+/* v3 的主按鈕是金漸層，hover 用微亮取代換底色會更順 */
+[data-ui="v3"] .eg-btn--primary:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+[data-ui="v3"] .eg-btn--secondary:hover:not(:disabled) {
+  border-color: var(--eg-accent-border);
 }
 
 /* =========================================================================
@@ -334,9 +503,9 @@
 }
 
 .eg-tag--solid {
-  background: var(--eg-ink);
-  border-color: var(--eg-ink);
-  color: #fff;
+  background: var(--eg-primary-bg);
+  border-color: transparent;
+  color: var(--eg-primary-fg);
 }
 
 /* 「進行中」的呼吸點 */
@@ -369,6 +538,9 @@
   .eg-card--interactive:hover {
     transform: none;
   }
+  [data-ui="v3"] .eg-card--interactive::after {
+    display: none;
+  }
 }
 
 /* =========================================================================
@@ -395,7 +567,11 @@
 .eg-input:focus {
   outline: none;
   border-color: var(--eg-accent);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  box-shadow: 0 0 0 3px var(--eg-accent-soft);
+}
+
+[data-ui="v3"] .eg-input {
+  background: var(--eg-bg-muted);
 }
 
 /* 分類篩選鈕 */
@@ -421,9 +597,9 @@
 }
 
 .eg-filter[aria-pressed="true"] {
-  background: var(--eg-ink);
-  border-color: var(--eg-ink);
-  color: #fff;
+  background: var(--eg-primary-bg);
+  border-color: transparent;
+  color: var(--eg-primary-fg);
 }
 
 /* =========================================================================
@@ -443,6 +619,20 @@
   gap: 16px;
   padding-bottom: 12px;
   border-bottom: 1px solid var(--eg-border);
+}
+
+/* v3 的分隔線做成從金到透明的漸層，比一條純線更有質感 */
+[data-ui="v3"] .eg-section-head {
+  border-bottom: 0;
+  background-image: linear-gradient(
+    90deg,
+    rgba(201, 162, 39, 0.45),
+    rgba(201, 162, 39, 0.08) 45%,
+    transparent 80%
+  );
+  background-size: 100% 1px;
+  background-repeat: no-repeat;
+  background-position: 0 100%;
 }
 
 .eg-link {
@@ -495,10 +685,25 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  background: rgba(255, 255, 255, 0.82);
+  background: var(--eg-header-bg);
   backdrop-filter: saturate(180%) blur(12px);
   -webkit-backdrop-filter: saturate(180%) blur(12px);
   border-bottom: 1px solid var(--eg-border);
+}
+
+.eg-wordmark {
+  font-family: var(--eg-font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--eg-ink);
+}
+
+[data-ui="v3"] .eg-wordmark {
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  color: var(--eg-accent);
 }
 
 .eg-nav-link {
@@ -537,13 +742,17 @@
   border-radius: 2px;
 }
 
+[data-ui="v3"] .eg-nav--bar .eg-nav-link[data-active="true"]::after {
+  background: var(--eg-accent);
+}
+
 .eg-footer {
   border-top: 1px solid var(--eg-border);
   background: var(--eg-bg-subtle);
 }
 
 /* =========================================================================
-   UI 切換鈕（v1 / v2 都會出現，所以兩種配色都要寫）
+   UI 切換鈕（三個版本都會出現，所以三種配色都要寫）
    ========================================================================= */
 
 .eg-ui-toggle {
@@ -565,7 +774,7 @@
   transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
 }
 
-/* v1（深色站）上的樣子 */
+/* v1（原本的深色站） */
 [data-ui="v1"] .eg-ui-toggle {
   background: rgba(255, 255, 255, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.22);
@@ -578,16 +787,27 @@
   background: rgba(255, 255, 255, 0.18);
 }
 
-/* v2（亮色站）上的樣子 */
+/* v2（亮色） */
 [data-ui="v2"] .eg-ui-toggle {
-  background: var(--eg-ink);
-  border: 1px solid var(--eg-ink);
-  color: #fff;
+  background: var(--eg-primary-bg);
+  border: 1px solid transparent;
+  color: var(--eg-primary-fg);
   box-shadow: var(--eg-shadow);
 }
 
-[data-ui="v2"] .eg-ui-toggle:hover {
-  background: #000;
+/* v3（墨黑燙金） */
+[data-ui="v3"] .eg-ui-toggle {
+  background: rgba(20, 20, 26, 0.9);
+  border: 1px solid var(--eg-accent-border);
+  color: var(--eg-accent);
+  box-shadow: var(--eg-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+[data-ui="v3"] .eg-ui-toggle:hover {
+  border-color: var(--eg-accent);
+  color: var(--eg-accent-hover);
 }
 
 .eg-ui-toggle:hover {
@@ -603,8 +823,9 @@
    相容 shim — 尚未改版的 v1 元件
    =========================================================================
    NotificationBell / CommissionChatBell 是 400 行的 v1 元件，觸發鈕寫死
-   text-white + border-white/20，放在亮色 header 上會看不見。
-   這裡只改觸發鈕的顏色，下拉選單維持深色（深色選單配亮色 header 沒問題）。
+   text-white + border-white/20。在 v2 亮色 header 上會看不見，所以只改觸發鈕
+   的顏色（下拉選單維持深色，深色選單配亮色 header 沒問題）。
+   v3 本來就是深色，白字白框剛好，不用動。
    等這兩個元件改版後，整段可以直接刪掉。
    ========================================================================= */
 
@@ -619,13 +840,17 @@
 }
 
 /* =========================================================================
-   Legacy 島：還沒改版的 v1 元件包在這裡，維持深色但看起來是刻意的
+   Legacy 島：還沒改版的 v1 元件包在這裡
+   =========================================================================
+   v1 元件的樣式是寫死的深色 utility class，硬放在亮底上會像壞掉，
+   包成一塊深色面板反而看起來是刻意的，功能也一個都不會少。
+   v3 本身就是深色，這塊幾乎融進背景。
    ========================================================================= */
 
 .eg-legacy {
   border-radius: var(--eg-r-xl);
   border: 1px solid var(--eg-border);
-  background: #0f1117;
+  background: var(--eg-legacy-bg);
   padding: 20px;
   overflow: hidden;
 }

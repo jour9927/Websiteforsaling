@@ -6,8 +6,9 @@ import AuctionCard from "@/components/AuctionCard";
 // import { PopularityWidgetToggle } from "@/components/PopularityWidgetToggle";
 import { CommissionWidget } from "@/components/CommissionWidget";
 import { MaintenanceToggle } from "@/components/MaintenanceToggle";
-import { HomeV2 } from "@/components/v2/HomeV2";
+import { SkinHome } from "@/components/skin/SkinHome";
 import { getUiMode } from "@/lib/ui-mode.server";
+import { isSkinMode } from "@/lib/ui-mode";
 // [伊布集點日] 活動已結束
 // import { EeveeDayWidget } from "@/components/EeveeDayWidget";
 // [春節活動] 明年再啟用
@@ -132,7 +133,7 @@ async function loadHomeExtras() {
 
 export default async function HomePage() {
   const supabase = createServerSupabaseClient();
-  const isV2 = getUiMode() === "v2";
+  const isSkin = isSkinMode(getUiMode());
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -144,10 +145,10 @@ export default async function HomePage() {
 
   // 未登入用戶顯示登入引導頁 + 熱門競標
   if (!user) {
-    if (isV2) {
+    if (isSkin) {
       const [hotAuctions, extras] = await Promise.all([loadHotAuctions(), loadHomeExtras()]);
       return (
-        <HomeV2
+        <SkinHome
           isAuthenticated={false}
           displayName="訪客"
           hotAuctions={hotAuctions}
@@ -406,7 +407,7 @@ export default async function HomePage() {
     />
   );
 
-  if (isV2) {
+  if (isSkin) {
     const [hotAuctions, extras] = await Promise.all([loadHotAuctions(), loadHomeExtras()]);
     const name =
       (profile as { full_name?: string } | null)?.full_name || user.email || "訓練家";
@@ -414,7 +415,7 @@ export default async function HomePage() {
     return (
       <>
         <MaintenanceToggle />
-        <HomeV2
+        <SkinHome
           isAuthenticated
           displayName={name}
           hotAuctions={hotAuctions}

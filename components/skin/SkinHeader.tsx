@@ -126,7 +126,7 @@ function AccountMenu({
   );
 }
 
-export function SiteHeaderV2({ displayName, isAuthenticated, isAdmin }: SiteHeaderV2Props) {
+export function SkinHeader({ displayName, isAuthenticated, isAdmin }: SiteHeaderV2Props) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -145,12 +145,7 @@ export function SiteHeaderV2({ displayName, isAuthenticated, isAdmin }: SiteHead
       <div className="eg-shell flex h-16 items-center justify-between gap-4">
         {/* 品牌 */}
         <Link href="/" className="flex flex-none items-baseline gap-2">
-          <span
-            className="text-[15px] font-semibold tracking-tight"
-            style={{ color: "var(--eg-ink)" }}
-          >
-            Event&nbsp;Glass
-          </span>
+          <span className="eg-wordmark">Event&nbsp;Glass</span>
           <span className="hidden eg-meta sm:inline">寶可夢社群</span>
         </Link>
 

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-export function SiteFooterV2() {
+export function SkinFooter() {
   const pathname = usePathname();
   const isTemporaryBattleRoute =
     pathname === "/random-distribution/battle" || pathname === "/anniversary-30th/battle";
@@ -15,9 +15,7 @@ export function SiteFooterV2() {
     <footer className="eg-footer mt-20">
       <div className="eg-shell flex flex-col gap-6 py-10 md:flex-row md:items-start md:justify-between">
         <div className="max-w-xs">
-          <p className="text-[15px] font-semibold tracking-tight" style={{ color: "var(--eg-ink)" }}>
-            Event Glass
-          </p>
+          <p className="eg-wordmark">Event Glass</p>
           <p className="eg-meta mt-2">
             寶可夢配布、競標與社群活動的一站式平台。
           </p>

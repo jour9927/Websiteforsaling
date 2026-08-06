@@ -5,7 +5,7 @@ import type { Route } from "next";
 import { useState, useEffect, useMemo } from "react";
 import { getEstimatedBidCount } from "@/lib/simulatedBidCount";
 
-export type AuctionV2 = {
+export type SkinAuction = {
   id: string;
   title: string;
   description: string | null;
@@ -31,7 +31,7 @@ function heatOf(count: number) {
   return null;
 }
 
-export default function AuctionCardV2({ auction }: { auction: AuctionV2 }) {
+export default function SkinAuctionCard({ auction }: { auction: SkinAuction }) {
   const [remaining, setRemaining] = useState("");
   const [isEnded, setIsEnded] = useState(auction.status === "ended");
 

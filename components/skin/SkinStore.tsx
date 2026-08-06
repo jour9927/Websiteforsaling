@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useCart } from "@/lib/cart";
-import { SectionHead, EmptyState } from "@/components/v2/primitives";
+import { SectionHead, EmptyState } from "@/components/skin/primitives";
 
 interface ShopProduct {
   id: string;
@@ -120,9 +120,11 @@ function ProductCard({
       <div className="relative">
         <ProductThumb src={product.image_url} alt={product.name} size="card" />
         {soldOut && (
+          // 用 danger 而不是 solid：v3 的 solid 是燙金，金色的「已售罄」
+          // 看起來像精選標籤，語意剛好相反
           <span
-            className="eg-tag eg-tag--solid absolute left-1/2 top-1/2"
-            style={{ transform: "translate(-50%, -50%)" }}
+            className="eg-tag eg-tag--danger absolute left-1/2 top-1/2"
+            style={{ transform: "translate(-50%, -50%)", backdropFilter: "blur(4px)" }}
           >
             已售罄
           </span>
@@ -174,7 +176,7 @@ function ProductCard({
   );
 }
 
-export default function StoreV2() {
+export default function SkinStore() {
   const [products, setProducts] = useState<ShopProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -350,7 +352,7 @@ export default function StoreV2() {
       {selected && (
         <div
           className="fixed inset-0 z-[9999] flex items-end justify-center p-0 sm:items-center sm:p-4"
-          style={{ background: "rgba(24, 24, 27, 0.4)", backdropFilter: "blur(3px)" }}
+          style={{ background: "var(--eg-scrim)", backdropFilter: "blur(3px)" }}
           onClick={() => setSelected(null)}
           role="dialog"
           aria-modal="true"
