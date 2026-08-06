@@ -335,3 +335,72 @@
 [data-ui="v2"] [class*="bg-gradient-to-r"][class*="from-red-500"]:not([class*="/40"]) {
   background-image: linear-gradient(to right, #dc2626, #ea580c);
 }
+
+/* =========================================================================
+   7. 全站共用的外框元件
+   =========================================================================
+   公告彈窗、維護橫幅、購物車：這三個在每一頁都會出現，是使用者第一眼
+   就撞到的東西，卻全是 v1 的深色／橘色，在白底站上最出戲。
+   它們的邏輯不用動，只換外觀。
+   ========================================================================= */
+
+/* --- 公告彈窗（進站第一個看到的東西） --- */
+[data-ui="v2"] [class*="z-[9999]"] > [class*="bg-black/70"] {
+  background-color: rgba(24, 24, 27, 0.35);
+}
+
+[data-ui="v2"] [class*="bg-gradient-to-b"][class*="from-slate-800"],
+[data-ui="v2"] [class*="bg-gradient-to-b"][class*="from-slate-900"] {
+  background-image: none;
+  background-color: var(--eg-bg);
+  border-color: var(--eg-border);
+  box-shadow: var(--eg-shadow-lg);
+}
+
+/* 公告／購物車裡的橘色主要按鈕 */
+[data-ui="v2"] :is(.bg-amber-500, .bg-amber-400):is(button, a),
+[data-ui="v2"] [class*="from-amber-500"][class*="to-orange-500"]:is(button, a),
+[data-ui="v2"] [class*="from-orange-500"]:is(button, a) {
+  background-image: none;
+  background-color: var(--eg-primary-bg);
+  color: var(--eg-primary-fg);
+}
+
+[data-ui="v2"] :is(.hover\:bg-amber-400, .hover\:bg-amber-500):is(button, a):hover {
+  background-color: var(--eg-primary-bg-hover);
+}
+
+/* --- 維護橫幅 --- */
+[data-ui="v2"] [class*="from-amber-500"][class*="via-orange-500"] {
+  background-image: none;
+  background-color: var(--eg-warn-soft);
+  color: var(--eg-warn);
+  border-bottom: 1px solid var(--eg-warn-border);
+}
+
+[data-ui="v2"] [class*="from-amber-500"][class*="via-orange-500"] :is(p, span, button, svg) {
+  color: var(--eg-warn);
+}
+
+/* --- 購物車浮動鈕：橘色圓鈕在每一頁都出戲 --- */
+[data-ui="v2"] .fixed.bottom-6.right-6.bg-amber-500 {
+  background-color: var(--eg-primary-bg);
+  color: var(--eg-primary-fg);
+  box-shadow: var(--eg-shadow-lg);
+}
+
+[data-ui="v2"] .fixed.bottom-6.right-6.bg-amber-500:hover {
+  background-color: var(--eg-primary-bg-hover);
+}
+
+[data-ui="v2"] .fixed.bottom-6.right-6.bg-amber-500 span {
+  background-color: rgba(255, 255, 255, 0.22);
+  color: #fff;
+}
+
+/* --- 購物車側欄 --- */
+[data-ui="v2"] [class*="from-slate-900"][class*="to-slate-950"] {
+  background-image: none;
+  background-color: var(--eg-bg);
+  border-left: 1px solid var(--eg-border);
+}

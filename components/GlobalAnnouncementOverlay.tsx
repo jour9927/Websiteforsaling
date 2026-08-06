@@ -12,6 +12,32 @@ type Announcement = {
     published_at: string;
 };
 
+/* 已讀公告的本機記錄。
+   資料庫那條路只對登入用戶有效（POST /api/announcements/read 對訪客回 401），
+   訪客只能存在瀏覽器，否則每換一頁都會再被同一則公告攔一次。 */
+const DISMISSED_KEY = "eg-announcements-read";
+
+function readDismissedIds(): string[] {
+    if (typeof window === "undefined") return [];
+    try {
+        const raw = window.localStorage.getItem(DISMISSED_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed.filter((v) => typeof v === "string") : [];
+    } catch {
+        return [];
+    }
+}
+
+function rememberDismissed(id: string) {
+    if (typeof window === "undefined") return;
+    try {
+        const next = [...new Set([...readDismissedIds(), id])].slice(-50);
+        window.localStorage.setItem(DISMISSED_KEY, JSON.stringify(next));
+    } catch {
+        // localStorage 被停用（無痕模式等）就算了，行為退回原本的每頁都跳
+    }
+}
+
 export default function GlobalAnnouncementOverlay() {
     const pathname = usePathname();
     const [announcement, setAnnouncement] = useState<Announcement | null>(null);
@@ -38,22 +64,31 @@ export default function GlobalAnnouncementOverlay() {
 
             if (error || !data || data.length === 0) return;
 
-            // 逐一檢查已讀狀態，找到第一則未讀的就顯示
-            for (const item of data) {
-                try {
-                    const readRes = await fetch(`/api/announcements/read-status?announcement_id=${item.id}`);
-                    if (readRes.ok) {
-                        const { read } = await readRes.json();
-                        if (!read) {
-                            setAnnouncement(item);
-                            setTimeout(() => setVisible(true), 300);
-                            return;
-                        }
-                    }
-                } catch {
-                    // 單則檢查失敗，跳過繼續
+            // 只看最新那一則。
+            //
+            // 原本是走訪「所有」啟用彈窗的公告，找到第一則未讀就顯示——但站上
+            // 有 5 則以上歷史公告都還開著 show_popup，等於新訪客每載入一頁就被
+            // 攔一則，連續好幾頁才逛得下去（實測要關 5 次以上仍有）。
+            // 彈窗的用途是「現在要讓你知道的事」，不是歷史公告佇列；舊公告在
+            // /announcements 看得到，不需要用彈窗補送。
+            const latest = data[0];
+            if (!latest) return;
+
+            // 本機記錄優先：訪客沒有帳號，已讀狀態只能存在瀏覽器
+            if (readDismissedIds().includes(latest.id)) return;
+
+            try {
+                const readRes = await fetch(`/api/announcements/read-status?announcement_id=${latest.id}`);
+                if (readRes.ok) {
+                    const { read } = await readRes.json();
+                    if (read) return;
                 }
+            } catch {
+                // 查不到已讀狀態就當作未讀，照常顯示
             }
+
+            setAnnouncement(latest);
+            setTimeout(() => setVisible(true), 300);
         } catch {
             // 靜默失敗
         }
@@ -62,7 +97,10 @@ export default function GlobalAnnouncementOverlay() {
     const handleDismiss = () => {
         if (!announcement) return;
         setFadeOut(true);
-        // 記錄已讀到資料庫
+        // 先記在瀏覽器，再嘗試寫回資料庫。
+        // 訪客沒有 session，POST /api/announcements/read 會回 401，
+        // 沒有本機記錄的話每換一頁就會再跳一次同一則公告。
+        rememberDismissed(announcement.id);
         fetch("/api/announcements/read", {
             method: "POST",
             headers: { "Content-Type": "application/json" },

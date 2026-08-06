@@ -819,6 +819,39 @@
   cursor: wait;
 }
 
+/* 預設只露圖示，滑過或聚焦才展開文字。
+   這顆鈕是 fixed 的，長期攤在左下角會一直壓到頁面內容。 */
+.eg-ui-toggle > span:last-child {
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transition: max-width 0.22s ease, opacity 0.18s ease, margin-left 0.22s ease;
+  margin-left: -8px;
+}
+
+.eg-ui-toggle:hover > span:last-child,
+.eg-ui-toggle:focus-visible > span:last-child,
+.eg-ui-toggle:disabled > span:last-child {
+  max-width: 9rem;
+  opacity: 1;
+  margin-left: 0;
+}
+
+/* 收合時是正圓，展開時才變膠囊 */
+.eg-ui-toggle {
+  padding-inline: 11px;
+}
+
+@media (hover: none) {
+  /* 觸控裝置沒有 hover，直接顯示文字，不然使用者不知道那顆是什麼 */
+  .eg-ui-toggle > span:last-child {
+    max-width: 9rem;
+    opacity: 1;
+    margin-left: 0;
+  }
+}
+
 /* =========================================================================
    相容 shim — 尚未改版的 v1 元件
    =========================================================================
