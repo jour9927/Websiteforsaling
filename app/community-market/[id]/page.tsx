@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/auth";
-import { MARKET_SELECT, normalizeListing, type MarketBid } from "@/lib/community-market";
+import {
+  MARKET_SELECT,
+  normalizeListing,
+  type MarketBid,
+  type MarketCashPayment,
+  type MarketPaymentDetails,
+} from "@/lib/community-market";
 import { CommunityAuctionDetailClient } from "@/components/community-market/CommunityAuctionDetailClient";
 
 export const dynamic = "force-dynamic";
@@ -68,24 +74,46 @@ export default async function CommunityAuctionPage({ params }: PageProps) {
     created_at: bid.created_at,
   }));
 
-  const [{ data: ownProfile }, { data: identityVerification }] = user
+  const [ownProfileResult, identityResult, paymentDetailsResult, cashPaymentResult] = user
     ? await Promise.all([
-        supabase.from("profiles").select("points").eq("id", user.id).maybeSingle(),
+        supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
         supabase
           .from("trade_identity_verifications")
           .select("status")
           .eq("user_id", user.id)
           .maybeSingle(),
+        supabase
+          .from("community_market_payment_details")
+          .select("payment_instructions")
+          .eq("auction_id", params.id)
+          .maybeSingle(),
+        supabase
+          .from("community_market_cash_payments")
+          .select("status, proof_path, reference_note, rejection_reason, submitted_at, reviewed_at")
+          .eq("auction_id", params.id)
+          .maybeSingle(),
       ])
-    : [{ data: null }, { data: null }];
+    : [{ data: null }, { data: null }, { data: null }, { data: null }];
+
+  const cashPayment = (cashPaymentResult.data || null) as MarketCashPayment | null;
+  let proofUrl: string | null = null;
+  if (cashPayment?.proof_path) {
+    const { data } = await supabase.storage
+      .from("community-market-payments")
+      .createSignedUrl(cashPayment.proof_path, 300);
+    proofUrl = data?.signedUrl || null;
+  }
 
   return (
     <CommunityAuctionDetailClient
       listing={listing}
       bids={bids}
       currentUserId={user?.id || null}
-      balance={typeof ownProfile?.points === "number" ? ownProfile.points : 0}
-      identityStatus={identityVerification?.status || null}
+      identityStatus={identityResult.data?.status || null}
+      isAdmin={ownProfileResult.data?.role === "admin"}
+      paymentDetails={(paymentDetailsResult.data || null) as MarketPaymentDetails | null}
+      cashPayment={cashPayment}
+      proofUrl={proofUrl}
     />
   );
 }

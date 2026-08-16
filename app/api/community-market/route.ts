@@ -30,6 +30,8 @@ export async function POST(request: NextRequest) {
   const buyNowPrice = body.buy_now_price ? integer(body.buy_now_price) : null;
   const durationHours = integer(body.duration_hours);
   const description = typeof body.description === "string" ? body.description.trim() : null;
+  const paymentInstructions =
+    typeof body.payment_instructions === "string" ? body.payment_instructions.trim() : "";
 
   if (!userDistributionId || startingPrice === null || minIncrement === null || durationHours === null) {
     return NextResponse.json({ error: "請完整填寫刊登資料" }, { status: 400 });
@@ -40,6 +42,9 @@ export async function POST(request: NextRequest) {
   if (description && description.length > 500) {
     return NextResponse.json({ error: "商品說明不可超過 500 字" }, { status: 400 });
   }
+  if (paymentInstructions.length < 3 || paymentInstructions.length > 1000) {
+    return NextResponse.json({ error: "請填寫 3 到 1000 字的匯款或付款說明" }, { status: 400 });
+  }
 
   const endTime = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
   const { data, error } = await supabase.rpc("create_community_auction", {
@@ -49,6 +54,7 @@ export async function POST(request: NextRequest) {
     p_buy_now_price: buyNowPrice,
     p_end_time: endTime,
     p_description: description,
+    p_payment_instructions: paymentInstructions,
   });
 
   if (error) {

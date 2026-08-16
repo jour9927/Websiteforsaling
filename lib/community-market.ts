@@ -1,4 +1,4 @@
-export type CommunityAuctionStatus = "active" | "sold" | "ended" | "cancelled";
+export type CommunityAuctionStatus = "active" | "pending_payment" | "sold" | "ended" | "cancelled";
 
 export type MarketPokemon = {
   pokemon_name: string;
@@ -50,6 +50,19 @@ export type MarketBid = {
   bidder_name: string;
   amount: number;
   created_at: string;
+};
+
+export type MarketCashPayment = {
+  status: "submitted" | "confirmed" | "rejected";
+  proof_path: string;
+  reference_note: string | null;
+  rejection_reason: string | null;
+  submitted_at: string;
+  reviewed_at: string | null;
+};
+
+export type MarketPaymentDetails = {
+  payment_instructions: string;
 };
 
 export const MARKET_SELECT = `
@@ -183,8 +196,8 @@ export function normalizeInventory(value: unknown): MarketInventoryItem {
   };
 }
 
-export function points(value: number): string {
-  return new Intl.NumberFormat("zh-TW").format(value);
+export function twd(value: number): string {
+  return `NT$${new Intl.NumberFormat("zh-TW").format(value)}`;
 }
 
 export function taipeiDate(value: string): string {

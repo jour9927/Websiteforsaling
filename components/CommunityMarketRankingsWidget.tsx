@@ -71,7 +71,7 @@ function RankingList({
                   {entry.tradeCount.toLocaleString()} 件
                 </p>
                 <p className={skin ? "eg-meta" : "text-[11px] text-white/40"}>
-                  {entry.totalPoints.toLocaleString()} 點
+                  NT${entry.totalPoints.toLocaleString()}
                 </p>
               </div>
             </li>
@@ -105,7 +105,7 @@ export function CommunityMarketRankingsWidget({
         <RankingList title="買家排行" subtitle="已完成交易・購入件數" entries={rankings.buyers} skin={skin} />
       </div>
       <p className={skin ? "eg-meta mt-3 text-right" : "mt-3 text-right text-[11px] text-white/35"}>
-        同件數時依成交點數排序
+        同件數時依成交金額排序
       </p>
     </section>
   );

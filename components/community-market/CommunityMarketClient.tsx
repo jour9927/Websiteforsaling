@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Route } from "next";
 import {
-  points,
+  twd,
   taipeiDate,
   type CommunityListing,
   type MarketInventoryItem,
@@ -16,7 +16,6 @@ type Props = {
   recent: CommunityListing[];
   inventory: MarketInventoryItem[];
   currentUserId: string | null;
-  balance: number;
   identityStatus: "pending" | "approved" | "rejected" | null;
   unavailable: string | null;
 };
@@ -52,6 +51,8 @@ function ListingCard({ listing }: { listing: CommunityListing }) {
   const statusLabel =
     listing.status === "sold"
       ? "已成交"
+      : listing.status === "pending_payment"
+        ? "待付款"
       : listing.status === "cancelled"
         ? "已取消"
         : listing.status === "ended"
@@ -84,7 +85,7 @@ function ListingCard({ listing }: { listing: CommunityListing }) {
           <div>
             <p className="eg-meta">{listing.bid_count > 0 ? "目前最高" : "起標價"}</p>
             <p className="eg-num mt-1 text-xl font-semibold" style={{ color: "var(--eg-accent)" }}>
-              {points(current)} <span className="text-xs font-normal">點</span>
+              {twd(current)}
             </p>
           </div>
           <div className="text-right">
@@ -101,7 +102,7 @@ function ListingCard({ listing }: { listing: CommunityListing }) {
             </span>
           </div>
           {listing.buy_now_price !== null && listing.status === "active" && !expired && (
-            <p className="eg-meta mt-2">直購 {points(listing.buy_now_price)} 點</p>
+            <p className="eg-meta mt-2">直購 {twd(listing.buy_now_price)}</p>
           )}
         </div>
       </div>
@@ -114,7 +115,6 @@ export function CommunityMarketClient({
   recent,
   inventory,
   currentUserId,
-  balance,
   identityStatus,
   unavailable,
 }: Props) {
@@ -141,6 +141,7 @@ export function CommunityMarketClient({
       buy_now_price: form.get("buy_now_price") ? Number(form.get("buy_now_price")) : null,
       duration_hours: Number(form.get("duration_hours")),
       description: String(form.get("description") || ""),
+      payment_instructions: String(form.get("payment_instructions") || ""),
     };
 
     try {
@@ -169,24 +170,21 @@ export function CommunityMarketClient({
             <p className="eg-eyebrow">Community Market</p>
             <h1 className="eg-h1 mt-2">民間交易區</h1>
             <p className="mt-3 text-sm leading-7" style={{ color: "var(--eg-ink-2)" }}>
-              從自己的收藏刊登配布寶可夢，讓社群用站內點數自由出價；也可以設定直購價，立即完成收藏轉移。
+              從自己的收藏刊登配布寶可夢，以新台幣自由出價或直購；得標後由買家匯款，賣家確認收款才完成收藏交付。
             </p>
             <p className="eg-meta mt-2">最後 60 秒出現新最高價時，系統會自動延長 2 分鐘。</p>
             <p className="eg-meta mt-1">刊登、出價與直購皆須通過身分證正反面人工實名審核。</p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
             {currentUserId && identityStatus === "approved" ? (
-              <>
-                <span className="eg-tag eg-tag--accent eg-num">餘額 {points(balance)} 點</span>
-                <button
-                  type="button"
-                  onClick={() => setShowForm((value) => !value)}
-                  className="eg-btn eg-btn--primary"
-                  disabled={Boolean(unavailable)}
-                >
-                  {showForm ? "收起刊登表單" : "刊登寶可夢"}
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => setShowForm((value) => !value)}
+                className="eg-btn eg-btn--primary"
+                disabled={Boolean(unavailable)}
+              >
+                {showForm ? "收起刊登表單" : "刊登寶可夢"}
+              </button>
             ) : currentUserId ? (
               <Link href="/profile" className="eg-btn eg-btn--primary">
                 {identityStatus === "pending" ? "等待實名審核" : "完成實名認證"}
@@ -290,6 +288,19 @@ export function CommunityMarketClient({
                     className="eg-input !h-auto py-2.5"
                     placeholder="補充來源、收藏故事或想告訴買家的資訊"
                   />
+                </label>
+                <label className="block">
+                  <span className="mb-1.5 block text-sm font-medium">得標後付款說明</span>
+                  <textarea
+                    name="payment_instructions"
+                    minLength={3}
+                    maxLength={1000}
+                    rows={4}
+                    className="eg-input !h-auto py-2.5"
+                    placeholder="例如：銀行代碼、帳號、戶名及匯款期限。只有得標買家、賣家與管理員能看到。"
+                    required
+                  />
+                  <span className="eg-meta mt-1.5 block">這是私密資料，不會出現在公開拍賣列表。</span>
                 </label>
               </div>
 
