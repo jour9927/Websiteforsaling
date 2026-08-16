@@ -12,6 +12,7 @@ export const adminNavItems = [
   { href: "/admin/commissions" as Route, label: "委託管理", icon: "📋" },
   { href: "/admin/bids" as Route, label: "出價查詢", icon: "💰" },
   { href: "/admin/members" as Route, label: "會員管理", icon: "👥" },
+  { href: "/admin/identity-verifications" as Route, label: "實名審核", icon: "🪪" },
   { href: "/admin/registrations" as Route, label: "報名/抽選", icon: "🎫" },
   { href: "/admin/announcements" as Route, label: "公告管理", icon: "📢" },
   { href: "/admin/items" as Route, label: "物品管理", icon: "🎁" },

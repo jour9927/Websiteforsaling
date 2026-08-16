@@ -1,5 +1,23 @@
 # Changelog
 
+## 2026-08-16 — 民間交易區
+
+- 新增玩家收藏拍賣市場，可設定起標價、最低加價、直購價與結標時間。
+- 出價改用站內點數保留款；被超越即退款，成交時原子轉移點數、收藏與附加證章。
+- 新增公開拍賣列表、拍賣詳情、出價紀錄、直購、取消與結算流程。
+- 刊登中的收藏與證章會鎖定，最後 60 秒出價會自動延長 2 分鐘。
+- 新增受保護的每日補漏結算排程；到期拍賣亦可在詳情頁立即結算，配合 Vercel Hobby 排程限制。
+- 交易操作新增實名門檻：會員須上傳身分證正反面並通過管理員人工審核。
+- 證件存放於私有 Storage，只限本人與管理員存取；審核完成 30 天後排程自動刪除。
+- 管理員平台新增實名申請列表、短效證件預覽、核准與駁回補件操作。
+- 主頁新增民間交易雙排行榜，依已完成交易統計賣出與購入件數；同件數時以成交點數排序。
+
+## [2026-08-16] Default UI theme
+
+### Changed
+- Set the global fallback UI mode to `v3` (精品卡牌／精緻卡片) for visitors and users without a saved `eg-ui` preference.
+- Preserved explicit user theme choices stored in the existing cookie.
+
 ## [2026-05-22] Auction scheduling presets
 
 ### Documentation

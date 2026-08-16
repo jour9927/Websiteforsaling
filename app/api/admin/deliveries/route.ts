@@ -10,8 +10,9 @@ type AllowedStatus = (typeof ALLOWED_STATUSES)[number];
 export async function GET(request: Request) {
   const supabase = createServerSupabaseClient();
   const {
-    data: { session }
-  } = await supabase.auth.getSession();
+    data: { user: verifiedUser },
+  } = await supabase.auth.getUser();
+  const session = verifiedUser ? { user: verifiedUser } : null;
 
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -66,8 +67,9 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const supabase = createServerSupabaseClient();
   const {
-    data: { session }
-  } = await supabase.auth.getSession();
+    data: { user: verifiedUser },
+  } = await supabase.auth.getUser();
+  const session = verifiedUser ? { user: verifiedUser } : null;
 
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

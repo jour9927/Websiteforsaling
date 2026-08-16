@@ -1,9 +1,9 @@
 /**
  * UI 版本切換 — 共用常數與型別
  *
- * v1 = 原本的深色毛玻璃設計（預設，永遠是 fallback，元件在 components/ 根目錄）
+ * v1 = 原本的深色毛玻璃設計（元件在 components/ 根目錄）
  * v2 = 明亮清爽：白底、大留白、細邊框
- * v3 = 精品卡牌：墨黑底、燙金強調、襯線標題、卡片有厚度與光澤
+ * v3 = 精品卡牌：墨黑底、燙金強調、襯線標題、卡片有厚度與光澤（全站預設）
  *
  * v2 與 v3 共用 components/skin/ 底下同一套元件——差別全在 app/ui-skins.css
  * 的 token 層。要再加第四套皮，原則上只要多一個 [data-ui="v4"] 的 token 區塊。
@@ -22,7 +22,7 @@ export const UI_MODES = ["v1", "v2", "v3"] as const;
 
 export type UiMode = (typeof UI_MODES)[number];
 
-export const DEFAULT_UI_MODE: UiMode = "v1";
+export const DEFAULT_UI_MODE: UiMode = "v3";
 
 /** 走 components/skin 元件樹的版本（v1 用自己原本那套） */
 const SKIN_MODES: readonly UiMode[] = ["v2", "v3"];

@@ -9,8 +9,9 @@ const GAME_NAME_REWARD_POINTS_PER_REGISTRATION = 1;
 export async function POST(request: Request) {
   const supabase = createServerSupabaseClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user: verifiedUser },
+  } = await supabase.auth.getUser();
+  const session = verifiedUser ? { user: verifiedUser } : null;
 
   if (!session) {
     return NextResponse.json({ error: "未登入" }, { status: 401 });
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
 
   // 登記遊戲
   const updatedGames = [...currentGames, game_id];
-  const { error: updateError } = await supabase
+  const { error: updateError } = await createAdminSupabaseClient()
     .from("profiles")
     .update({ owned_games: updatedGames })
     .eq("id", userId);

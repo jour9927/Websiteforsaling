@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -258,6 +258,7 @@ function withSelectionStatus(
 // GET: 取得各層級狀態和可選配布
 export async function GET(request: Request) {
     const supabase = createServerSupabaseClient();
+    const adminSupabase = createAdminSupabaseClient();
     const {
         data: { user }
     } = await supabase.auth.getUser();
@@ -324,7 +325,7 @@ export async function GET(request: Request) {
     let distributions = null;
     if (tier && REWARD_TIERS[tier]) {
         const tierConfig = REWARD_TIERS[tier];
-        const { data: rewardGoals } = await supabase
+        const { data: rewardGoals } = await adminSupabase
             .from("profiles")
             .select("reward_tier_12_goal_id, reward_tier_40_goal_id, reward_tier_points_goal_id");
         const selectionCounts = countRewardSelections(rewardGoals);
@@ -389,6 +390,7 @@ export async function GET(request: Request) {
 // POST: 設定目標獎勵寶可夢（一旦設定不可變更）
 export async function POST(request: Request) {
     const supabase = createServerSupabaseClient();
+    const adminSupabase = createAdminSupabaseClient();
     const {
         data: { user }
     } = await supabase.auth.getUser();
@@ -490,7 +492,7 @@ export async function POST(request: Request) {
             );
         }
 
-        const { data: rewardGoals } = await supabase
+        const { data: rewardGoals } = await adminSupabase
             .from("profiles")
             .select("reward_tier_12_goal_id, reward_tier_40_goal_id, reward_tier_points_goal_id");
         const selectionCounts = countRewardSelections(rewardGoals);
@@ -505,7 +507,7 @@ export async function POST(request: Request) {
         const updateData: Record<string, unknown> = {};
         updateData[goalField] = distributionId;
 
-        const { error: updateError } = await supabase
+        const { error: updateError } = await adminSupabase
             .from("profiles")
             .update(updateData)
             .eq("id", user.id);

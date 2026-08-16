@@ -99,8 +99,9 @@ async function resolveUserContext(): Promise<UserContext> {
   try {
     const supabase = createServerSupabaseClient();
     const {
-      data: { session }
-    } = await supabase.auth.getSession();
+      data: { user: verifiedUser },
+    } = await supabase.auth.getUser();
+    const session = verifiedUser ? { user: verifiedUser } : null;
 
     if (!session) {
       return { displayName: fallbackName, isAuthenticated: false, isAdmin: false };

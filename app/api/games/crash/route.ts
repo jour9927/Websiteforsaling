@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 
 // 這是一支安全的 API，用來扣除/增加玩家的配布點數
 export async function POST(req: NextRequest) {
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
 
             const newPoints = currentPoints - betAmount;
 
-            const { error: updateError } = await supabase
+            const { error: updateError } = await createAdminSupabaseClient()
                 .from('profiles')
                 .update({ points: newPoints })
                 .eq('id', user.id);
@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
 
             const newPoints = currentPoints + winAmount;
 
-            const { error: updateError } = await supabase
+            const { error: updateError } = await createAdminSupabaseClient()
                 .from('profiles')
                 .update({ points: newPoints })
                 .eq('id', user.id);

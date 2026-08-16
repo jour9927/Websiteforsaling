@@ -73,8 +73,9 @@ async function syncAnniversaryContractByPaymentId(paymentId: string, paidStatus:
 export async function PATCH(request: Request, context: RouteContext) {
   const supabase = createServerSupabaseClient();
   const {
-    data: { session }
-  } = await supabase.auth.getSession();
+    data: { user: verifiedUser },
+  } = await supabase.auth.getUser();
+  const session = verifiedUser ? { user: verifiedUser } : null;
 
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -177,8 +178,9 @@ export async function PATCH(request: Request, context: RouteContext) {
 export async function DELETE(request: Request, context: RouteContext) {
   const supabase = createServerSupabaseClient();
   const {
-    data: { session }
-  } = await supabase.auth.getSession();
+    data: { user: verifiedUser },
+  } = await supabase.auth.getUser();
+  const session = verifiedUser ? { user: verifiedUser } : null;
 
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

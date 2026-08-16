@@ -3,6 +3,10 @@ import type { ReactNode } from "react";
 import SkinAuctionCard, { type SkinAuction } from "@/components/skin/SkinAuctionCard";
 import { SkinEventCard } from "@/components/skin/SkinEventCard";
 import { SectionHead, StatTile, LegacyPanel } from "@/components/skin/primitives";
+import {
+  CommunityMarketRankingsWidget,
+  type CommunityMarketRankings,
+} from "@/components/CommunityMarketRankingsWidget";
 
 type HomeStats = {
   openCommissions: number | null;
@@ -28,6 +32,7 @@ type Props = {
   hotAuctions: SkinAuction[];
   recentEvents: EventRow[];
   stats: HomeStats;
+  marketRankings: CommunityMarketRankings;
   /** 登入後才有：還沒改版的個人空間，包在 legacy 島裡 */
   legacyContent?: ReactNode;
 };
@@ -95,6 +100,7 @@ export function SkinHome({
   hotAuctions,
   recentEvents,
   stats,
+  marketRankings,
   legacyContent,
 }: Props) {
   return (
@@ -137,6 +143,10 @@ export function SkinHome({
             </div>
           </>
         )}
+
+        <div className="w-full pt-4">
+          <CommunityMarketRankingsWidget rankings={marketRankings} skin />
+        </div>
       </header>
 
       <StatRow stats={stats} />

@@ -88,19 +88,17 @@ export default function RegisterButton({ eventId, isPreRegistration = false }: {
           return;
         }
 
-        // 查找邀請人
-        const { data: inviter } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('invitation_code', inviteCode.trim().toUpperCase())
-          .single();
+        // 精確查找邀請人；邀請碼本身不再透過 profiles 公開查詢。
+        const { data: inviterId } = await supabase.rpc('resolve_invitation_code', {
+          submitted_code: inviteCode.trim(),
+        });
 
-        if (!inviter) {
+        if (!inviterId) {
           setInviteError("找不到這個邀請碼，請確認後再試");
           return;
         }
 
-        invitedByUserId = inviter.id;
+        invitedByUserId = inviterId as string;
       }
 
       // 建立報名記錄

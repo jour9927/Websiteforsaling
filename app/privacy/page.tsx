@@ -1,15 +1,19 @@
 const sections = [
   {
     title: "資料蒐集",
-    body: "我們僅蒐集活動報名與抽選所需的基本資料，包含 Email、暱稱與參與紀錄。"
+    body: "我們會蒐集帳號 Email、公開名稱、活動與交易紀錄。申請民間交易資格時，另會蒐集真實姓名及身分證正反面影像；未申請交易資格者不需要提供證件。"
   },
   {
     title: "資料使用",
-    body: "資料僅用於活動管理、推播通知與抽選驗證，不會提供給第三方。"
+    body: "一般資料用於帳號、活動、通知與交易服務；身分證資料只用於管理員人工確認交易會員身分，不會顯示在公開頁面或提供給其他會員。"
   },
   {
-    title: "資料保存",
-    body: "若帳號超過 12 個月未使用，系統將自動刪除您的個人資料。"
+    title: "證件安全與保存",
+    body: "證件存放於非公開的私人空間，只限資料本人、管理員及必要的系統服務存取。審核連結採短效授權；審核完成 30 天後會自動刪除正反面影像，只保留認證狀態與必要的審核紀錄。"
+  },
+  {
+    title: "查詢與補件",
+    body: "你可以在「我的帳號」查看認證狀態。資料遭駁回時可重新上傳補件；若要詢問、更正或撤回尚未完成的申請，請透過站內訊息聯絡管理員。"
   }
 ];
 
@@ -19,6 +23,7 @@ export default function PrivacyPage() {
       <header className="glass-card p-8">
         <h1 className="text-3xl font-semibold">隱私權政策</h1>
         <p className="mt-2 text-sm text-slate-200/70">保障個資安全是我們的首要任務。</p>
+        <p className="mt-1 text-xs text-slate-200/45">最後更新：2026 年 8 月 16 日</p>
       </header>
       <section className="space-y-6">
         {sections.map((section) => (

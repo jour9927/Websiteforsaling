@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 
 type RouteContext = {
   params: { id: string };
@@ -8,8 +8,9 @@ type RouteContext = {
 export async function POST(request: Request, context: RouteContext) {
   const supabase = createServerSupabaseClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user: verifiedUser },
+  } = await supabase.auth.getUser();
+  const session = verifiedUser ? { user: verifiedUser } : null;
 
   if (!session) {
     return NextResponse.json({ error: "未登入" }, { status: 401 });
@@ -102,7 +103,7 @@ export async function POST(request: Request, context: RouteContext) {
     .single();
 
   const currentPoints = profile?.fortune_points || 0;
-  await supabase
+  await createAdminSupabaseClient()
     .from("profiles")
     .update({ fortune_points: currentPoints + awardPoints })
     .eq("id", userId);

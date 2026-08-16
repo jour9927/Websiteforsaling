@@ -4,7 +4,7 @@ import { UI_MODE_COOKIE, UI_MODE_MAX_AGE, isUiMode } from "@/lib/ui-mode";
 export const dynamic = "force-dynamic";
 
 /**
- * GET /ui/v2 或 /ui/v1 — 設定 UI 版本後導回站內頁面。
+ * GET /ui/v1、/ui/v2 或 /ui/v3 — 設定 UI 版本後導回站內頁面。
  *
  * 用途是分享可直接看新版的連結，例如 https://…/ui/v2?next=/store
  * next 只接受站內相對路徑，避免變成開放轉址。
@@ -14,7 +14,7 @@ export function GET(req: NextRequest, { params }: { params: { mode: string } }) 
 
   if (!isUiMode(mode)) {
     return NextResponse.json(
-      { error: "mode 只接受 v1 或 v2" },
+      { error: "mode 只接受 v1、v2 或 v3" },
       { status: 400 },
     );
   }

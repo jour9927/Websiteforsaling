@@ -49,13 +49,13 @@ export default function BidOutbidAlert({ auctionId, isActive }: BidOutbidAlertPr
 
                         // 取得新出價者名稱
                         const { data: profile } = await supabase
-                            .from('profiles')
-                            .select('full_name, email')
+                            .from('public_profiles')
+                            .select('full_name')
                             .eq('id', updated.current_bidder_id)
                             .single();
 
                         setNewBidderName(
-                            profile?.full_name || profile?.email?.split('@')[0] || '其他人'
+                            profile?.full_name || '其他人'
                         );
                         setOutbid(true);
 

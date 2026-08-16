@@ -49,7 +49,7 @@ export async function GET(request: Request) {
 
             if (followerIds.length > 0) {
                 const { data: profiles } = await supabase
-                    .from("profiles")
+                    .from("public_profiles")
                     .select("id, full_name, username")
                     .in("id", followerIds);
 
@@ -133,7 +133,7 @@ export async function GET(request: Request) {
 
             if (realUserIds.length > 0) {
                 const { data: realProfiles } = await supabase
-                    .from("profiles")
+                    .from("public_profiles")
                     .select("id, full_name, username")
                     .in("id", realUserIds);
 

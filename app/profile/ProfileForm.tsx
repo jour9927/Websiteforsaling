@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
+import { IdentityVerificationCard, type IdentityVerificationSummary } from "./IdentityVerificationCard";
 
 type User = {
   id: string;
@@ -33,10 +34,10 @@ type Profile = {
 type ProfileFormProps = {
   user: User;
   profile: Profile | null;
-  isRealNameSubmitted: boolean;
+  identityVerification: IdentityVerificationSummary;
 };
 
-export default function ProfileForm({ user, profile, isRealNameSubmitted }: ProfileFormProps) {
+export default function ProfileForm({ user, profile, identityVerification }: ProfileFormProps) {
   const router = useRouter();
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || "",
@@ -48,10 +49,6 @@ export default function ProfileForm({ user, profile, isRealNameSubmitted }: Prof
     notification_email: profile?.notification_email || "",
     discord_webhook_url: profile?.discord_webhook_url || "",
   });
-  const [realName, setRealName] = useState(profile?.real_name || "");
-  const [realNameKana, setRealNameKana] = useState(profile?.real_name_kana || "");
-  const [realNameSaving, setRealNameSaving] = useState(false);
-  const [realNameMsg, setRealNameMsg] = useState("");
   const [gameRegMsg, setGameRegMsg] = useState<Record<string, string>>({});
   const [gameRegLoading, setGameRegLoading] = useState<Record<string, boolean>>({});
   const registeredGames: string[] = profile?.owned_games || [];
@@ -65,38 +62,6 @@ export default function ProfileForm({ user, profile, isRealNameSubmitted }: Prof
     { id: "bdsp", zh: "珍鑽", en: "Brilliant Diamond/Shining Pearl", ja: "ブリリアントダイヤモンド・シャイニングパール" },
     { id: "lets_go", zh: "皮伊", en: "Let's Go Pikachu/Eevee", ja: "Let's Go ピカチュウ・イーブイ" },
   ];
-
-  const handleRealNameSave = async () => {
-    if (!realName.trim()) {
-      setRealNameMsg("請填寫你的名字");
-      return;
-    }
-    setRealNameSaving(true);
-    setRealNameMsg("");
-
-    try {
-      const res = await fetch("/api/profile/real-name", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          real_name: realName.trim(),
-          real_name_kana: realNameKana.trim() || null,
-        }),
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        setRealNameMsg(data.message || "提交成功！");
-        router.refresh();
-      } else {
-        setRealNameMsg(data.error || "提交失敗");
-      }
-    } catch {
-      setRealNameMsg("系統異常，請稍後再試");
-    } finally {
-      setRealNameSaving(false);
-    }
-  };
 
   const handleGameRegister = async (gameId: string) => {
     setGameRegLoading((prev) => ({ ...prev, [gameId]: true }));
@@ -249,76 +214,12 @@ export default function ProfileForm({ user, profile, isRealNameSubmitted }: Prof
 
   return (
     <section className="glass-card p-8">
-      {/* 實名制區塊 */}
-      <div className="mb-8 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-6">
-        <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-lg font-semibold text-amber-300">🪪 實名制登記</h2>
-          {isRealNameSubmitted && (
-            <span className="rounded-full bg-green-500/20 px-2 py-0.5 text-xs text-green-300">✓ 已提交</span>
-          )}
-        </div>
-        <p className="text-xs text-amber-200/60 mb-4">
-          此為成為群內成員的必經之路。請填寫你的真實名字。
-          <br />
-          <span className="text-amber-400/80">你的名字會顯示在社群成員列表中。</span>
-        </p>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {/* 名字 */}
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-slate-200/80">
-              名字 <span className="text-rose-400">*</span>
-              <span className="text-xs text-white/40 ml-2">中文・English・日本語</span>
-            </span>
-            <input
-              value={realName}
-              onChange={(e) => { setRealName(e.target.value); setRealNameMsg(""); }}
-              placeholder="你的名字 / Your Name / なまえ"
-              disabled={isRealNameSubmitted}
-              maxLength={50}
-              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-amber-500/50 focus:outline-none disabled:opacity-50"
-            />
-          </label>
-
-          {/* 日文讀音 */}
-          <label className="flex flex-col gap-1.5 text-sm">
-            <span className="text-slate-200/80">
-              日文讀音（カナ）<span className="text-xs text-white/40 ml-1">選填</span>
-            </span>
-            <input
-              value={realNameKana}
-              onChange={(e) => { setRealNameKana(e.target.value); setRealNameMsg(""); }}
-              placeholder="フリガナ"
-              disabled={isRealNameSubmitted}
-              maxLength={50}
-              className="rounded-xl border border-white/20 bg-white/10 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-amber-500/50 focus:outline-none disabled:opacity-50"
-            />
-          </label>
-        </div>
-
-        {realNameMsg && (
-          <div
-            className={`mt-4 rounded-xl px-4 py-3 text-sm ${
-              realNameMsg.includes("成功") || realNameMsg.includes("獎勵")
-                ? "bg-green-500/20 text-green-200"
-                : "bg-red-500/20 text-red-200"
-            }`}
-          >
-            {realNameMsg}
-          </div>
-        )}
-
-        {!isRealNameSubmitted && (
-          <button
-            type="button"
-            onClick={handleRealNameSave}
-            disabled={realNameSaving}
-            className="mt-4 w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50 md:w-auto"
-          >
-            {realNameSaving ? "提交中..." : "提交實名資料"}
-          </button>
-        )}
-      </div>
+      <IdentityVerificationCard
+        userId={user.id}
+        initialLegalName={profile?.real_name || ""}
+        initialLegalNameKana={profile?.real_name_kana || ""}
+        verification={identityVerification}
+      />
 
       {/* 遊戲版本登記 */}
       <div className="mb-8 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-6">

@@ -19,6 +19,7 @@ const primaryLinks = [
   { label: "主頁", href: "/" as Route },
   { label: "活動", href: "/events" as Route },
   { label: "競標", href: "/auctions" as Route },
+  { label: "民間交易", href: "/community-market" as Route },
   { label: "委託", href: "/commissions" as Route },
   { label: "商店", href: "/store" as Route },
   { label: "配布圖鑑", href: "/pokedex" as Route },

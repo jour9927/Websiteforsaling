@@ -24,6 +24,12 @@ export default async function ProfilePage() {
     .eq("id", user.id)
     .single();
 
+  const { data: identityVerification } = await supabase
+    .from("trade_identity_verifications")
+    .select("status, rejection_reason, submitted_at, reviewed_at")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
   // 取得使用者物品統計
   const { data: userItems } = await supabase
     .from("user_items")
@@ -224,7 +230,11 @@ export default async function ProfilePage() {
       </div>
 
       {/* 個人資料表單 */}
-      <ProfileForm user={user} profile={profile} isRealNameSubmitted={!!profile?.real_name_submitted_at} />
+      <ProfileForm
+        user={user}
+        profile={profile}
+        identityVerification={identityVerification}
+      />
     </div>
   );
 }

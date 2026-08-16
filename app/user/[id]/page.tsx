@@ -395,14 +395,14 @@ export default async function UserProfilePage({ params }: Props) {
     let targetProfile;
     if (isUUID(idOrUsername)) {
         const { data } = await supabase
-            .from("profiles")
+            .from("public_profiles")
             .select("*")
             .eq("id", idOrUsername)
             .single();
         targetProfile = data;
     } else {
         const { data } = await supabase
-            .from("profiles")
+            .from("public_profiles")
             .select("*")
             .eq("username", idOrUsername.toLowerCase())
             .single();
@@ -417,28 +417,7 @@ export default async function UserProfilePage({ params }: Props) {
 
     // 記錄訪問（如果是登入用戶且不是訪問自己）
     if (currentUser && currentUser.id !== userId) {
-        // 更新訪問統計
-        const today = new Date().toISOString().split('T')[0];
-
-        // 檢查是否需要重置今日訪問數
-        if (targetProfile.last_view_reset !== today) {
-            await supabase
-                .from("profiles")
-                .update({
-                    today_views: 1,
-                    total_views: (targetProfile.total_views || 0) + 1,
-                    last_view_reset: today
-                })
-                .eq("id", userId);
-        } else {
-            await supabase
-                .from("profiles")
-                .update({
-                    today_views: (targetProfile.today_views || 0) + 1,
-                    total_views: (targetProfile.total_views || 0) + 1
-                })
-                .eq("id", userId);
-        }
+        await supabase.rpc("record_profile_view", { target_profile_id: userId });
 
         // 記錄訪客（用於顯示最近訪客頭像）
         await supabase
@@ -478,7 +457,7 @@ export default async function UserProfilePage({ params }: Props) {
         // 查真實 commenter
         const commenterIds = [...new Set(rawComments.map(c => c.commenter_id).filter(Boolean))];
         const { data: profilesData } = commenterIds.length > 0
-            ? await supabase.from("profiles").select("id, full_name").in("id", commenterIds)
+            ? await supabase.from("public_profiles").select("id, full_name").in("id", commenterIds)
             : { data: [] };
 
         // 查虛擬 commenter
@@ -570,7 +549,7 @@ export default async function UserProfilePage({ params }: Props) {
     // 載入今日真實訪客（最多 10 位）
     const { data: realVisitorRows } = await supabase
         .from("profile_visits")
-        .select("visitor:visitor_id (id, full_name, username)")
+        .select("visitor_id")
         .eq("profile_user_id", userId)
         .not("visitor_id", "is", null)
         .gte("visited_at", todayISOStr)
@@ -587,9 +566,16 @@ export default async function UserProfilePage({ params }: Props) {
         .order("visited_at", { ascending: false })
         .limit(10);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const realVisitors = (realVisitorRows?.map((v: any) => v.visitor).filter(Boolean) || []).map((v: any) => ({
-        ...v,
+    const realVisitorIds = [...new Set((realVisitorRows || []).map((visit) => visit.visitor_id).filter(Boolean))];
+    const { data: realVisitorProfiles } = realVisitorIds.length > 0
+        ? await supabase.from("public_profiles").select("id, full_name, username").in("id", realVisitorIds)
+        : { data: [] };
+    const realVisitorMap = new Map((realVisitorProfiles || []).map((visitor) => [visitor.id, visitor]));
+    const realVisitors = realVisitorIds.flatMap((visitorId) => {
+        const visitor = realVisitorMap.get(visitorId);
+        return visitor ? [{ ...visitor, isVirtual: false as const }] : [];
+    }).map((visitor) => ({
+        ...visitor,
         isVirtual: false,
     }));
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -636,13 +622,13 @@ export default async function UserProfilePage({ params }: Props) {
 
     const recentVisitors = [...realVisitors, ...cronVisitors, ...fallbackVisitors];
 
-    // 建立虛擬用戶物件給 PersonalSpaceContent
+    const isOwnProfile = currentUser?.id === userId;
+
+    // Email 僅在本人查看自己的公開頁時由已驗證的 Auth user 提供。
     const targetUser = {
         id: userId,
-        email: targetProfile.email || undefined,
+        email: isOwnProfile ? currentUser?.email || undefined : undefined,
     };
-
-    const isOwnProfile = currentUser?.id === userId;
 
     return (
         <PersonalSpaceContent

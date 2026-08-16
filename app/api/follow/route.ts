@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 
 // GET: 獲取關注狀態和統計
 export async function GET(request: Request) {
@@ -22,7 +22,7 @@ export async function GET(request: Request) {
     if (userId) {
         // 真實用戶
         const { data: profile } = await supabase
-            .from("profiles")
+            .from("public_profiles")
             .select("followers_count, following_count, popularity_score")
             .eq("id", userId)
             .single();
@@ -89,6 +89,7 @@ export async function POST(request: Request) {
     if (!user) {
         return NextResponse.json({ error: "請先登入" }, { status: 401 });
     }
+    const adminSupabase = createAdminSupabaseClient();
 
     const body = await request.json();
     const { userId, virtualId, action } = body;
@@ -115,25 +116,25 @@ export async function POST(request: Request) {
                 if (!error) {
                     // 更新計數（簡化版：不使用 RPC）
                     // 減少 follower 的 following_count
-                    const { data: myProfile } = await supabase
+                    const { data: myProfile } = await adminSupabase
                         .from("profiles")
                         .select("following_count")
                         .eq("id", user.id)
                         .single();
                     if (myProfile) {
-                        await supabase
+                        await adminSupabase
                             .from("profiles")
                             .update({ following_count: Math.max(0, (myProfile.following_count || 0) - 1) })
                             .eq("id", user.id);
                     }
                     // 減少被關注者的 followers_count
-                    const { data: theirProfile } = await supabase
+                    const { data: theirProfile } = await adminSupabase
                         .from("profiles")
                         .select("followers_count")
                         .eq("id", userId)
                         .single();
                     if (theirProfile) {
-                        await supabase
+                        await adminSupabase
                             .from("profiles")
                             .update({ followers_count: Math.max(0, (theirProfile.followers_count || 0) - 1) })
                             .eq("id", userId);
@@ -148,25 +149,25 @@ export async function POST(request: Request) {
 
                 if (!error) {
                     // 減少自己的 following_count
-                    const { data: myProfile } = await supabase
+                    const { data: myProfile } = await adminSupabase
                         .from("profiles")
                         .select("following_count")
                         .eq("id", user.id)
                         .single();
                     if (myProfile) {
-                        await supabase
+                        await adminSupabase
                             .from("profiles")
                             .update({ following_count: Math.max(0, (myProfile.following_count || 0) - 1) })
                             .eq("id", user.id);
                     }
                     // 減少虛擬用戶的 followers_count
-                    const { data: vProfile } = await supabase
+                    const { data: vProfile } = await adminSupabase
                         .from("virtual_profiles")
                         .select("followers_count")
                         .eq("id", virtualId)
                         .single();
                     if (vProfile) {
-                        await supabase
+                        await adminSupabase
                             .from("virtual_profiles")
                             .update({ followers_count: Math.max(0, (vProfile.followers_count || 0) - 1) })
                             .eq("id", virtualId);
@@ -193,13 +194,13 @@ export async function POST(request: Request) {
             }
 
             // 更新計數 - 增加 following_count
-            const { data: myProfile } = await supabase
+            const { data: myProfile } = await adminSupabase
                 .from("profiles")
                 .select("following_count")
                 .eq("id", user.id)
                 .single();
             if (myProfile) {
-                await supabase
+                await adminSupabase
                     .from("profiles")
                     .update({ following_count: (myProfile.following_count || 0) + 1 })
                     .eq("id", user.id);
@@ -207,26 +208,26 @@ export async function POST(request: Request) {
 
             if (userId) {
                 // 增加真實用戶的 followers_count
-                const { data: theirProfile } = await supabase
+                const { data: theirProfile } = await adminSupabase
                     .from("profiles")
                     .select("followers_count")
                     .eq("id", userId)
                     .single();
                 if (theirProfile) {
-                    await supabase
+                    await adminSupabase
                         .from("profiles")
                         .update({ followers_count: (theirProfile.followers_count || 0) + 1 })
                         .eq("id", userId);
                 }
             } else {
                 // 增加虛擬用戶的 followers_count
-                const { data: vProfile } = await supabase
+                const { data: vProfile } = await adminSupabase
                     .from("virtual_profiles")
                     .select("followers_count")
                     .eq("id", virtualId)
                     .single();
                 if (vProfile) {
-                    await supabase
+                    await adminSupabase
                         .from("virtual_profiles")
                         .update({ followers_count: (vProfile.followers_count || 0) + 1 })
                         .eq("id", virtualId);
@@ -240,4 +241,3 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "操作失敗" }, { status: 500 });
     }
 }
-

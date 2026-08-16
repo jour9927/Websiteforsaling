@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 import {
     canCheckInForTaipeiDay,
     createTaipeiCheckInResetDate,
@@ -242,7 +242,7 @@ export async function POST() {
     }
 
     // 更新 profile
-    const { error } = await supabase
+    const { error } = await createAdminSupabaseClient()
         .from("profiles")
         .update({
             last_check_in: now.toISOString(),

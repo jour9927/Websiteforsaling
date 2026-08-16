@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 
 // POST: 管理員更新人氣值或被關注數
 export async function POST(request: Request) {
@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     if (profile?.role !== "admin") {
         return NextResponse.json({ error: "無權限" }, { status: 403 });
     }
+    const adminSupabase = createAdminSupabaseClient();
 
     const body = await request.json();
     const { userId, virtualId, score, followers } = body;
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
     try {
         if (userId) {
             // 更新真實用戶
-            const { error } = await supabase
+            const { error } = await adminSupabase
                 .from("profiles")
                 .update(updates)
                 .eq("id", userId);
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
             if (error) throw error;
         } else if (virtualId) {
             // 更新虛擬用戶
-            const { error } = await supabase
+            const { error } = await adminSupabase
                 .from("virtual_profiles")
                 .update(updates)
                 .eq("id", virtualId);
@@ -68,4 +69,3 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "更新失敗" }, { status: 500 });
     }
 }
-

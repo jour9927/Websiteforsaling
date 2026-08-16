@@ -73,14 +73,9 @@ type Profile = {
     bio: string | null;
     featured_items: string[] | null;
     created_at: string;
-    role: string;
     username: string | null;
     total_views: number | null;
     today_views: number | null;
-    lottery_tickets?: number;
-    blindbox_coupons?: number;
-    ai_user_summary?: string | null;
-    ai_system_prompt?: string | null;
     followers_count?: number | null;
     popularity_score?: number | null;
 };
@@ -357,7 +352,7 @@ export function PersonalSpaceContent({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [userHash, topDistributions.length]);
 
-    // LLM 收藏感知留言（有 ai_user_summary → 70%，無 → 30%）
+    // LLM 收藏感知留言只使用公開 bio，不把管理員 AI 設定送到瀏覽器。
     const [llmComment, setLlmComment] = useState<{
         id: string; content: string; created_at: string;
         commenter: { id: string; full_name: string }; isVirtual: true;
@@ -365,12 +360,12 @@ export function PersonalSpaceContent({
 
     useEffect(() => {
         if (topDistributions.length === 0) return;
-        const llmThreshold = profile?.ai_user_summary ? 7 : 3; // 有 summary → 70%, 無 → 30%
+        const llmThreshold = profile?.bio ? 7 : 3;
         const shouldUseLlm = (userHash % 10) < llmThreshold;
         if (!shouldUseLlm) return;
 
         const collectionCtx = buildCollectionContext(topDistributions, 5);
-        const userSummary = profile?.ai_user_summary || profile?.bio || '';
+        const userSummary = profile?.bio || '';
         const llmNameIndex = (userHash + 99) % VIRTUAL_NAMES.length;
 
         fetch('/api/generate-homepage-comment', {
@@ -715,18 +710,6 @@ export function PersonalSpaceContent({
                                     ${totalValue.toLocaleString()}
                                 </span>
                             </div>
-                            {((profile?.lottery_tickets || 0) > 0) && (
-                                <div className="rounded-lg bg-rose-500/10 border border-rose-500/20 px-3 py-2">
-                                    <span className="text-rose-200/80 text-xs">🎟️</span>
-                                    <span className="ml-2 font-semibold text-rose-400">{profile?.lottery_tickets} <span className="text-[10px] font-normal opacity-70">張</span></span>
-                                </div>
-                            )}
-                            {((profile?.blindbox_coupons || 0) > 0) && (
-                                <div className="rounded-lg bg-cyan-500/10 border border-cyan-500/20 px-3 py-2">
-                                    <span className="text-cyan-200/80 text-xs">🎫</span>
-                                    <span className="ml-2 font-semibold text-cyan-400">{profile?.blindbox_coupons} <span className="text-[10px] font-normal opacity-70">張</span></span>
-                                </div>
-                            )}
                         </div>
 
                         {/* 公開 ID 和分享 */}

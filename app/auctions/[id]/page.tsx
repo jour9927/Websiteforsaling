@@ -94,7 +94,7 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
     // 取得本場次出價紀錄（依時間）。同一個競標重開時，用 start_time 切開舊場資料。
     const { data: bids } = await supabase
         .from('bids')
-        .select('id, amount, created_at, profiles(full_name, email)')
+        .select('id, amount, created_at, user_id')
         .eq('auction_id', params.id)
         .gte('created_at', currentAuction.start_time)
         .order('created_at', { ascending: false })
@@ -103,23 +103,27 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
     // 最高價仍需用金額排序抓一次，避免「只抓最新 N 筆」時漏掉最高出價。
     const { data: highestBid } = await supabase
         .from('bids')
-        .select('amount, profiles(full_name, email)')
+        .select('amount, user_id')
         .eq('auction_id', params.id)
         .gte('created_at', currentAuction.start_time)
         .order('amount', { ascending: false })
         .limit(1)
         .maybeSingle();
 
+    const bidderIds = [...new Set((bids ?? []).map((bid) => bid.user_id))];
+    const { data: bidderProfiles } = bidderIds.length > 0
+        ? await supabase.from('public_profiles').select('id, full_name').in('id', bidderIds)
+        : { data: [] };
+    const bidderNames = new Map((bidderProfiles ?? []).map((profile) => [profile.id, profile.full_name]));
+
     const sessionBids = (bids ?? []).map((bid) => ({
         id: bid.id,
         amount: bid.amount,
         created_at: bid.created_at,
-        profiles: bid.profiles?.[0]
-            ? {
-                full_name: bid.profiles[0].full_name,
-                email: bid.profiles[0].email
-            }
-            : undefined
+        profiles: {
+            full_name: bidderNames.get(bid.user_id) || null,
+            email: null,
+        },
     }));
     const sessionCurrentPrice = highestBid?.amount ?? 0;
 
@@ -137,7 +141,7 @@ export default async function AuctionPage({ params }: AuctionPageProps) {
         endTime: currentAuction.end_time,
         isActive: !isEnded && currentAuction.status === 'active',
         realCurrentPrice: sessionCurrentPrice,
-        realHighestBidder: highestBid?.profiles?.[0]?.full_name || highestBid?.profiles?.[0]?.email?.split('@')[0] || null,
+        realHighestBidder: highestBid ? bidderNames.get(highestBid.user_id) || null : null,
         bidCount: sessionBids.length,
         automationMode: currentAuction.automation_mode as AuctionAutomationMode,
         automationTargetMin: currentAuction.automation_target_min ?? 39000,

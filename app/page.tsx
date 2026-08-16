@@ -9,6 +9,11 @@ import { MaintenanceToggle } from "@/components/MaintenanceToggle";
 import { SkinHome } from "@/components/skin/SkinHome";
 import { getUiMode } from "@/lib/ui-mode.server";
 import { isSkinMode } from "@/lib/ui-mode";
+import {
+  CommunityMarketRankingsWidget,
+  type CommunityMarketRankingEntry,
+  type CommunityMarketRankings,
+} from "@/components/CommunityMarketRankingsWidget";
 // [伊布集點日] 活動已結束
 // import { EeveeDayWidget } from "@/components/EeveeDayWidget";
 // [春節活動] 明年再啟用
@@ -131,12 +136,64 @@ async function loadHomeExtras() {
   };
 }
 
+/** 只統計民間交易區已完成的成交，會員名稱一律從公開 view 取得。 */
+async function loadCommunityMarketRankings(): Promise<CommunityMarketRankings> {
+  const supabase = createServerSupabaseClient();
+  const empty: CommunityMarketRankings = { sellers: [], buyers: [] };
+
+  try {
+    const loadRanking = async (rankingType: "seller" | "buyer") => {
+      const { data, error } = await supabase
+        .from("community_market_rankings")
+        .select("user_id, trade_count, total_points")
+        .eq("ranking_type", rankingType)
+        .order("trade_count", { ascending: false })
+        .order("total_points", { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+      return data ?? [];
+    };
+
+    const [sellerRows, buyerRows] = await Promise.all([
+      loadRanking("seller"),
+      loadRanking("buyer"),
+    ]);
+    const ids = [...new Set([...sellerRows, ...buyerRows].map((row) => row.user_id).filter(Boolean))];
+    const { data: profiles, error: profilesError } = ids.length
+      ? await supabase.from("public_profiles").select("id, full_name, username").in("id", ids)
+      : { data: [], error: null };
+
+    if (profilesError) throw profilesError;
+
+    const names = new Map(
+      (profiles ?? []).map((profile) => [
+        profile.id,
+        profile.full_name || profile.username || "匿名訓練家",
+      ]),
+    );
+    const mapRows = (rows: typeof sellerRows): CommunityMarketRankingEntry[] =>
+      rows.map((row) => ({
+        userId: row.user_id,
+        displayName: names.get(row.user_id) || "匿名訓練家",
+        tradeCount: Number(row.trade_count) || 0,
+        totalPoints: Number(row.total_points) || 0,
+      }));
+
+    return { sellers: mapRows(sellerRows), buyers: mapRows(buyerRows) };
+  } catch {
+    // 新 migration 尚未套用或讀取受限時，首頁仍顯示安全的空榜狀態。
+    return empty;
+  }
+}
+
 export default async function HomePage() {
   const supabase = createServerSupabaseClient();
   const isSkin = isSkinMode(getUiMode());
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const marketRankingsPromise = loadCommunityMarketRankings();
 
   // [30週年活動] 討論中，暫時隱藏
   // const { count: totalBoxCount } = await supabase
@@ -146,7 +203,11 @@ export default async function HomePage() {
   // 未登入用戶顯示登入引導頁 + 熱門競標
   if (!user) {
     if (isSkin) {
-      const [hotAuctions, extras] = await Promise.all([loadHotAuctions(), loadHomeExtras()]);
+      const [hotAuctions, extras, marketRankings] = await Promise.all([
+        loadHotAuctions(),
+        loadHomeExtras(),
+        marketRankingsPromise,
+      ]);
       return (
         <SkinHome
           isAuthenticated={false}
@@ -154,10 +215,12 @@ export default async function HomePage() {
           hotAuctions={hotAuctions}
           recentEvents={extras.recentEvents}
           stats={extras.stats}
+          marketRankings={marketRankings}
         />
       );
     }
 
+    const marketRankings = await marketRankingsPromise;
     return (
       <div className="flex flex-col gap-8 py-12">
         <section className="glass-card max-w-lg mx-auto p-8 text-center">
@@ -181,6 +244,8 @@ export default async function HomePage() {
             </Link>
           </div>
         </section>
+
+        <CommunityMarketRankingsWidget rankings={marketRankings} />
 
         {/* [春節活動] 明年再啟用 */}
         {/* <SpringFestivalBanner /> */}
@@ -226,7 +291,7 @@ export default async function HomePage() {
     // 查真實 commenter
     const commenterIds = [...new Set(rawComments.map(c => c.commenter_id).filter(Boolean))];
     const { data: profilesData } = commenterIds.length > 0
-      ? await supabase.from("profiles").select("id, full_name").in("id", commenterIds)
+      ? await supabase.from("public_profiles").select("id, full_name").in("id", commenterIds)
       : { data: [] };
 
     // 查虛擬 commenter
@@ -318,7 +383,7 @@ export default async function HomePage() {
   // 載入今日真實訪客（最多 10 位）
   const { data: realVisitorRows } = await supabase
     .from("profile_visits")
-    .select("visitor:visitor_id (id, full_name, username)")
+    .select("visitor_id")
     .eq("profile_user_id", user.id)
     .not("visitor_id", "is", null)
     .gte("visited_at", todayISO)
@@ -335,11 +400,15 @@ export default async function HomePage() {
     .order("visited_at", { ascending: false })
     .limit(10);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const realVisitors = (realVisitorRows?.map((v: any) => v.visitor).filter(Boolean) || []).map((v: any) => ({
-    ...v,
-    isVirtual: false,
-  }));
+  const realVisitorIds = [...new Set((realVisitorRows || []).map((visit) => visit.visitor_id).filter(Boolean))];
+  const { data: realVisitorProfiles } = realVisitorIds.length > 0
+    ? await supabase.from("public_profiles").select("id, full_name, username").in("id", realVisitorIds)
+    : { data: [] };
+  const realVisitorMap = new Map((realVisitorProfiles || []).map((visitor) => [visitor.id, visitor]));
+  const realVisitors = realVisitorIds.flatMap((visitorId) => {
+    const visitor = realVisitorMap.get(visitorId);
+    return visitor ? [{ ...visitor, isVirtual: false as const }] : [];
+  });
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cronVisitors = (cronVisitorRows?.map((v: any) => v.virtual_visitor).filter(Boolean) || []).map((v: any) => ({
     id: v.id,
@@ -408,7 +477,11 @@ export default async function HomePage() {
   );
 
   if (isSkin) {
-    const [hotAuctions, extras] = await Promise.all([loadHotAuctions(), loadHomeExtras()]);
+    const [hotAuctions, extras, marketRankings] = await Promise.all([
+      loadHotAuctions(),
+      loadHomeExtras(),
+      marketRankingsPromise,
+    ]);
     const name =
       (profile as { full_name?: string } | null)?.full_name || user.email || "訓練家";
 
@@ -421,6 +494,7 @@ export default async function HomePage() {
           hotAuctions={hotAuctions}
           recentEvents={extras.recentEvents}
           stats={extras.stats}
+          marketRankings={marketRankings}
           legacyContent={
             <div className="flex flex-col gap-6">
               <CommissionWidget />
@@ -432,6 +506,7 @@ export default async function HomePage() {
     );
   }
 
+  const marketRankings = await marketRankingsPromise;
   return (
     <div className="flex flex-col gap-8">
       {/* 管理員維護過罩開關 */}
@@ -444,6 +519,8 @@ export default async function HomePage() {
 
       {/* 熱門競標區塊 */}
       <HotAuctionsSection />
+
+      <CommunityMarketRankingsWidget rankings={marketRankings} />
 
       {/* [伊布 Day] 活動已結束 */}
       {/* <EeveeDayWidget /> */}

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 
 // GET: 獲取排行榜或檢查投票狀態
 export async function GET(request: Request) {
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
         // 分別查詢真實用戶和虛擬用戶
         const [{ data: realUsers }, { data: virtualUsers }] = await Promise.all([
             supabase
-                .from("profiles")
+                .from("public_profiles")
                 .select("id, full_name, username, popularity_score, followers_count")
                 .gt("popularity_score", 0)
                 .order("popularity_score", { ascending: false })
@@ -78,7 +78,7 @@ export async function GET(request: Request) {
                     // 計算排名：從 DB 查所有比自己分高的人數 + 1（真實 + 虛擬用戶）
                     const [{ count: higherReal }, { count: higherVirtual }] = await Promise.all([
                         supabase
-                            .from("profiles")
+                            .from("public_profiles")
                             .select("id", { count: "exact", head: true })
                             .gt("popularity_score", myProfile.popularity_score || 0),
                         supabase
@@ -216,11 +216,11 @@ export async function POST(request: Request) {
     if (userId) {
         // 直接查詢並 +1
         const { data: current } = await supabase
-            .from("profiles")
+            .from("public_profiles")
             .select("popularity_score")
             .eq("id", userId)
             .single();
-        await supabase
+        await createAdminSupabaseClient()
             .from("profiles")
             .update({ popularity_score: (current?.popularity_score || 0) + 1 })
             .eq("id", userId);

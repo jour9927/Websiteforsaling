@@ -15,9 +15,7 @@ type Message = {
   read_at: string | null;
   sender?: {
     id: string;
-    email: string;
     full_name: string | null;
-    role: string;
   };
 };
 
@@ -86,8 +84,8 @@ export default function MessagesPage() {
       // 获取所有发件人的信息
       const senderIds = receivedMessages.map(m => m.sender_id);
       const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, email, full_name, role')
+        .from('public_profiles')
+        .select('id, full_name')
         .in('id', senderIds);
 
       console.log('查詢發件人結果:', profiles);
@@ -148,31 +146,15 @@ export default function MessagesPage() {
         return;
       }
 
-      // 取得所有管理員
-      const { data: admins } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('role', 'admin');
+      const response = await fetch('/api/messages/contact-admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(composeData),
+      });
 
-      if (!admins || admins.length === 0) {
-        alert("找不到管理員");
-        return;
-      }
-
-      // 發送訊息給所有管理員
-      const messagesToInsert = admins.map(admin => ({
-        sender_id: user.id,
-        recipient_id: admin.id,
-        subject: composeData.subject,
-        body: composeData.body
-      }));
-
-      const { error } = await supabase
-        .from('messages')
-        .insert(messagesToInsert);
-
-      if (error) {
-        console.error("發送訊息錯誤:", error);
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        console.error("發送訊息錯誤:", result);
         alert("發送失敗，請稍後再試");
         return;
       }
@@ -297,7 +279,7 @@ export default function MessagesPage() {
                         )}
                       </div>
                       <p className="mt-1 text-xs text-white/60">
-                        來自: {message.sender_display_name || message.sender?.full_name || message.sender?.email}
+                        來自: {message.sender_display_name || message.sender?.full_name || "站內使用者"}
                       </p>
                       <p className="mt-1 text-xs text-white/50">
                         {new Date(message.created_at).toLocaleString('zh-TW')}
@@ -318,12 +300,7 @@ export default function MessagesPage() {
                 <div>
                   <h2 className="text-xl font-semibold text-white">{selectedMessage.subject}</h2>
                   <p className="mt-2 text-sm text-white/60">
-                    來自: {selectedMessage.sender_display_name || selectedMessage.sender?.full_name || selectedMessage.sender?.email}
-                    {selectedMessage.sender?.role === 'admin' && (
-                      <span className="ml-2 rounded-full bg-purple-500/20 px-2 py-0.5 text-xs text-purple-200">
-                        管理員
-                      </span>
-                    )}
+                    來自: {selectedMessage.sender_display_name || selectedMessage.sender?.full_name || "站內使用者"}
                   </p>
                   <p className="mt-1 text-xs text-white/50">
                     {new Date(selectedMessage.created_at).toLocaleString('zh-TW')}

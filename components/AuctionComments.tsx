@@ -368,15 +368,15 @@ export default function AuctionComments({
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 let targetProfile: any = null;
                 const { data: fullData, error: fullErr } = await supabase
-                    .from('profiles')
-                    .select('full_name, bio, ai_system_prompt, ai_user_summary')
+                    .from('public_profiles')
+                    .select('full_name, bio')
                     .eq('full_name', userName)
                     .single();
 
                 if (fullErr && !fullData) {
                     // 可能是 ai_ 欄位不存在，降級到基本查詢
                     const { data: basicData } = await supabase
-                        .from('profiles')
+                        .from('public_profiles')
                         .select('full_name, bio')
                         .eq('full_name', userName)
                         .single();
@@ -385,10 +385,7 @@ export default function AuctionComments({
                     targetProfile = fullData;
                 }
 
-                if (targetProfile?.ai_user_summary) {
-                    // 優先使用管理員手動設定的摘要
-                    userSummary = targetProfile.ai_user_summary;
-                } else if (targetProfile?.bio) {
+                if (targetProfile?.bio) {
                     userSummary = targetProfile.bio;
                 }
                 if (targetProfile?.ai_system_prompt) {

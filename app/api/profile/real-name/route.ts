@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
   const supabase = createServerSupabaseClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user: verifiedUser },
+  } = await supabase.auth.getUser();
+  const session = verifiedUser ? { user: verifiedUser } : null;
 
   if (!session) {
     return NextResponse.json({ error: "未登入" }, { status: 401 });
@@ -39,7 +40,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "請填寫名字" }, { status: 400 });
   }
 
-  const { error: updateError } = await supabase
+  const { error: updateError } = await createAdminSupabaseClient()
     .from("profiles")
     .update({
       real_name: real_name.trim(),

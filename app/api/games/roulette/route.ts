@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createServerSupabaseClient } from "@/lib/auth";
+import { createAdminSupabaseClient, createServerSupabaseClient } from "@/lib/auth";
 
 export async function POST() {
   try {
@@ -61,7 +61,7 @@ export async function POST() {
     const newPoints = (profile.fortune_points || 0) + ptsAdded;
 
     // Update DB safely
-    const { error: updateError } = await supabase
+    const { error: updateError } = await createAdminSupabaseClient()
       .from("profiles")
       .update({
         lottery_tickets: newTickets,

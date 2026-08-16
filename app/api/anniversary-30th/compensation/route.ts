@@ -106,8 +106,9 @@ async function loadCompensationState(userId: string) {
 export async function GET() {
   const supabase = createServerSupabaseClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user: verifiedUser },
+  } = await supabase.auth.getUser();
+  const session = verifiedUser ? { user: verifiedUser } : null;
 
   if (!session) {
     return NextResponse.json({ error: "請先登入" }, { status: 401 });
@@ -126,8 +127,9 @@ export async function POST(request: NextRequest) {
   const supabase = createServerSupabaseClient();
   const adminSupabase = createAdminSupabaseClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user: verifiedUser },
+  } = await supabase.auth.getUser();
+  const session = verifiedUser ? { user: verifiedUser } : null;
 
   if (!session) {
     return NextResponse.json({ error: "請先登入" }, { status: 401 });

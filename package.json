@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "security:check": "node scripts/check-security-boundaries.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

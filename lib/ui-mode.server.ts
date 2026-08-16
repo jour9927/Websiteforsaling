@@ -5,7 +5,7 @@ import { DEFAULT_UI_MODE, UI_MODE_COOKIE, isUiMode, type UiMode } from "./ui-mod
 
 /**
  * 在 server component / route handler 讀目前的 UI 版本。
- * 讀不到或出錯一律回 v1——舊版是保底，任何意外都不該把使用者丟進沒驗證過的新版。
+ * 讀不到 cookie 或讀取失敗時，一律使用全站預設的精品卡牌主題。
  */
 export function getUiMode(): UiMode {
   try {
