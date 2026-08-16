@@ -136,7 +136,7 @@ async function loadHomeExtras() {
   };
 }
 
-/** 只統計民間交易區已完成的成交，會員名稱一律從公開 view 取得。 */
+/** 真實成交與展示用虛擬排行合併；兩者名稱都只從公開資料來源取得。 */
 async function loadCommunityMarketRankings(): Promise<CommunityMarketRankings> {
   const supabase = createServerSupabaseClient();
   const empty: CommunityMarketRankings = { sellers: [], buyers: [] };
@@ -145,7 +145,7 @@ async function loadCommunityMarketRankings(): Promise<CommunityMarketRankings> {
     const loadRanking = async (rankingType: "seller" | "buyer") => {
       const { data, error } = await supabase
         .from("community_market_rankings")
-        .select("user_id, trade_count, total_points")
+        .select("user_id, trade_count, total_points, participant_type")
         .eq("ranking_type", rankingType)
         .order("trade_count", { ascending: false })
         .order("total_points", { ascending: false })
@@ -159,19 +159,36 @@ async function loadCommunityMarketRankings(): Promise<CommunityMarketRankings> {
       loadRanking("seller"),
       loadRanking("buyer"),
     ]);
-    const ids = [...new Set([...sellerRows, ...buyerRows].map((row) => row.user_id).filter(Boolean))];
-    const { data: profiles, error: profilesError } = ids.length
-      ? await supabase.from("public_profiles").select("id, full_name, username").in("id", ids)
-      : { data: [], error: null };
+    const rows = [...sellerRows, ...buyerRows];
+    const realIds = [...new Set(rows
+      .filter((row) => row.participant_type !== "virtual")
+      .map((row) => row.user_id)
+      .filter(Boolean))];
+    const virtualIds = [...new Set(rows
+      .filter((row) => row.participant_type === "virtual")
+      .map((row) => row.user_id)
+      .filter(Boolean))];
+    const [profilesResult, virtualProfilesResult] = await Promise.all([
+      realIds.length
+        ? supabase.from("public_profiles").select("id, full_name, username").in("id", realIds)
+        : Promise.resolve({ data: [], error: null }),
+      virtualIds.length
+        ? supabase.from("virtual_profiles").select("id, display_name").in("id", virtualIds)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
 
-    if (profilesError) throw profilesError;
+    if (profilesResult.error) throw profilesResult.error;
+    if (virtualProfilesResult.error) throw virtualProfilesResult.error;
 
     const names = new Map(
-      (profiles ?? []).map((profile) => [
+      (profilesResult.data ?? []).map((profile) => [
         profile.id,
         profile.full_name || profile.username || "匿名訓練家",
       ]),
     );
+    (virtualProfilesResult.data ?? []).forEach((profile) => {
+      names.set(profile.id, profile.display_name || "匿名訓練家");
+    });
     const mapRows = (rows: typeof sellerRows): CommunityMarketRankingEntry[] =>
       rows.map((row) => ({
         userId: row.user_id,

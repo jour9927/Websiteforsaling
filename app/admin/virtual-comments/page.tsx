@@ -12,7 +12,6 @@ type Profile = {
 type VirtualProfile = {
     id: string;
     display_name: string;
-    avatar_url: string | null;
 };
 
 type Comment = {
@@ -74,7 +73,7 @@ export default function AdminVirtualCommentsPage() {
             // 載入虛擬用戶
             const { data: virtualData, error: virtualError } = await supabase
                 .from("virtual_profiles")
-                .select("id, display_name, avatar_url")
+                .select("id, display_name")
                 .order("display_name");
             if (virtualError) throw virtualError;
             setVirtualProfiles(virtualData || []);
